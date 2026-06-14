@@ -2,16 +2,17 @@
 
 require_once __DIR__ . '/../../includes/helpers.php';
 require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/i18n.php';
 require_once __DIR__ . '/../../includes/nav.php';
 
 $user = require_superadmin_page();
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html <?php echo html_attrs(); ?>>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Settings · Product Manager</title>
+  <title><?php echo htmlspecialchars(t('settings_title')); ?></title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/assets/css/app.css">
 </head>
@@ -19,17 +20,18 @@ $user = require_superadmin_page();
 
   <header class="sticky top-0 z-30 bg-white border-b border-gray-100">
     <div class="px-4 pt-4 pb-3 flex items-center justify-between">
-      <h1 class="text-lg font-semibold text-gray-900">Settings</h1>
+      <h1 class="text-lg font-semibold text-gray-900"><?php echo htmlspecialchars(t('settings')); ?></h1>
+      <?php render_lang_switcher('/admin/settings.php'); ?>
     </div>
     <div class="px-4 pb-3 flex gap-2 text-sm">
-      <a href="/admin/users.php" class="flex-1 text-center rounded-xl border border-gray-300 text-gray-700 py-2 font-medium">Users</a>
-      <a href="/admin/sites.php" class="flex-1 text-center rounded-xl border border-gray-300 text-gray-700 py-2 font-medium">Sites</a>
-      <a href="/admin/settings.php" class="flex-1 text-center rounded-xl bg-gray-900 text-white py-2 font-medium">Settings</a>
+      <a href="/admin/users.php" class="flex-1 text-center rounded-xl border border-gray-300 text-gray-700 py-2 font-medium"><?php echo htmlspecialchars(t('users')); ?></a>
+      <a href="/admin/sites.php" class="flex-1 text-center rounded-xl border border-gray-300 text-gray-700 py-2 font-medium"><?php echo htmlspecialchars(t("sites")); ?></a>
+      <a href="/admin/settings.php" class="flex-1 text-center rounded-xl bg-gray-900 text-white py-2 font-medium"><?php echo htmlspecialchars(t('settings')); ?></a>
     </div>
   </header>
 
   <main class="px-4 py-3">
-    <div id="loading" class="text-center py-16 text-gray-400 text-sm">Loading...</div>
+    <div id="loading" class="text-center py-16 text-gray-400 text-sm"><?php echo htmlspecialchars(t('loading')); ?></div>
     <form id="settings-form" class="hidden space-y-5"></form>
   </main>
 
@@ -38,6 +40,7 @@ $user = require_superadmin_page();
   <script>
     window.CURRENT_USER = <?php echo json_encode(['id' => $user['id'], 'phone' => $user['phone'], 'name' => $user['name'], 'role' => $user['role']]); ?>;
   </script>
+  <script src="/assets/js/i18n.js"></script>
   <script src="/assets/js/app.js"></script>
   <script src="/assets/js/admin-settings.js"></script>
 </body>

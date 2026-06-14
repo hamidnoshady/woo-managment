@@ -43,7 +43,7 @@ function renderSites(sites) {
   list.innerHTML = '';
 
   if (sites.length === 0) {
-    list.innerHTML = '<p class="text-center text-sm text-gray-400 py-12">No sites yet. Tap "+ Add" to connect a WooCommerce store.</p>';
+    list.innerHTML = `<p class="text-center text-sm text-gray-400 py-12">${escapeHtml(t('no_sites_available'))}</p>`;
     return;
   }
 
@@ -72,11 +72,11 @@ function bindEvents() {
   document.getElementById('site-delete-btn').addEventListener('click', async () => {
     const id = document.getElementById('site-id').value;
     if (!id) return;
-    if (!confirm('Delete this site? Users assigned to it will lose access.')) return;
+    if (!confirm(t('delete_site_confirm'))) return;
 
     try {
       await App.api(`/api/sites.php?id=${id}`, { method: 'DELETE' });
-      App.toast('Site deleted', 'success');
+      App.toast(t('site_deleted'), 'success');
       closeSheet();
       await loadSites();
     } catch (err) {
@@ -93,7 +93,7 @@ async function openSheet(id) {
   document.getElementById('site-ck').placeholder = 'ck_...';
   document.getElementById('site-cs').placeholder = 'cs_...';
   document.getElementById('site-delete-btn').classList.toggle('hidden', !id);
-  document.getElementById('site-sheet-title').textContent = id ? 'Edit site' : 'Add site';
+  document.getElementById('site-sheet-title').textContent = id ? t('edit_site') : t('add_site');
   document.getElementById('site-verify-ssl').checked = true;
 
   if (id) {
@@ -108,11 +108,11 @@ async function openSheet(id) {
       document.getElementById('site-cs').placeholder = item.consumer_secret;
 
       const ckHint = document.getElementById('site-ck-hint');
-      ckHint.textContent = `Current: ${item.consumer_key}. Leave blank to keep.`;
+      ckHint.textContent = t('current_value_leave_blank', item.consumer_key);
       ckHint.classList.remove('hidden');
 
       const csHint = document.getElementById('site-cs-hint');
-      csHint.textContent = `Current: ${item.consumer_secret}. Leave blank to keep.`;
+      csHint.textContent = t('current_value_leave_blank', item.consumer_secret);
       csHint.classList.remove('hidden');
     } catch (err) {
       App.toast(err.message, 'error');
@@ -149,7 +149,7 @@ async function saveSite() {
     } else {
       await App.api('/api/sites.php', { method: 'POST', body: JSON.stringify(payload) });
     }
-    App.toast('Site saved', 'success');
+    App.toast(t('site_saved'), 'success');
     closeSheet();
     await loadSites();
   } catch (err) {

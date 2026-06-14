@@ -37,6 +37,15 @@ class Database
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_otp_phone ON otp_codes (phone)');
 
         $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS otp_verify_attempts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                phone TEXT NOT NULL,
+                created_at INTEGER NOT NULL
+            )'
+        );
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_otp_attempts_phone ON otp_verify_attempts (phone)');
+
+        $pdo->exec(
             'CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 phone TEXT NOT NULL UNIQUE,

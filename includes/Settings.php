@@ -14,6 +14,7 @@ const SETTINGS_DEFAULTS = [
     'otp_expiry_seconds'   => 120,
     'otp_max_per_window'   => 3,
     'otp_window_seconds'   => 600,
+    'otp_max_verify_attempts' => 5,
     'session_name'         => 'wcpm_session',
     'session_lifetime'     => 28800,
     'superadmin_phones'    => '',
@@ -59,6 +60,12 @@ const SETTINGS_FIELDS = [
         'type' => 'number',
         'group' => 'Login codes (OTP)',
         'help' => 'Time window used for the rate limit above.',
+    ],
+    'otp_max_verify_attempts' => [
+        'label' => 'Max OTP verification attempts',
+        'type' => 'number',
+        'group' => 'Login codes (OTP)',
+        'help' => 'Lockout: max failed code verification attempts a phone number gets within the rate limit window above before further attempts are blocked.',
     ],
     'session_name' => [
         'label' => 'Session cookie name',

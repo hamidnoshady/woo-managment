@@ -3,17 +3,18 @@
 require_once __DIR__ . '/../includes/helpers.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/site_context.php';
+require_once __DIR__ . '/../includes/i18n.php';
 
 $user = require_login_page();
 $site = require_site_page($user);
 $productId = (int) ($_GET['id'] ?? 0);
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html <?php echo html_attrs(); ?>>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title><?php echo $productId > 0 ? 'Edit product' : 'New product'; ?> · Product Manager</title>
+  <title><?php echo htmlspecialchars($productId > 0 ? t('edit_product') : t('new_product')); ?> · Product Manager</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/assets/css/app.css">
 </head>
@@ -21,90 +22,91 @@ $productId = (int) ($_GET['id'] ?? 0);
 
   <header class="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
     <a href="/products.php" class="text-gray-500 text-xl leading-none">&larr;</a>
-    <h1 class="text-base font-semibold text-gray-900"><?php echo $productId > 0 ? 'Edit product' : 'New product'; ?></h1>
+    <h1 class="text-base font-semibold text-gray-900 flex-1"><?php echo htmlspecialchars($productId > 0 ? t('edit_product') : t('new_product')); ?></h1>
+    <?php render_lang_switcher('/product-edit.php'); ?>
   </header>
   <?php require_once __DIR__ . '/../includes/nav.php'; render_site_switcher($site); ?>
 
   <main class="px-4 py-4">
-    <div id="loading" class="text-center py-16 text-gray-400 text-sm">Loading...</div>
+    <div id="loading" class="text-center py-16 text-gray-400 text-sm"><?php echo htmlspecialchars(t('loading')); ?></div>
 
     <form id="product-form" class="hidden space-y-4">
       <div class="bg-white rounded-2xl border border-gray-100 p-4 space-y-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+          <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo htmlspecialchars(t('name')); ?></label>
           <input id="name" type="text" required class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none">
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">SKU</label>
+          <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo htmlspecialchars(t('sku')); ?></label>
           <input id="sku" type="text" class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none">
         </div>
       </div>
 
       <div class="bg-white rounded-2xl border border-gray-100 p-4 space-y-4">
-        <h2 class="text-sm font-semibold text-gray-900">Pricing</h2>
+        <h2 class="text-sm font-semibold text-gray-900"><?php echo htmlspecialchars(t('pricing')); ?></h2>
         <div class="flex gap-3">
           <div class="flex-1">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Regular price</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo htmlspecialchars(t('regular_price')); ?></label>
             <input id="regular_price" type="number" step="0.01" min="0" class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none">
           </div>
           <div class="flex-1">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Sale price</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo htmlspecialchars(t('sale_price')); ?></label>
             <input id="sale_price" type="number" step="0.01" min="0" class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none">
           </div>
         </div>
       </div>
 
       <div class="bg-white rounded-2xl border border-gray-100 p-4 space-y-4">
-        <h2 class="text-sm font-semibold text-gray-900">Inventory</h2>
+        <h2 class="text-sm font-semibold text-gray-900"><?php echo htmlspecialchars(t('inventory')); ?></h2>
         <div class="flex gap-3">
           <div class="flex-1">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Stock quantity</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo htmlspecialchars(t('stock_quantity')); ?></label>
             <input id="stock_quantity" type="number" step="1" min="0" class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none">
           </div>
           <div class="flex-1">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Stock status</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo htmlspecialchars(t('stock_status')); ?></label>
             <select id="stock_status" class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm">
-              <option value="instock">In stock</option>
-              <option value="outofstock">Out of stock</option>
-              <option value="onbackorder">On backorder</option>
+              <option value="instock"><?php echo htmlspecialchars(t('in_stock')); ?></option>
+              <option value="outofstock"><?php echo htmlspecialchars(t('out_of_stock')); ?></option>
+              <option value="onbackorder"><?php echo htmlspecialchars(t('on_backorder')); ?></option>
             </select>
           </div>
         </div>
       </div>
 
       <div class="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
-        <h2 class="text-sm font-semibold text-gray-900">Categories</h2>
+        <h2 class="text-sm font-semibold text-gray-900"><?php echo htmlspecialchars(t('categories')); ?></h2>
         <div id="categories-list" class="space-y-2 max-h-48 overflow-y-auto"></div>
       </div>
 
       <div class="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
-        <h2 class="text-sm font-semibold text-gray-900">Images (URLs)</h2>
+        <h2 class="text-sm font-semibold text-gray-900"><?php echo htmlspecialchars(t('images_urls')); ?></h2>
         <div id="images-list" class="space-y-2"></div>
-        <button type="button" id="add-image" class="text-sm font-medium text-gray-600">+ Add image URL</button>
+        <button type="button" id="add-image" class="text-sm font-medium text-gray-600"><?php echo htmlspecialchars(t('add_image_url')); ?></button>
       </div>
 
       <div class="bg-white rounded-2xl border border-gray-100 p-4 space-y-4">
-        <h2 class="text-sm font-semibold text-gray-900">Description</h2>
+        <h2 class="text-sm font-semibold text-gray-900"><?php echo htmlspecialchars(t('description')); ?></h2>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Short description</label>
+          <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo htmlspecialchars(t('short_description')); ?></label>
           <textarea id="short_description" rows="3" class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none"></textarea>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+          <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo htmlspecialchars(t('status')); ?></label>
           <select id="status" class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm">
-            <option value="publish">Published</option>
-            <option value="draft">Draft</option>
-            <option value="private">Private</option>
+            <option value="publish"><?php echo htmlspecialchars(t('status_publish')); ?></option>
+            <option value="draft"><?php echo htmlspecialchars(t('status_draft')); ?></option>
+            <option value="private"><?php echo htmlspecialchars(t('status_private')); ?></option>
           </select>
         </div>
       </div>
 
       <div class="flex gap-2 pb-4">
         <button type="submit" id="save-btn" class="flex-1 rounded-xl bg-gray-900 text-white font-medium py-3 text-base active:scale-[0.99] transition disabled:opacity-50">
-          Save
+          <?php echo htmlspecialchars(t('save')); ?>
         </button>
         <button type="button" id="delete-btn" class="hidden rounded-xl border border-red-300 text-red-600 font-medium py-3 px-4 text-base">
-          Delete
+          <?php echo htmlspecialchars(t('delete')); ?>
         </button>
       </div>
     </form>
@@ -115,6 +117,7 @@ $productId = (int) ($_GET['id'] ?? 0);
     window.CURRENT_SITE = <?php echo json_encode(['id' => $site['id'], 'name' => $site['name']]); ?>;
     window.PRODUCT_ID = <?php echo (int) $productId; ?>;
   </script>
+  <script src="/assets/js/i18n.js"></script>
   <script src="/assets/js/app.js"></script>
   <script src="/assets/js/product-edit.js"></script>
 </body>

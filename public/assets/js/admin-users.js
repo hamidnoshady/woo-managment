@@ -52,16 +52,16 @@ function renderUsers() {
   list.innerHTML = '';
 
   const roleLabels = {
-    superadmin: ['Superadmin', 'bg-purple-100 text-purple-700'],
-    admin: ['Admin', 'bg-blue-100 text-blue-700'],
-    shop_manager: ['Shop manager', 'bg-gray-100 text-gray-600'],
+    superadmin: [t('role_superadmin'), 'bg-purple-100 text-purple-700'],
+    admin: [t('role_admin'), 'bg-blue-100 text-blue-700'],
+    shop_manager: [t('role_shop_manager'), 'bg-gray-100 text-gray-600'],
   };
 
   users.forEach((user) => {
-    const [label, cls] = roleLabels[user.role] || ['Unknown', 'bg-gray-100 text-gray-600'];
+    const [label, cls] = roleLabels[user.role] || [t('unknown'), 'bg-gray-100 text-gray-600'];
     const siteNames = user.role === 'superadmin'
-      ? 'All sites'
-      : (user.site_ids.map((id) => sites.find((s) => s.id === id)?.name).filter(Boolean).join(', ') || 'No sites assigned');
+      ? t('superadmin_all_sites_note')
+      : (user.site_ids.map((id) => sites.find((s) => s.id === id)?.name).filter(Boolean).join(', ') || t('no_sites_assigned'));
 
     const card = document.createElement('button');
     card.className = 'w-full text-left bg-white rounded-2xl border border-gray-100 p-4';
@@ -93,11 +93,11 @@ function bindEvents() {
   document.getElementById('user-delete-btn').addEventListener('click', async () => {
     const id = document.getElementById('user-id').value;
     if (!id) return;
-    if (!confirm('Delete this user?')) return;
+    if (!confirm(t('delete_user_confirm'))) return;
 
     try {
       await App.api(`/api/users.php?id=${id}`, { method: 'DELETE' });
-      App.toast('User deleted', 'success');
+      App.toast(t('user_deleted'), 'success');
       closeSheet();
       await loadAll();
     } catch (err) {
@@ -113,7 +113,7 @@ function openSheet(user) {
   document.getElementById('user-phone').disabled = !!user;
   document.getElementById('user-name').value = user ? user.name : '';
   document.getElementById('user-role').value = user ? user.role : 'admin';
-  document.getElementById('user-sheet-title').textContent = user ? 'Edit user' : 'Add user';
+  document.getElementById('user-sheet-title').textContent = user ? t('edit_user') : t('add_user');
 
   const isSelf = user && user.id === window.CURRENT_USER.id;
   document.getElementById('user-delete-btn').classList.toggle('hidden', !user || isSelf);
@@ -124,7 +124,7 @@ function openSheet(user) {
   const selectedIds = new Set((user?.site_ids || []));
 
   if (sites.length === 0) {
-    sitesList.innerHTML = '<p class="text-xs text-gray-400">No sites available yet.</p>';
+    sitesList.innerHTML = `<p class="text-xs text-gray-400">${escapeHtml(t('no_sites_available'))}</p>`;
   } else {
     sites.forEach((site) => {
       const label = document.createElement('label');
@@ -162,7 +162,7 @@ async function saveUser() {
     } else {
       await App.api('/api/users.php', { method: 'POST', body: JSON.stringify(payload) });
     }
-    App.toast('User saved', 'success');
+    App.toast(t('user_saved'), 'success');
     closeSheet();
     await loadAll();
   } catch (err) {

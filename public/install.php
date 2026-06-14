@@ -5,6 +5,8 @@ require_once __DIR__ . '/../includes/Database.php';
 require_once __DIR__ . '/../includes/Settings.php';
 require_once __DIR__ . '/../includes/Users.php';
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/i18n.php';
+require_once __DIR__ . '/../includes/nav.php';
 
 start_app_session();
 
@@ -48,20 +50,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html <?php echo html_attrs(); ?>>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Initial setup · Product Manager</title>
+  <title><?php echo htmlspecialchars(t('install_title')); ?></title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/assets/css/app.css">
 </head>
 <body class="bg-gray-50 min-h-screen flex items-center justify-center px-4">
+  <div class="absolute top-4 right-4"><?php render_lang_switcher('/install.php'); ?></div>
   <div class="w-full max-w-sm py-8">
     <div class="text-center mb-8">
       <div class="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-900 text-white text-2xl font-bold">P</div>
-      <h1 class="text-xl font-semibold text-gray-900">Initial setup</h1>
-      <p class="text-sm text-gray-500 mt-1">Create the first superadmin account</p>
+      <h1 class="text-xl font-semibold text-gray-900"><?php echo htmlspecialchars(t('install_heading')); ?></h1>
+      <p class="text-sm text-gray-500 mt-1"><?php echo htmlspecialchars(t('install_subheading')); ?></p>
     </div>
 
     <?php if ($error !== ''): ?>
@@ -72,44 +75,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
 
       <div>
-        <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Your mobile number</label>
+        <label for="phone" class="block text-sm font-medium text-gray-700 mb-1"><?php echo htmlspecialchars(t('install_your_number')); ?></label>
         <input id="phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel" required
-               placeholder="09xxxxxxxxx"
+               placeholder="09xxxxxxxxx" dir="ltr"
                class="w-full rounded-xl border border-gray-300 px-4 py-3 text-base focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none">
-        <p class="text-xs text-gray-400 mt-1">You'll use this number to sign in with an SMS code.</p>
+        <p class="text-xs text-gray-400 mt-1"><?php echo htmlspecialchars(t('install_number_help')); ?></p>
       </div>
 
       <div>
-        <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Your name</label>
-        <input id="name" name="name" type="text" placeholder="Optional"
+        <label for="name" class="block text-sm font-medium text-gray-700 mb-1"><?php echo htmlspecialchars(t('install_your_name')); ?></label>
+        <input id="name" name="name" type="text" placeholder="<?php echo htmlspecialchars(t('optional')); ?>"
                class="w-full rounded-xl border border-gray-300 px-4 py-3 text-base focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none">
       </div>
 
       <div class="pt-2 border-t border-gray-100">
-        <p class="text-sm font-medium text-gray-700 mb-1">Kavenegar SMS (optional)</p>
-        <p class="text-xs text-gray-400 mb-3">Needed to send login codes. You can also set this later from Admin → Settings.</p>
+        <p class="text-sm font-medium text-gray-700 mb-1"><?php echo htmlspecialchars(t('install_kavenegar_heading')); ?></p>
+        <p class="text-xs text-gray-400 mb-3"><?php echo htmlspecialchars(t('install_kavenegar_help')); ?></p>
       </div>
 
       <div>
-        <label for="kavenegar_api_key" class="block text-sm font-medium text-gray-700 mb-1">Kavenegar API key</label>
-        <input id="kavenegar_api_key" name="kavenegar_api_key" type="text" autocomplete="off"
+        <label for="kavenegar_api_key" class="block text-sm font-medium text-gray-700 mb-1"><?php echo htmlspecialchars(t('kavenegar_api_key_label')); ?></label>
+        <input id="kavenegar_api_key" name="kavenegar_api_key" type="text" autocomplete="off" dir="ltr"
                class="w-full rounded-xl border border-gray-300 px-4 py-3 text-base font-mono focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none">
       </div>
 
       <div>
-        <label for="kavenegar_template" class="block text-sm font-medium text-gray-700 mb-1">Kavenegar template name</label>
-        <input id="kavenegar_template" name="kavenegar_template" type="text" placeholder="verify"
+        <label for="kavenegar_template" class="block text-sm font-medium text-gray-700 mb-1"><?php echo htmlspecialchars(t('kavenegar_template_label')); ?></label>
+        <input id="kavenegar_template" name="kavenegar_template" type="text" placeholder="verify" dir="ltr"
                class="w-full rounded-xl border border-gray-300 px-4 py-3 text-base focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none">
       </div>
 
       <button type="submit"
               class="w-full rounded-xl bg-gray-900 text-white font-medium py-3 text-base active:scale-[0.99] transition">
-        Create superadmin account
+        <?php echo htmlspecialchars(t('install_submit')); ?>
       </button>
     </form>
 
     <p class="text-center text-xs text-gray-400 mt-6">
-      This page is only available until the first superadmin account is created.
+      <?php echo htmlspecialchars(t('install_footer')); ?>
     </p>
   </div>
 </body>

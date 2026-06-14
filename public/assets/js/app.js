@@ -81,12 +81,24 @@ const App = {
   },
 
   /**
-   * Formats a numeric price string for display (no currency symbol).
+   * Formats a numeric price string for display, using Persian digits and
+   * separators when the UI language is Farsi (no currency unit).
    */
   formatPrice(value) {
     const num = parseFloat(value);
     if (isNaN(num)) return '0';
-    return num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    const locale = (document.documentElement.lang === 'fa') ? 'fa-IR' : 'en-US';
+    return num.toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  },
+
+  /**
+   * Formats a numeric amount as Iranian Toman, including the currency unit
+   * (تومان / Toman) and Persian digits/separators when the UI language is Farsi.
+   */
+  formatToman(value) {
+    const formatted = this.formatPrice(value);
+    const unit = (typeof t === 'function') ? t('currency_unit') : 'Toman';
+    return `${formatted} ${unit}`;
   },
 
   /**

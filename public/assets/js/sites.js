@@ -34,7 +34,7 @@ async function init() {
           <div class="text-sm font-semibold text-gray-900">${escapeHtml(site.name)}</div>
           <div class="text-xs text-gray-400 mt-0.5">${escapeHtml(site.store_url)}</div>
         </div>
-        ${isCurrent ? '<span class="text-xs font-medium text-green-600">Current</span>' : '<span class="text-gray-300 text-lg">&rsaquo;</span>'}
+        ${isCurrent ? `<span class="text-xs font-medium text-green-600">${escapeHtml(t('current'))}</span>` : '<span class="text-gray-300 text-lg">&rsaquo;</span>'}
       `;
       card.addEventListener('click', () => selectSite(site.id));
       list.appendChild(card);

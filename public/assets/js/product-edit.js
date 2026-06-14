@@ -114,8 +114,9 @@ function bindEvents() {
 
   els.form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const originalSaveLabel = els.saveBtn.textContent;
     els.saveBtn.disabled = true;
-    els.saveBtn.textContent = 'Saving...';
+    els.saveBtn.textContent = t('saving');
 
     const payload = {
       name: els.name.value.trim(),
@@ -141,23 +142,23 @@ function bindEvents() {
         method: window.PRODUCT_ID > 0 ? 'PUT' : 'POST',
         body: JSON.stringify(payload),
       });
-      App.toast('Product saved', 'success');
+      App.toast(t('product_saved'), 'success');
       window.location.href = `/product-edit.php?id=${data.item.id}`;
     } catch (err) {
       App.toast(err.message, 'error');
     } finally {
       els.saveBtn.disabled = false;
-      els.saveBtn.textContent = 'Save';
+      els.saveBtn.textContent = originalSaveLabel;
     }
   });
 
   els.deleteBtn.addEventListener('click', async () => {
-    if (!confirm('Delete this product permanently?')) return;
+    if (!confirm(t('delete_product_confirm'))) return;
 
     els.deleteBtn.disabled = true;
     try {
       await App.api(`/api/product.php?id=${window.PRODUCT_ID}`, { method: 'DELETE' });
-      App.toast('Product deleted', 'success');
+      App.toast(t('product_deleted'), 'success');
       window.location.href = '/products.php';
     } catch (err) {
       App.toast(err.message, 'error');

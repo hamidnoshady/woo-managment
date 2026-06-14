@@ -146,9 +146,9 @@ function renderProductCard(product) {
 
   const stockBadge = stockStatusBadge(product.stock_status);
   const priceHtml = product.on_sale && product.sale_price
-    ? `<span class="text-sm font-semibold text-gray-900">${App.formatPrice(product.sale_price)}</span>
-       <span class="text-xs text-gray-400 line-through ml-1">${App.formatPrice(product.regular_price)}</span>`
-    : `<span class="text-sm font-semibold text-gray-900">${App.formatPrice(product.price)}</span>`;
+    ? `<span class="text-sm font-semibold text-gray-900">${App.formatToman(product.sale_price)}</span>
+       <span class="text-xs text-gray-400 line-through ml-1">${App.formatToman(product.regular_price)}</span>`
+    : `<span class="text-sm font-semibold text-gray-900">${App.formatToman(product.price)}</span>`;
 
   const image = product.image
     ? `<img src="${escapeHtml(product.image)}" alt="" class="h-16 w-16 rounded-xl object-cover flex-shrink-0 bg-gray-100">`
@@ -230,11 +230,11 @@ function renderProductCard(product) {
 
 function stockStatusBadge(status) {
   const map = {
-    instock: ['In stock', 'bg-green-100 text-green-700'],
-    outofstock: ['Out of stock', 'bg-red-100 text-red-700'],
-    onbackorder: ['Backorder', 'bg-yellow-100 text-yellow-700'],
+    instock: [t('in_stock'), 'bg-green-100 text-green-700'],
+    outofstock: [t('out_of_stock'), 'bg-red-100 text-red-700'],
+    onbackorder: [t('backorder'), 'bg-yellow-100 text-yellow-700'],
   };
-  const [label, cls] = map[status] || ['Unknown', 'bg-gray-100 text-gray-600'];
+  const [label, cls] = map[status] || [t('unknown'), 'bg-gray-100 text-gray-600'];
   return `<span class="stock-badge-wrap"><span class="text-[10px] font-medium px-1.5 py-0.5 rounded ${cls}">${label}</span></span>`;
 }
 
@@ -307,7 +307,7 @@ function bindEvents() {
     state.selected.clear();
     updateSelectionBar();
 
-    document.getElementById('select-toggle').textContent = state.selectionMode ? 'Cancel' : 'Select';
+    document.getElementById('select-toggle').textContent = state.selectionMode ? t('cancel') : t('select');
     document.getElementById('add-fab').classList.toggle('hidden', state.selectionMode);
 
     document.querySelectorAll('#product-list > div').forEach((card) => {
@@ -346,7 +346,7 @@ function updateSelectionBar() {
   const count = document.getElementById('selection-count');
   if (state.selectionMode && state.selected.size > 0) {
     bar.classList.remove('hidden');
-    count.textContent = `${state.selected.size} selected`;
+    count.textContent = `${state.selected.size} ${t('selected_count')}`;
   } else {
     bar.classList.add('hidden');
   }
