@@ -143,6 +143,9 @@ function bindEvents() {
         body: JSON.stringify(payload),
       });
       App.toast(t('product_saved'), 'success');
+      if (data.item.log_id) {
+        App.notifyOnNextPage(data.item.message, { logId: data.item.log_id });
+      }
       window.location.href = `/product-edit.php?id=${data.item.id}`;
     } catch (err) {
       App.toast(err.message, 'error');
@@ -157,8 +160,11 @@ function bindEvents() {
 
     els.deleteBtn.disabled = true;
     try {
-      await App.api(`/api/product.php?id=${window.PRODUCT_ID}`, { method: 'DELETE' });
+      const data = await App.api(`/api/product.php?id=${window.PRODUCT_ID}`, { method: 'DELETE' });
       App.toast(t('product_deleted'), 'success');
+      if (data.message) {
+        App.notifyOnNextPage(data.message);
+      }
       window.location.href = '/products.php';
     } catch (err) {
       App.toast(err.message, 'error');

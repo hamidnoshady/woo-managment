@@ -12,6 +12,7 @@ const TRANSLATIONS = [
         // Nav / shared
         'nav_products' => 'Products',
         'nav_batch' => 'Batch',
+        'nav_logs' => 'Logs',
         'nav_admin' => 'Admin',
         'nav_logout' => 'Logout',
         'site_label' => 'Site',
@@ -218,12 +219,42 @@ const TRANSLATIONS = [
 
         // Currency
         'currency_unit' => 'Toman',
+
+        // Activity logs
+        'logs_title' => 'Activity logs · Product Manager',
+        'logs_heading' => 'Activity logs',
+        'my_logs' => 'My activity',
+        'site_logs' => 'All users',
+        'system_logs' => 'System',
+        'no_logs' => 'No activity yet.',
+        'undo' => 'Undo',
+        'undo_applied' => 'Change undone.',
+        'undo_failed' => 'Could not undo this change.',
+        'undo_expired' => 'This change can no longer be undone.',
+        'seconds_short' => 's',
+
+        // Log message templates
+        'log_stock_changed' => 'Updated stock for "%s" from %s to %s',
+        'log_product_updated' => 'Updated product "%s"',
+        'log_product_created' => 'Created product "%s"',
+        'log_product_deleted' => 'Deleted product "%s"',
+        'log_batch_price_applied' => 'Applied a price change to %s product(s)',
+        'log_batch_stock_applied' => 'Applied a stock change to %s product(s)',
+        'log_undo_applied' => 'Undid a previous change: %s',
+        'log_user_created' => 'Created user "%s"',
+        'log_user_updated' => 'Updated user "%s"',
+        'log_user_deleted' => 'Deleted user "%s"',
+        'log_site_created' => 'Added site "%s"',
+        'log_site_updated' => 'Updated site "%s"',
+        'log_site_deleted' => 'Deleted site "%s"',
+        'log_settings_updated' => 'Updated app settings',
     ],
 
     'fa' => [
         // Nav / shared
         'nav_products' => 'محصولات',
         'nav_batch' => 'دسته‌ای',
+        'nav_logs' => 'گزارش‌ها',
         'nav_admin' => 'مدیریت',
         'nav_logout' => 'خروج',
         'site_label' => 'فروشگاه',
@@ -430,6 +461,35 @@ const TRANSLATIONS = [
 
         // Currency
         'currency_unit' => 'تومان',
+
+        // Activity logs
+        'logs_title' => 'گزارش فعالیت‌ها · مدیریت محصولات',
+        'logs_heading' => 'گزارش فعالیت‌ها',
+        'my_logs' => 'فعالیت‌های من',
+        'site_logs' => 'همه کاربران',
+        'system_logs' => 'سیستم',
+        'no_logs' => 'هنوز فعالیتی ثبت نشده است.',
+        'undo' => 'واگرد',
+        'undo_applied' => 'تغییر بازگردانده شد.',
+        'undo_failed' => 'امکان بازگرداندن این تغییر وجود ندارد.',
+        'undo_expired' => 'دیگر نمی‌توان این تغییر را بازگرداند.',
+        'seconds_short' => 'ث',
+
+        // Log message templates
+        'log_stock_changed' => 'موجودی "%s" از %s به %s تغییر کرد',
+        'log_product_updated' => 'محصول "%s" به‌روزرسانی شد',
+        'log_product_created' => 'محصول "%s" ایجاد شد',
+        'log_product_deleted' => 'محصول "%s" حذف شد',
+        'log_batch_price_applied' => 'تغییر قیمت روی %s محصول اعمال شد',
+        'log_batch_stock_applied' => 'تغییر موجودی روی %s محصول اعمال شد',
+        'log_undo_applied' => 'یک تغییر قبلی بازگردانده شد: %s',
+        'log_user_created' => 'کاربر "%s" ایجاد شد',
+        'log_user_updated' => 'کاربر "%s" به‌روزرسانی شد',
+        'log_user_deleted' => 'کاربر "%s" حذف شد',
+        'log_site_created' => 'فروشگاه "%s" اضافه شد',
+        'log_site_updated' => 'فروشگاه "%s" به‌روزرسانی شد',
+        'log_site_deleted' => 'فروشگاه "%s" حذف شد',
+        'log_settings_updated' => 'تنظیمات برنامه به‌روزرسانی شد',
     ],
 ];
 

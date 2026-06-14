@@ -5,7 +5,7 @@ require_once __DIR__ . '/i18n.php';
 /**
  * Shared bottom navigation bar.
  *
- * @param string $active One of: products, batch, admin
+ * @param string $active One of: products, batch, logs, admin
  * @param array  $user    Current user (['role' => ...])
  */
 function render_bottom_nav(string $active, array $user): void
@@ -19,6 +19,9 @@ function render_bottom_nav(string $active, array $user): void
       </a>
       <a href="/batch.php" class="flex-1 py-3 text-center text-xs font-medium <?php echo $cls('batch'); ?>">
         <div class="text-lg leading-none mb-0.5">%</div><?php echo htmlspecialchars(t('nav_batch')); ?>
+      </a>
+      <a href="/logs.php" class="flex-1 py-3 text-center text-xs font-medium <?php echo $cls('logs'); ?>">
+        <div class="text-lg leading-none mb-0.5">🕒</div><?php echo htmlspecialchars(t('nav_logs')); ?>
       </a>
       <?php if ($isSuperadmin): ?>
       <a href="/admin/users.php" class="flex-1 py-3 text-center text-xs font-medium <?php echo $cls('admin'); ?>">

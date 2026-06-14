@@ -32,6 +32,8 @@ async function init() {
   await loadCategories();
   bindEvents();
   await loadProducts(true);
+
+  App.onUndo = () => loadProducts(true);
 }
 
 async function ensureSession() {
@@ -191,6 +193,9 @@ function renderProductCard(product) {
         const badgeWrap = card.querySelector('.stock-badge-wrap');
         if (badgeWrap) {
           badgeWrap.outerHTML = stockStatusBadge(result.stock_status);
+        }
+        if (result.log_id) {
+          App.notify(result.message, { logId: result.log_id });
         }
       } catch (err) {
         App.toast(err.message, 'error');

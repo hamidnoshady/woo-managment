@@ -4,8 +4,9 @@ require_once __DIR__ . '/../../includes/helpers.php';
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/Settings.php';
 require_once __DIR__ . '/../../includes/i18n.php';
+require_once __DIR__ . '/../../includes/ActivityLog.php';
 
-require_superadmin_api();
+$currentUser = require_superadmin_api();
 $method = $_SERVER['REQUEST_METHOD'];
 
 /**
@@ -88,6 +89,7 @@ if ($method === 'PUT') {
     }
 
     update_settings($data);
+    log_activity($currentUser, null, 'system', 'settings_update', 'log_settings_updated');
     json_response(['fields' => array_map(
         fn($key, $meta) => array_merge(translate_field_meta($key, $meta), ['key' => $key, 'value' => get_setting($key)]),
         array_keys(SETTINGS_FIELDS),

@@ -185,12 +185,15 @@ async function confirmApply() {
   confirmBtn.textContent = t('applying');
 
   try {
-    await App.api('/api/batch.php', {
+    const data = await App.api('/api/batch.php', {
       method: 'POST',
       body: JSON.stringify(Object.assign({ preview: false }, pendingRequest)),
     });
 
     App.toast(t('batch_update_applied'), 'success');
+    if (data.log_id) {
+      App.notifyOnNextPage(data.message, { logId: data.log_id });
+    }
     sessionStorage.removeItem('batch_ids');
     document.getElementById('preview-section').classList.add('hidden');
     pendingRequest = null;

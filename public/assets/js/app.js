@@ -81,6 +81,100 @@ const App = {
   },
 
   /**
+   * Shows an in-app notification for a change that was just made. If
+   * `logId` is provided, an "Undo" button is shown with a countdown for
+   * the duration of the undo window (10s by default).
+   */
+  notify(message, { logId = null, duration = 10000 } = {}) {
+    let container = document.querySelector('.notif');
+    if (!container) {
+      container = document.createElement('div');
+      container.className = 'notif';
+      document.body.appendChild(container);
+    }
+
+    const item = document.createElement('div');
+    item.className = 'notif-item';
+
+    const text = document.createElement('div');
+    text.className = 'notif-text';
+    text.textContent = message;
+    item.appendChild(text);
+
+    if (logId !== null) {
+      const undoBtn = document.createElement('button');
+      undoBtn.className = 'notif-undo';
+      undoBtn.textContent = `${t('undo')} (${Math.ceil(duration / 1000)})`;
+      item.appendChild(undoBtn);
+
+      const bar = document.createElement('div');
+      bar.className = 'notif-bar';
+      bar.style.animationDuration = `${duration}ms`;
+      item.appendChild(bar);
+
+      let remaining = Math.ceil(duration / 1000);
+      const tick = setInterval(() => {
+        remaining -= 1;
+        if (remaining <= 0) {
+          clearInterval(tick);
+          item.remove();
+          return;
+        }
+        undoBtn.textContent = `${t('undo')} (${remaining})`;
+      }, 1000);
+
+      const removeTimer = setTimeout(() => item.remove(), duration);
+
+      undoBtn.addEventListener('click', async () => {
+        clearInterval(tick);
+        clearTimeout(removeTimer);
+        undoBtn.disabled = true;
+        try {
+          await this.api('/api/logs.php?action=undo', {
+            method: 'POST',
+            body: JSON.stringify({ id: logId }),
+          });
+          this.toast(t('undo_applied'), 'success');
+          if (typeof this.onUndo === 'function') {
+            this.onUndo(logId);
+          }
+        } catch (err) {
+          this.toast(err.message || t('undo_failed'), 'error');
+        } finally {
+          item.remove();
+        }
+      });
+    } else {
+      setTimeout(() => item.remove(), duration);
+    }
+
+    container.appendChild(item);
+  },
+
+  /**
+   * Stores a notification to be shown after the next page navigation
+   * (e.g. before redirecting to a different page following a save).
+   */
+  notifyOnNextPage(message, options = {}) {
+    sessionStorage.setItem('pending_notif', JSON.stringify({ message, options }));
+  },
+
+  /**
+   * Shows a notification stored via notifyOnNextPage(), if any.
+   */
+  showPendingNotify() {
+    const raw = sessionStorage.getItem('pending_notif');
+    if (!raw) return;
+    sessionStorage.removeItem('pending_notif');
+    try {
+      const { message, options } = JSON.parse(raw);
+      this.notify(message, options);
+    } catch (e) {
+      // ignore malformed entries
+    }
+  },
+
+  /**
    * Formats a numeric price string for display, using Persian digits and
    * separators when the UI language is Farsi (no currency unit).
    */
@@ -114,3 +208,5 @@ const App = {
     window.location.href = '/login.php';
   },
 };
+
+document.addEventListener('DOMContentLoaded', () => App.showPendingNotify());

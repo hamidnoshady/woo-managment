@@ -82,6 +82,26 @@ class Database
             )'
         );
 
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS activity_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                user_name TEXT NOT NULL DEFAULT \'\',
+                user_phone TEXT NOT NULL DEFAULT \'\',
+                site_id INTEGER,
+                category TEXT NOT NULL DEFAULT \'site\',
+                action TEXT NOT NULL,
+                message_key TEXT NOT NULL,
+                message_params TEXT NOT NULL DEFAULT \'[]\',
+                undo_data TEXT,
+                undone INTEGER NOT NULL DEFAULT 0,
+                created_at INTEGER NOT NULL
+            )'
+        );
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_activity_logs_user ON activity_logs (user_id)');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_activity_logs_site ON activity_logs (site_id)');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_activity_logs_created ON activity_logs (created_at)');
+
         self::$pdo = $pdo;
         return $pdo;
     }

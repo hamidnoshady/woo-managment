@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/WooCommerceClient.php';
 require_once __DIR__ . '/../../includes/Sites.php';
 require_once __DIR__ . '/../../includes/site_context.php';
+require_once __DIR__ . '/../../includes/ActivityLog.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 $user = require_login_api();
@@ -35,16 +36,57 @@ if ($method === 'POST' || $method === 'PUT') {
     $data = build_product_payload($body);
 
     if ($id > 0) {
+        // Capture the previous values of the fields we're about to change, for undo.
+        $before = $client->getProduct($id);
+        if ($before['status'] < 200 || $before['status'] >= 300) {
+            json_response(['error' => $before['data']['message'] ?? 'Product not found'], $before['status'] ?: 404);
+        }
+        $previous = build_undo_data($before['data'], $data);
+
         $result = $client->updateProduct($id, $data);
+        if ($result['status'] < 200 || $result['status'] >= 300) {
+            json_response(['error' => $result['data']['message'] ?? 'Failed to save product'], $result['status'] ?: 502);
+        }
+
+        $logId = log_activity(
+            $user,
+            (int) $site['id'],
+            'site',
+            'product_update',
+            'log_product_updated',
+            [$result['data']['name'] ?? ''],
+            [
+                'type' => 'update_product',
+                'site_id' => (int) $site['id'],
+                'product_id' => $id,
+                'data' => $previous,
+            ]
+        );
     } else {
         $result = $client->createProduct($data);
+        if ($result['status'] < 200 || $result['status'] >= 300) {
+            json_response(['error' => $result['data']['message'] ?? 'Failed to save product'], $result['status'] ?: 502);
+        }
+
+        $logId = log_activity(
+            $user,
+            (int) $site['id'],
+            'site',
+            'product_create',
+            'log_product_created',
+            [$result['data']['name'] ?? ''],
+            [
+                'type' => 'delete_product',
+                'site_id' => (int) $site['id'],
+                'product_id' => (int) ($result['data']['id'] ?? 0),
+            ]
+        );
     }
 
-    if ($result['status'] < 200 || $result['status'] >= 300) {
-        json_response(['error' => $result['data']['message'] ?? 'Failed to save product'], $result['status'] ?: 502);
-    }
-
-    json_response(['item' => map_product_detail($result['data'])]);
+    $item = map_product_detail($result['data']);
+    $item['log_id'] = $logId;
+    $item['message'] = t($id > 0 ? 'log_product_updated' : 'log_product_created', $result['data']['name'] ?? '');
+    json_response(['item' => $item]);
 }
 
 if ($method === 'DELETE') {
@@ -55,12 +97,25 @@ if ($method === 'DELETE') {
         json_response(['error' => 'Invalid product id'], 422);
     }
 
+    $before = $client->getProduct($id);
+    $productName = $before['status'] >= 200 && $before['status'] < 300 ? (string) ($before['data']['name'] ?? '') : '';
+
     $result = $client->deleteProduct($id, true);
     if ($result['status'] < 200 || $result['status'] >= 300) {
         json_response(['error' => $result['data']['message'] ?? 'Failed to delete product'], $result['status'] ?: 502);
     }
 
-    json_response(['ok' => true]);
+    $logId = log_activity(
+        $user,
+        (int) $site['id'],
+        'site',
+        'product_delete',
+        'log_product_deleted',
+        [$productName],
+        null
+    );
+
+    json_response(['ok' => true, 'log_id' => $logId, 'message' => t('log_product_deleted', $productName)]);
 }
 
 json_response(['error' => 'Method not allowed'], 405);
@@ -161,6 +216,34 @@ function build_product_payload(array $body): array
     }
 
     return $data;
+}
+
+/**
+ * Builds an undo payload containing the previous values of the fields that
+ * are about to be changed by $newData, taken from $before (the product as
+ * it currently exists in WooCommerce).
+ */
+function build_undo_data(array $before, array $newData): array
+{
+    $previous = [];
+    foreach (array_keys($newData) as $key) {
+        switch ($key) {
+            case 'categories':
+                $previous['categories'] = array_map(fn($c) => ['id' => $c['id']], $before['categories'] ?? []);
+                break;
+            case 'images':
+                $previous['images'] = array_map(fn($img) => ['src' => $img['src']], $before['images'] ?? []);
+                break;
+            case 'manage_stock':
+            case 'stock_quantity':
+                $previous['manage_stock'] = $before['manage_stock'] ?? false;
+                $previous['stock_quantity'] = $before['stock_quantity'] ?? 0;
+                break;
+            default:
+                $previous[$key] = $before[$key] ?? '';
+        }
+    }
+    return $previous;
 }
 
 /**

@@ -4,6 +4,7 @@ require_once __DIR__ . '/../../includes/helpers.php';
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/Sites.php';
 require_once __DIR__ . '/../../includes/site_context.php';
+require_once __DIR__ . '/../../includes/ActivityLog.php';
 
 $user = require_login_api();
 $method = $_SERVER['REQUEST_METHOD'];
@@ -56,6 +57,7 @@ if ($method === 'POST') {
     }
 
     $site = create_site($body);
+    log_activity($user, null, 'system', 'site_create', 'log_site_created', [$site['name']]);
     json_response(['item' => map_site_detail($site)], 201);
 }
 
@@ -71,16 +73,19 @@ if ($method === 'PUT') {
     }
 
     $site = update_site($id, $body);
+    log_activity($user, null, 'system', 'site_update', 'log_site_updated', [$site['name']]);
     json_response(['item' => map_site_detail($site)]);
 }
 
 if ($method === 'DELETE') {
     $id = (int) ($_GET['id'] ?? 0);
-    if (get_site($id) === null) {
+    $existing = get_site($id);
+    if ($existing === null) {
         json_response(['error' => 'Site not found'], 404);
     }
 
     delete_site($id);
+    log_activity($user, null, 'system', 'site_delete', 'log_site_deleted', [$existing['name']]);
     json_response(['ok' => true]);
 }
 

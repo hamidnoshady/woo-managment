@@ -4,6 +4,7 @@ require_once __DIR__ . '/../../includes/helpers.php';
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/Users.php';
 require_once __DIR__ . '/../../includes/Sites.php';
+require_once __DIR__ . '/../../includes/ActivityLog.php';
 
 $currentUser = require_superadmin_api();
 $method = $_SERVER['REQUEST_METHOD'];
@@ -37,6 +38,8 @@ if ($method === 'POST') {
     if (isset($body['site_ids']) && is_array($body['site_ids'])) {
         set_user_sites((int) $user['id'], $body['site_ids']);
     }
+
+    log_activity($currentUser, null, 'system', 'user_create', 'log_user_created', [$user['name'] !== '' ? $user['name'] : $user['phone']]);
 
     json_response(['item' => map_user(find_user_with_sites((int) $user['id']))], 201);
 }
@@ -76,7 +79,10 @@ if ($method === 'PUT') {
         set_user_sites($id, $body['site_ids']);
     }
 
-    json_response(['item' => map_user(find_user_with_sites($id))]);
+    $updated = find_user_with_sites($id);
+    log_activity($currentUser, null, 'system', 'user_update', 'log_user_updated', [$updated['name'] !== '' ? $updated['name'] : $updated['phone']]);
+
+    json_response(['item' => map_user($updated)]);
 }
 
 if ($method === 'DELETE') {
@@ -91,6 +97,7 @@ if ($method === 'DELETE') {
     }
 
     delete_user($id);
+    log_activity($currentUser, null, 'system', 'user_delete', 'log_user_deleted', [$target['name'] !== '' ? $target['name'] : $target['phone']]);
     json_response(['ok' => true]);
 }
 

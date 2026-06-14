@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/WooCommerceClient.php';
 require_once __DIR__ . '/../../includes/Sites.php';
 require_once __DIR__ . '/../../includes/site_context.php';
+require_once __DIR__ . '/../../includes/ActivityLog.php';
 
 $user = require_login_api();
 $site = require_site_api($user);
@@ -68,6 +69,15 @@ if ($action === 'price') {
         if (!$preview) {
             $update['id'] = $product['id'];
             $batchUpdates[] = $update;
+
+            $undoUpdate = ['id' => $product['id']];
+            if (isset($change['regular_price'])) {
+                $undoUpdate['regular_price'] = $change['regular_price']['old'];
+            }
+            if (isset($change['sale_price'])) {
+                $undoUpdate['sale_price'] = $change['sale_price']['old'];
+            }
+            $undoUpdates[] = $undoUpdate;
         }
     }
 
@@ -76,7 +86,31 @@ if ($action === 'price') {
     }
 
     $results = apply_batch_updates($client, $batchUpdates ?? []);
-    json_response(['ok' => true, 'changes' => $changes, 'results' => $results]);
+
+    $logId = null;
+    if (!empty($changes)) {
+        $logId = log_activity(
+            $user,
+            (int) $site['id'],
+            'site',
+            'batch_price',
+            'log_batch_price_applied',
+            [(string) count($changes)],
+            [
+                'type' => 'batch_update',
+                'site_id' => (int) $site['id'],
+                'updates' => $undoUpdates ?? [],
+            ]
+        );
+    }
+
+    json_response([
+        'ok' => true,
+        'changes' => $changes,
+        'results' => $results,
+        'log_id' => $logId,
+        'message' => $logId !== null ? t('log_batch_price_applied', (string) count($changes)) : null,
+    ]);
 }
 
 if ($action === 'stock') {
@@ -87,6 +121,7 @@ if ($action === 'stock') {
 
     $changes = [];
     $batchUpdates = [];
+    $undoUpdates = [];
 
     foreach ($items as $product) {
         $current = (int) ($product['stock_quantity'] ?? 0);
@@ -105,6 +140,13 @@ if ($action === 'stock') {
                 'stock_quantity' => $new,
                 'stock_status' => $new > 0 ? 'instock' : 'outofstock',
             ];
+
+            $undoUpdates[] = [
+                'id' => $product['id'],
+                'manage_stock' => true,
+                'stock_quantity' => $current,
+                'stock_status' => $product['stock_status'] ?? ($current > 0 ? 'instock' : 'outofstock'),
+            ];
         }
     }
 
@@ -113,7 +155,31 @@ if ($action === 'stock') {
     }
 
     $results = apply_batch_updates($client, $batchUpdates);
-    json_response(['ok' => true, 'changes' => $changes, 'results' => $results]);
+
+    $logId = null;
+    if (!empty($changes)) {
+        $logId = log_activity(
+            $user,
+            (int) $site['id'],
+            'site',
+            'batch_stock',
+            'log_batch_stock_applied',
+            [(string) count($changes)],
+            [
+                'type' => 'batch_update',
+                'site_id' => (int) $site['id'],
+                'updates' => $undoUpdates,
+            ]
+        );
+    }
+
+    json_response([
+        'ok' => true,
+        'changes' => $changes,
+        'results' => $results,
+        'log_id' => $logId,
+        'message' => $logId !== null ? t('log_batch_stock_applied', (string) count($changes)) : null,
+    ]);
 }
 
 json_response(['error' => 'Unknown batch action'], 400);
