@@ -147,10 +147,6 @@ function renderProductCard(product) {
   card.dataset.id = product.id;
 
   const stockBadge = stockStatusBadge(product.stock_status);
-  const priceHtml = product.on_sale && product.sale_price
-    ? `<span class="text-sm font-semibold text-gray-900">${App.formatToman(product.sale_price)}</span>
-       <span class="text-xs text-gray-400 line-through ml-1">${App.formatToman(product.regular_price)}</span>`
-    : `<span class="text-sm font-semibold text-gray-900">${App.formatToman(product.price)}</span>`;
 
   const image = product.image
     ? `<img src="${escapeHtml(product.image)}" alt="" class="h-16 w-16 rounded-xl object-cover flex-shrink-0 bg-gray-100">`
@@ -161,20 +157,21 @@ function renderProductCard(product) {
       <input type="checkbox" class="select-checkbox h-5 w-5 rounded border-gray-300">
     </div>
     <a href="/product-edit.php?id=${product.id}" class="card-link flex-shrink-0">${image}</a>
-    <a href="/product-edit.php?id=${product.id}" class="card-link flex-1 min-w-0">
-      <div class="text-sm font-medium text-gray-900 line-clamp-2">${escapeHtml(product.name)}</div>
-      <div class="text-xs text-gray-400 mt-0.5">${escapeHtml(product.sku || '')}</div>
-      <div class="mt-1 flex items-center gap-2">
-        ${priceHtml}
-        ${stockBadge}
-      </div>
-    </a>
+    <div class="flex-1 min-w-0">
+      <a href="/product-edit.php?id=${product.id}" class="card-link block">
+        <div class="text-sm font-medium text-gray-900 line-clamp-2">${escapeHtml(product.name)}</div>
+        <div class="text-xs text-gray-400 mt-0.5">${escapeHtml(product.sku || '')}</div>
+      </a>
+      <div class="mt-1 flex items-center gap-2 price-row"></div>
+    </div>
     <div class="stock-control flex flex-col items-center justify-center gap-1 flex-shrink-0">
       <button class="stock-btn rounded-lg border border-gray-300 w-7 h-7 text-sm leading-none" data-delta="1">+</button>
       <span class="stock-qty text-xs font-medium text-gray-700">${product.stock_quantity ?? '-'}</span>
       <button class="stock-btn rounded-lg border border-gray-300 w-7 h-7 text-sm leading-none" data-delta="-1">-</button>
     </div>
   `;
+
+  renderPriceRow(card, product);
 
   // Quick stock adjust
   card.querySelectorAll('.stock-btn').forEach((btn) => {
@@ -231,6 +228,120 @@ function renderProductCard(product) {
   }
 
   return card;
+}
+
+/**
+ * Renders the price for a product card. Clicking the price turns it into an
+ * editable field; on save, it's sent to the API and the card is updated
+ * in place with a success notification (and undo, if available).
+ */
+function renderPriceRow(card, product) {
+  const row = card.querySelector('.price-row');
+  const stockBadge = stockStatusBadge(product.stock_status);
+
+  const priceHtml = product.on_sale && product.sale_price
+    ? `<span class="text-sm font-semibold text-gray-900">${App.formatToman(product.sale_price)}</span>
+       <span class="text-xs text-gray-400 line-through ml-1">${App.formatToman(product.regular_price)}</span>`
+    : `<span class="text-sm font-semibold text-gray-900">${App.formatToman(product.price)}</span>`;
+
+  row.innerHTML = `
+    <button type="button" class="price-display text-left">${priceHtml}</button>
+    ${stockBadge}
+  `;
+
+  row.querySelector('.price-display').addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (state.selectionMode) return;
+    showPriceEditor(card, row, product);
+  });
+}
+
+function showPriceEditor(card, row, product) {
+  row.innerHTML = `
+    <input type="number" inputmode="decimal" min="0" step="any"
+           class="price-input regular-price-input w-24 rounded-lg border border-gray-300 px-2 py-1 text-xs focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none"
+           value="${escapeHtml(product.regular_price ?? '')}">
+    ${product.on_sale ? `<input type="number" inputmode="decimal" min="0" step="any"
+           class="price-input sale-price-input w-24 rounded-lg border border-gray-300 px-2 py-1 text-xs focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none"
+           placeholder="${escapeHtml(t('sale_price'))}"
+           value="${escapeHtml(product.sale_price ?? '')}">` : ''}
+  `;
+
+  const regularInput = row.querySelector('.regular-price-input');
+  const saleInput = row.querySelector('.sale-price-input');
+
+  let saved = false;
+  const save = async () => {
+    if (saved) return;
+    saved = true;
+
+    const regularValue = regularInput.value.trim();
+    const saleValue = saleInput ? saleInput.value.trim() : null;
+
+    const regularChanged = regularValue !== '' && regularValue !== String(product.regular_price ?? '');
+    const saleChanged = saleInput !== null && saleValue !== String(product.sale_price ?? '');
+
+    if (!regularChanged && !saleChanged) {
+      renderPriceRow(card, product);
+      return;
+    }
+
+    const payload = { id: product.id };
+    if (regularChanged) payload.regular_price = regularValue;
+    if (saleChanged) payload.sale_price = saleValue;
+
+    regularInput.disabled = true;
+    if (saleInput) saleInput.disabled = true;
+
+    try {
+      const data = await App.api('/api/product.php', {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      });
+
+      product.regular_price = data.item.regular_price;
+      product.sale_price = data.item.sale_price;
+      product.price = data.item.price;
+      product.on_sale = !!(data.item.sale_price && parseFloat(data.item.sale_price) < parseFloat(data.item.regular_price));
+
+      renderPriceRow(card, product);
+
+      if (data.item.log_id) {
+        App.notify(data.item.message, { logId: data.item.log_id });
+      }
+    } catch (err) {
+      App.toast(err.message, 'error');
+      renderPriceRow(card, product);
+    }
+  };
+
+  const cancel = () => {
+    saved = true;
+    renderPriceRow(card, product);
+  };
+
+  const onKeydown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      save();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      cancel();
+    }
+  };
+
+  const onFocusOut = (e) => {
+    if (row.contains(e.relatedTarget)) return;
+    save();
+  };
+
+  row.addEventListener('click', (e) => e.stopPropagation());
+  row.addEventListener('keydown', onKeydown);
+  row.addEventListener('focusout', onFocusOut);
+
+  regularInput.focus();
+  regularInput.select();
 }
 
 function stockStatusBadge(status) {

@@ -14,9 +14,18 @@ function start_app_session(): void
         return;
     }
 
+    $lifetime = (int) get_setting('session_lifetime');
+
+    // Make sure the server keeps session data alive for at least as long as
+    // the session cookie itself. Otherwise the cookie can outlive the stored
+    // session data (PHP's default gc_maxlifetime is only 1440 seconds), which
+    // silently logs the user out the moment the session data is garbage
+    // collected — often noticeable as "logged out after a single refresh".
+    ini_set('session.gc_maxlifetime', (string) $lifetime);
+
     session_name((string) get_setting('session_name'));
     session_set_cookie_params([
-        'lifetime' => (int) get_setting('session_lifetime'),
+        'lifetime' => $lifetime,
         'path'     => '/',
         'secure'   => !empty($_SERVER['HTTPS']),
         'httponly' => true,

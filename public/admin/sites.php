@@ -22,7 +22,6 @@ $user = require_superadmin_page();
     <div class="px-4 pt-4 pb-3 flex items-center justify-between">
       <h1 class="text-lg font-semibold text-gray-900"><?php echo htmlspecialchars(t("sites")); ?></h1>
       <div class="flex items-center gap-2">
-        <?php render_lang_switcher('/admin/sites.php'); ?>
         <button id="add-btn" class="text-sm font-medium text-gray-600 active:text-gray-900"><?php echo htmlspecialchars(t('add_btn')); ?></button>
       </div>
     </div>

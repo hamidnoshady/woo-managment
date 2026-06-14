@@ -20,7 +20,6 @@ $user = require_login_page();
 
   <header class="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
     <h1 class="text-base font-semibold text-gray-900"><?php echo htmlspecialchars(t('select_a_site')); ?></h1>
-    <?php render_lang_switcher('/sites.php'); ?>
   </header>
 
   <main class="px-4 py-4">
