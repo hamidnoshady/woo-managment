@@ -184,6 +184,10 @@ const TRANSLATIONS = [
         'current_value_leave_blank' => 'Current: %s. Leave blank to keep.',
         'manage_sites_title' => 'Manage sites · Product Manager',
         'sites' => 'Sites',
+        'wp_api_heading' => 'WordPress REST API (optional)',
+        'wp_api_help' => 'Needed for uploading images and for custom (ACF) taxonomies. Create an Application Password for a WordPress admin user under Users → Profile → Application Passwords.',
+        'wp_username' => 'WordPress username',
+        'wp_app_password' => 'Application password',
 
         // Admin: settings
         'settings' => 'Settings',
@@ -216,9 +220,46 @@ const TRANSLATIONS = [
         'session_lifetime_help' => 'How long a login session lasts (default 28800 = 8 hours).',
         'superadmin_phones_label' => 'Bootstrap superadmin phone numbers',
         'superadmin_phones_help' => 'Comma-separated phone numbers (e.g. 09121234567, 09129876543) that are automatically granted the superadmin role the first time they log in.',
+        'group_ai' => 'AI (ArvanCloud)',
 
         // Currency
         'currency_unit' => 'Toman',
+
+        // AI & media
+        'ai_not_configured' => 'AI is not configured. Set an API key in Admin → Settings.',
+        'ai_invalid_response' => 'AI returned an unexpected response. Please try again.',
+        'wp_credentials_missing' => 'This site has no WordPress API credentials configured. Ask a superadmin to add them in Admin → Sites.',
+        'generate_with_ai' => 'Generate with AI',
+        'generating' => 'Generating...',
+        'ai_description_generated' => 'Description generated. Review and edit before saving.',
+        'long_description' => 'Long description',
+        'upload_image' => 'Upload image',
+        'uploading' => 'Uploading...',
+        'image_edit_options' => 'Image edit options (applied on upload)',
+        'image_edit_white_bg' => 'Add white background',
+        'image_edit_enhance' => 'Increase quality',
+        'image_edit_resize' => 'Resize to frame 1080×1080',
+        'custom_taxonomies' => 'Additional attributes',
+        'no_custom_taxonomies' => 'No custom attributes available for this site.',
+
+        // Product wizard
+        'product_wizard_title' => 'Add product · Product Manager',
+        'product_wizard_heading' => 'Add product',
+        'add_product' => 'Add product',
+        'wizard_step' => 'Step %s of %s',
+        'wizard_step_basic' => 'Basic info',
+        'wizard_step_pricing' => 'Pricing',
+        'wizard_step_inventory' => 'Inventory',
+        'wizard_step_categories' => 'Categories',
+        'wizard_step_images' => 'Images',
+        'wizard_step_description' => 'Description',
+        'wizard_step_review' => 'Review',
+        'wizard_next' => 'Next',
+        'wizard_back' => 'Back',
+        'wizard_publish' => 'Publish product',
+        'wizard_publishing' => 'Publishing...',
+        'wizard_review_help' => 'Review the details below, then publish.',
+        'name_required' => 'Name is required.',
 
         // Activity logs
         'logs_title' => 'Activity logs · Product Manager',
@@ -426,6 +467,10 @@ const TRANSLATIONS = [
         'current_value_leave_blank' => 'مقدار فعلی: %s. برای حفظ مقدار، خالی بگذارید.',
         'manage_sites_title' => 'مدیریت فروشگاه‌ها · مدیریت محصولات',
         'sites' => 'فروشگاه‌ها',
+        'wp_api_heading' => 'API وردپرس (اختیاری)',
+        'wp_api_help' => 'برای آپلود تصاویر و ویژگی‌های سفارشی (ACF) لازم است. از مسیر کاربران ← پروفایل ← رمزهای عبور برنامه، یک رمز عبور برنامه برای یک کاربر مدیر وردپرس بسازید.',
+        'wp_username' => 'نام کاربری وردپرس',
+        'wp_app_password' => 'رمز عبور برنامه',
 
         // Admin: settings
         'settings' => 'تنظیمات',
@@ -458,9 +503,46 @@ const TRANSLATIONS = [
         'session_lifetime_help' => 'مدت زمان اعتبار نشست ورود (پیش‌فرض ۲۸۸۰۰ = ۸ ساعت).',
         'superadmin_phones_label' => 'شماره‌های مدیر کل اولیه',
         'superadmin_phones_help' => 'شماره‌های موبایل جداشده با کاما (مثلاً 09121234567, 09129876543) که در اولین ورود به‌طور خودکار نقش مدیر کل می‌گیرند.',
+        'group_ai' => 'هوش مصنوعی (آروان کلاد)',
 
         // Currency
         'currency_unit' => 'تومان',
+
+        // AI & media
+        'ai_not_configured' => 'هوش مصنوعی تنظیم نشده است. کلید API را در مدیریت ← تنظیمات وارد کنید.',
+        'ai_invalid_response' => 'پاسخ هوش مصنوعی نامعتبر بود. دوباره تلاش کنید.',
+        'wp_credentials_missing' => 'برای این فروشگاه اطلاعات API وردپرس تنظیم نشده است. از مدیر کل بخواهید آن را در مدیریت ← فروشگاه‌ها اضافه کند.',
+        'generate_with_ai' => 'تولید با هوش مصنوعی',
+        'generating' => 'در حال تولید...',
+        'ai_description_generated' => 'توضیحات تولید شد. پیش از ذخیره بازبینی کنید.',
+        'long_description' => 'توضیحات کامل',
+        'upload_image' => 'آپلود تصویر',
+        'uploading' => 'در حال آپلود...',
+        'image_edit_options' => 'گزینه‌های ویرایش تصویر (هنگام آپلود اعمال می‌شود)',
+        'image_edit_white_bg' => 'افزودن پس‌زمینه سفید',
+        'image_edit_enhance' => 'افزایش کیفیت',
+        'image_edit_resize' => 'تغییر اندازه به قاب ۱۰۸۰×۱۰۸۰',
+        'custom_taxonomies' => 'ویژگی‌های اضافی',
+        'no_custom_taxonomies' => 'هیچ ویژگی سفارشی برای این فروشگاه موجود نیست.',
+
+        // Product wizard
+        'product_wizard_title' => 'افزودن محصول · مدیریت محصولات',
+        'product_wizard_heading' => 'افزودن محصول',
+        'add_product' => 'افزودن محصول',
+        'wizard_step' => 'مرحله %s از %s',
+        'wizard_step_basic' => 'اطلاعات پایه',
+        'wizard_step_pricing' => 'قیمت‌گذاری',
+        'wizard_step_inventory' => 'انبار',
+        'wizard_step_categories' => 'دسته‌بندی‌ها',
+        'wizard_step_images' => 'تصاویر',
+        'wizard_step_description' => 'توضیحات',
+        'wizard_step_review' => 'بازبینی',
+        'wizard_next' => 'بعدی',
+        'wizard_back' => 'قبلی',
+        'wizard_publish' => 'انتشار محصول',
+        'wizard_publishing' => 'در حال انتشار...',
+        'wizard_review_help' => 'موارد زیر را بازبینی کرده و سپس منتشر کنید.',
+        'name_required' => 'نام الزامی است.',
 
         // Activity logs
         'logs_title' => 'گزارش فعالیت‌ها · مدیریت محصولات',

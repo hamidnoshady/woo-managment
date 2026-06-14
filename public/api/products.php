@@ -33,6 +33,33 @@ if (!empty($_GET['on_sale']) && $_GET['on_sale'] === '1') {
     $params['on_sale'] = 'true';
 }
 
+// Custom (e.g. ACF) taxonomy filters, passed as tax_<rest_base>=<term_id>.
+$taxFilters = [];
+foreach ($_GET as $key => $value) {
+    if (str_starts_with($key, 'tax_') && $value !== '') {
+        $taxFilters[substr($key, 4)] = (int) $value;
+    }
+}
+
+if (!empty($taxFilters)) {
+    $wp = wordpress_client_for_site($site);
+    if ($wp === null) {
+        json_response(['items' => [], 'page' => $params['page'], 'per_page' => $params['per_page'], 'total' => 0, 'total_pages' => 1]);
+    }
+
+    $matchingIds = null;
+    foreach ($taxFilters as $restBase => $termId) {
+        $ids = $wp->listProductIdsByTerm($restBase, $termId);
+        $matchingIds = $matchingIds === null ? $ids : array_intersect($matchingIds, $ids);
+    }
+
+    if (empty($matchingIds)) {
+        json_response(['items' => [], 'page' => $params['page'], 'per_page' => $params['per_page'], 'total' => 0, 'total_pages' => 1]);
+    }
+
+    $params['include'] = implode(',', $matchingIds);
+}
+
 $result = $client->listProducts($params);
 
 if ($result['status'] < 200 || $result['status'] >= 300) {

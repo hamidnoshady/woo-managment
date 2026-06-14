@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/Database.php';
 require_once __DIR__ . '/WooCommerceClient.php';
+require_once __DIR__ . '/WordPressClient.php';
 
 /**
  * WooCommerce site management. Each site stores its own REST API
@@ -67,8 +68,8 @@ function create_site(array $data): array
 {
     $pdo = Database::get();
     $stmt = $pdo->prepare(
-        'INSERT INTO sites (name, store_url, consumer_key, consumer_secret, verify_ssl, created_at)
-         VALUES (?, ?, ?, ?, ?, ?)'
+        'INSERT INTO sites (name, store_url, consumer_key, consumer_secret, verify_ssl, wp_username, wp_app_password, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
     );
     $stmt->execute([
         $data['name'],
@@ -76,6 +77,8 @@ function create_site(array $data): array
         $data['consumer_key'],
         $data['consumer_secret'],
         !empty($data['verify_ssl']) ? 1 : 0,
+        trim((string) ($data['wp_username'] ?? '')),
+        trim((string) ($data['wp_app_password'] ?? '')),
         time(),
     ]);
 
@@ -92,6 +95,8 @@ function update_site(int $id, array $data): array
         'store_url' => 'store_url',
         'consumer_key' => 'consumer_key',
         'consumer_secret' => 'consumer_secret',
+        'wp_username' => 'wp_username',
+        'wp_app_password' => 'wp_app_password',
     ];
 
     foreach ($map as $key => $column) {
@@ -136,6 +141,34 @@ function woocommerce_client_for_site(array $site): WooCommerceClient
         'store_url' => $site['store_url'],
         'consumer_key' => $site['consumer_key'],
         'consumer_secret' => $site['consumer_secret'],
+        'verify_ssl' => (bool) $site['verify_ssl'],
+    ]);
+}
+
+/**
+ * Returns true if the site has WordPress REST API credentials configured
+ * (needed for media uploads and custom/ACF taxonomies).
+ */
+function site_has_wordpress_credentials(array $site): bool
+{
+    return trim((string) ($site['wp_username'] ?? '')) !== ''
+        && trim((string) ($site['wp_app_password'] ?? '')) !== '';
+}
+
+/**
+ * Builds a WordPressClient for the given site, or null if WordPress REST
+ * API credentials are not configured for it.
+ */
+function wordpress_client_for_site(array $site): ?WordPressClient
+{
+    if (!site_has_wordpress_credentials($site)) {
+        return null;
+    }
+
+    return new WordPressClient([
+        'store_url' => $site['store_url'],
+        'username' => $site['wp_username'],
+        'app_password' => $site['wp_app_password'],
         'verify_ssl' => (bool) $site['verify_ssl'],
     ]);
 }

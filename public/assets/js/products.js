@@ -17,6 +17,7 @@ const state = {
     max_price: '',
     on_sale: false,
     sort: 'date-desc',
+    taxonomies: {},
   },
 };
 
@@ -30,6 +31,7 @@ init();
 async function init() {
   await ensureSession();
   await loadCategories();
+  await loadCustomTaxonomyFilters();
   bindEvents();
   await loadProducts(true);
 
@@ -76,11 +78,52 @@ function buildQuery(page) {
   if (f.max_price) params.set('max_price', f.max_price);
   if (f.on_sale) params.set('on_sale', '1');
 
+  Object.entries(f.taxonomies).forEach(([restBase, termId]) => {
+    if (termId) params.set(`tax_${restBase}`, termId);
+  });
+
   const [orderby, order] = sortToParams(f.sort);
   params.set('orderby', orderby);
   params.set('order', order);
 
   return params.toString();
+}
+
+async function loadCustomTaxonomyFilters() {
+  try {
+    const data = await App.api('/api/taxonomies.php');
+    const container = document.getElementById('custom-taxonomy-filters');
+    (data.items || []).forEach((tax) => {
+      const wrap = document.createElement('div');
+
+      const label = document.createElement('label');
+      label.className = 'block text-sm font-medium text-gray-700 mb-1';
+      label.textContent = tax.name;
+      wrap.appendChild(label);
+
+      const select = document.createElement('select');
+      select.id = `filter-tax-${tax.rest_base}`;
+      select.dataset.restBase = tax.rest_base;
+      select.className = 'w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm';
+
+      const allOpt = document.createElement('option');
+      allOpt.value = '';
+      allOpt.textContent = t('all');
+      select.appendChild(allOpt);
+
+      (tax.terms || []).forEach((term) => {
+        const opt = document.createElement('option');
+        opt.value = term.id;
+        opt.textContent = term.name;
+        select.appendChild(opt);
+      });
+
+      wrap.appendChild(select);
+      container.appendChild(wrap);
+    });
+  } catch (e) {
+    // Optional feature; ignore failures (e.g. no WordPress credentials).
+  }
 }
 
 function sortToParams(sort) {
@@ -281,6 +324,11 @@ function bindEvents() {
     f.on_sale = document.getElementById('filter-on-sale').checked;
     f.sort = document.getElementById('filter-sort').value;
 
+    f.taxonomies = {};
+    document.querySelectorAll('#custom-taxonomy-filters select').forEach((select) => {
+      if (select.value) f.taxonomies[select.dataset.restBase] = select.value;
+    });
+
     updateFilterBadge();
     sheet.classList.add('hidden');
     loadProducts(true);
@@ -293,6 +341,7 @@ function bindEvents() {
     state.filters.max_price = '';
     state.filters.on_sale = false;
     state.filters.sort = 'date-desc';
+    state.filters.taxonomies = {};
 
     document.getElementById('filter-category').value = '';
     document.getElementById('filter-stock').value = '';
@@ -300,6 +349,9 @@ function bindEvents() {
     document.getElementById('filter-max-price').value = '';
     document.getElementById('filter-on-sale').checked = false;
     document.getElementById('filter-sort').value = 'date-desc';
+    document.querySelectorAll('#custom-taxonomy-filters select').forEach((select) => {
+      select.value = '';
+    });
 
     updateFilterBadge();
     sheet.classList.add('hidden');
@@ -359,6 +411,6 @@ function updateSelectionBar() {
 
 function updateFilterBadge() {
   const f = state.filters;
-  const active = !!(f.category || f.stock_status || f.min_price || f.max_price || f.on_sale || f.sort !== 'date-desc');
+  const active = !!(f.category || f.stock_status || f.min_price || f.max_price || f.on_sale || f.sort !== 'date-desc' || Object.keys(f.taxonomies).length > 0);
   document.getElementById('filter-badge').classList.toggle('hidden', !active);
 }

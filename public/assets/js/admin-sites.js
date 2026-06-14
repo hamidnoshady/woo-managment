@@ -90,8 +90,10 @@ async function openSheet(id) {
   document.getElementById('site-id').value = id || '';
   document.getElementById('site-ck-hint').classList.add('hidden');
   document.getElementById('site-cs-hint').classList.add('hidden');
+  document.getElementById('site-wp-app-password-hint').classList.add('hidden');
   document.getElementById('site-ck').placeholder = 'ck_...';
   document.getElementById('site-cs').placeholder = 'cs_...';
+  document.getElementById('site-wp-app-password').placeholder = 'xxxx xxxx xxxx xxxx xxxx xxxx';
   document.getElementById('site-delete-btn').classList.toggle('hidden', !id);
   document.getElementById('site-sheet-title').textContent = id ? t('edit_site') : t('add_site');
   document.getElementById('site-verify-ssl').checked = true;
@@ -114,6 +116,14 @@ async function openSheet(id) {
       const csHint = document.getElementById('site-cs-hint');
       csHint.textContent = t('current_value_leave_blank', item.consumer_secret);
       csHint.classList.remove('hidden');
+
+      document.getElementById('site-wp-username').value = item.wp_username || '';
+      if (item.wp_app_password) {
+        document.getElementById('site-wp-app-password').placeholder = item.wp_app_password;
+        const wpHint = document.getElementById('site-wp-app-password-hint');
+        wpHint.textContent = t('current_value_leave_blank', item.wp_app_password);
+        wpHint.classList.remove('hidden');
+      }
     } catch (err) {
       App.toast(err.message, 'error');
       return;
@@ -139,6 +149,10 @@ async function saveSite() {
   const cs = document.getElementById('site-cs').value.trim();
   if (ck !== '' || !id) payload.consumer_key = ck;
   if (cs !== '' || !id) payload.consumer_secret = cs;
+
+  payload.wp_username = document.getElementById('site-wp-username').value.trim();
+  const wpPass = document.getElementById('site-wp-app-password').value.trim();
+  if (wpPass !== '') payload.wp_app_password = wpPass;
 
   const saveBtn = document.getElementById('site-save-btn');
   saveBtn.disabled = true;

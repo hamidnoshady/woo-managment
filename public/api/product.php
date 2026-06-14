@@ -23,7 +23,17 @@ if ($method === 'GET') {
         json_response(['error' => $result['data']['message'] ?? 'Product not found'], $result['status'] ?: 404);
     }
 
-    json_response(['item' => map_product_detail($result['data'])]);
+    $item = map_product_detail($result['data']);
+
+    $wp = wordpress_client_for_site($site);
+    if ($wp !== null) {
+        $wpResult = $wp->getProduct($id);
+        if ($wpResult['status'] >= 200 && $wpResult['status'] < 300 && is_array($wpResult['data'])) {
+            $item['taxonomies'] = extract_taxonomy_terms($wpResult['data'], $wp);
+        }
+    }
+
+    json_response(['item' => $item]);
 }
 
 // All write operations require CSRF.
@@ -83,6 +93,24 @@ if ($method === 'POST' || $method === 'PUT') {
         );
     }
 
+    // Custom (e.g. ACF) taxonomies aren't supported by the WooCommerce REST
+    // API, so they're written separately via the WordPress REST API.
+    if (isset($body['taxonomies']) && is_array($body['taxonomies'])) {
+        $wp = wordpress_client_for_site($site);
+        if ($wp !== null) {
+            $taxonomyFields = [];
+            foreach ($body['taxonomies'] as $restBase => $termIds) {
+                if (!is_array($termIds)) {
+                    continue;
+                }
+                $taxonomyFields[(string) $restBase] = array_map('intval', $termIds);
+            }
+            if (!empty($taxonomyFields)) {
+                $wp->updateProductTaxonomies((int) ($result['data']['id'] ?? $id), $taxonomyFields);
+            }
+        }
+    }
+
     $item = map_product_detail($result['data']);
     $item['log_id'] = $logId;
     $item['message'] = t($id > 0 ? 'log_product_updated' : 'log_product_created', $result['data']['name'] ?? '');
@@ -139,6 +167,21 @@ function map_product_detail(array $product): array
         'status' => $product['status'] ?? 'publish',
         'permalink' => $product['permalink'] ?? null,
     ];
+}
+
+/**
+ * Reads the currently-assigned custom taxonomy term IDs for a product from
+ * the WordPress REST API response, keyed by taxonomy rest_base.
+ */
+function extract_taxonomy_terms(array $wpProduct, WordPressClient $wp): array
+{
+    $result = [];
+    foreach ($wp->listCustomProductTaxonomies() as $tax) {
+        $restBase = $tax['rest_base'];
+        $value = $wpProduct[$restBase] ?? [];
+        $result[$restBase] = is_array($value) ? array_map('intval', $value) : [];
+    }
+    return $result;
 }
 
 /**

@@ -83,6 +83,26 @@ $user = require_superadmin_page();
           <?php echo htmlspecialchars(t('verify_ssl')); ?>
         </label>
 
+        <div class="border-t border-gray-100 pt-4 space-y-4">
+          <div>
+            <h3 class="text-sm font-semibold text-gray-900"><?php echo htmlspecialchars(t('wp_api_heading')); ?></h3>
+            <p class="text-xs text-gray-400 mt-1"><?php echo htmlspecialchars(t('wp_api_help')); ?></p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo htmlspecialchars(t('wp_username')); ?></label>
+            <input id="site-wp-username" type="text" autocomplete="off"
+                   class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm font-mono focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none">
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo htmlspecialchars(t('wp_app_password')); ?></label>
+            <input id="site-wp-app-password" type="text" autocomplete="off" placeholder="xxxx xxxx xxxx xxxx xxxx xxxx"
+                   class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm font-mono focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none">
+            <p id="site-wp-app-password-hint" class="hidden text-xs text-gray-400 mt-1"></p>
+          </div>
+        </div>
+
         <div class="flex gap-2 pt-2">
           <button type="button" id="site-delete-btn" class="hidden rounded-xl border border-red-300 text-red-600 font-medium py-3 px-4 text-sm"><?php echo htmlspecialchars(t('delete')); ?></button>
           <button type="submit" id="site-save-btn" class="flex-1 rounded-xl bg-gray-900 text-white font-medium py-3 text-sm"><?php echo htmlspecialchars(t('save')); ?></button>
