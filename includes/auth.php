@@ -189,6 +189,15 @@ function verify_otp(string $phone, string $code): array
     $pdo = Database::get();
     $now = time();
 
+    $windowSeconds = (int) get_setting('otp_window_seconds');
+    $maxAttempts = (int) get_setting('otp_max_verify_attempts');
+
+    $stmt = $pdo->prepare('SELECT COUNT(*) FROM otp_verify_attempts WHERE phone = ? AND created_at > ?');
+    $stmt->execute([$phone, $now - $windowSeconds]);
+    if ((int) $stmt->fetchColumn() >= $maxAttempts) {
+        return ['ok' => false, 'error' => 'Too many attempts. Please request a new code and try again later.'];
+    }
+
     $stmt = $pdo->prepare(
         'SELECT id FROM otp_codes WHERE phone = ? AND code = ? AND consumed = 0 AND expires_at >= ? ORDER BY id DESC LIMIT 1'
     );
@@ -196,11 +205,16 @@ function verify_otp(string $phone, string $code): array
     $row = $stmt->fetch();
 
     if (!$row) {
+        $insert = $pdo->prepare('INSERT INTO otp_verify_attempts (phone, created_at) VALUES (?, ?)');
+        $insert->execute([$phone, $now]);
         return ['ok' => false, 'error' => 'Invalid or expired code.'];
     }
 
     $update = $pdo->prepare('UPDATE otp_codes SET consumed = 1 WHERE id = ?');
     $update->execute([$row['id']]);
+
+    $clear = $pdo->prepare('DELETE FROM otp_verify_attempts WHERE phone = ?');
+    $clear->execute([$phone]);
 
     start_app_session();
     session_regenerate_id(true);

@@ -3,15 +3,57 @@
 require_once __DIR__ . '/../../includes/helpers.php';
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/Settings.php';
+require_once __DIR__ . '/../../includes/i18n.php';
 
 require_superadmin_api();
 $method = $_SERVER['REQUEST_METHOD'];
+
+/**
+ * Maps a SETTINGS_FIELDS group identifier (English label as currently stored
+ * in Settings.php) to the corresponding i18n group_* translation key.
+ */
+function settings_group_key(string $group): string
+{
+    $map = [
+        'Kavenegar (SMS OTP)' => 'group_kavenegar',
+        'Login codes (OTP)'   => 'group_otp',
+        'Session'             => 'group_session',
+        'Superadmins'         => 'group_superadmins',
+    ];
+
+    return $map[$group] ?? $group;
+}
+
+/**
+ * Returns a field's metadata with label/help/group translated via i18n,
+ * falling back to the original English text from SETTINGS_FIELDS.
+ */
+function translate_field_meta(string $key, array $meta): array
+{
+    // Some SETTINGS_FIELDS keys don't match the i18n key naming 1:1.
+    $i18nKeyMap = [
+        'otp_expiry_seconds' => 'otp_expiry',
+        'otp_window_seconds' => 'otp_window',
+    ];
+    $key = $i18nKeyMap[$key] ?? $key;
+
+    $labelKey = $key . '_label';
+    $meta['label'] = t($labelKey) !== $labelKey ? t($labelKey) : $meta['label'];
+
+    $helpKey = $key . '_help';
+    $meta['help'] = t($helpKey) !== $helpKey ? t($helpKey) : ($meta['help'] ?? '');
+
+    $groupKey = settings_group_key($meta['group']);
+    $meta['group'] = t($groupKey) !== $groupKey ? t($groupKey) : $meta['group'];
+
+    return $meta;
+}
 
 if ($method === 'GET') {
     $settings = get_settings();
     $fields = [];
     foreach (SETTINGS_FIELDS as $key => $meta) {
-        $fields[] = array_merge($meta, [
+        $fields[] = array_merge(translate_field_meta($key, $meta), [
             'key'   => $key,
             'value' => $settings[$key],
         ]);
@@ -47,7 +89,7 @@ if ($method === 'PUT') {
 
     update_settings($data);
     json_response(['fields' => array_map(
-        fn($key, $meta) => array_merge($meta, ['key' => $key, 'value' => get_setting($key)]),
+        fn($key, $meta) => array_merge(translate_field_meta($key, $meta), ['key' => $key, 'value' => get_setting($key)]),
         array_keys(SETTINGS_FIELDS),
         SETTINGS_FIELDS
     )]);

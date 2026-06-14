@@ -71,7 +71,7 @@ function renderForm(fields) {
       if (field.type === 'password') {
         input.type = 'text';
         input.autocomplete = 'off';
-        input.placeholder = field.value ? 'Leave blank to keep current value' : 'Not set';
+        input.placeholder = field.value ? t('leave_blank_to_keep') : t('not_set');
         input.dataset.type = 'password';
       } else if (field.type === 'number') {
         input.type = 'number';
@@ -99,7 +99,7 @@ function renderForm(fields) {
   const saveBtn = document.createElement('button');
   saveBtn.type = 'submit';
   saveBtn.className = 'w-full rounded-xl bg-gray-900 text-white font-medium py-3 text-sm';
-  saveBtn.textContent = 'Save settings';
+  saveBtn.textContent = t('save_settings');
   form.appendChild(saveBtn);
 
   form.addEventListener('submit', async (e) => {
@@ -120,7 +120,7 @@ async function saveSettings(saveBtn) {
   saveBtn.disabled = true;
   try {
     await App.api('/api/settings.php', { method: 'PUT', body: JSON.stringify(payload) });
-    App.toast('Settings saved', 'success');
+    App.toast(t('settings_saved'), 'success');
     await loadSettings();
   } catch (err) {
     App.toast(err.message, 'error');

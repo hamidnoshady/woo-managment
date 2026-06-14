@@ -60,11 +60,11 @@ function bindEvents() {
   modeSelect.addEventListener('change', () => {
     if (modeSelect.value === 'step') {
       extraWrap.classList.remove('hidden');
-      extraLabel.textContent = 'Round to nearest (e.g. 1000)';
+      extraLabel.textContent = t('rounding_step_label');
       extraInput.value = '1000';
     } else if (modeSelect.value === 'ending') {
       extraWrap.classList.remove('hidden');
-      extraLabel.textContent = 'Ending decimal (e.g. 0.99)';
+      extraLabel.textContent = t('rounding_ending_label');
       extraInput.value = '0.99';
     } else {
       extraWrap.classList.add('hidden');
@@ -75,8 +75,8 @@ function bindEvents() {
   const stockValueLabel = document.getElementById('stock-value-label');
   stockAction.addEventListener('change', () => {
     stockValueLabel.textContent = stockAction.value === 'set'
-      ? 'New stock quantity'
-      : 'Amount (use negative to decrease)';
+      ? t('stock_value_set_label')
+      : t('stock_value_delta_label');
   });
 
   document.getElementById('price-preview-btn').addEventListener('click', () => previewPrice());
@@ -103,7 +103,7 @@ function previewPrice() {
   if (document.getElementById('apply-sale').checked) applyTo.push('sale');
 
   if (applyTo.length === 0) {
-    App.toast('Select at least one price field to update', 'error');
+    App.toast(t('select_one_price_field'), 'error');
     return;
   }
 
@@ -119,10 +119,10 @@ function previewPrice() {
   runPreview(pendingRequest, (change) => {
     const parts = [];
     if (change.regular_price) {
-      parts.push(`Regular: ${change.regular_price.old} → ${change.regular_price.new}`);
+      parts.push(`${t('regular_price')}: ${App.formatToman(change.regular_price.old)} → ${App.formatToman(change.regular_price.new)}`);
     }
     if (change.sale_price) {
-      parts.push(`Sale: ${change.sale_price.old} → ${change.sale_price.new}`);
+      parts.push(`${t('sale_price')}: ${App.formatToman(change.sale_price.old)} → ${App.formatToman(change.sale_price.new)}`);
     }
     return parts.join(' · ');
   });
@@ -140,7 +140,7 @@ function previewStock() {
   };
 
   runPreview(pendingRequest, (change) => {
-    return `Stock: ${change.stock_quantity.old} → ${change.stock_quantity.new}`;
+    return `${t('stock_quantity')}: ${change.stock_quantity.old} → ${change.stock_quantity.new}`;
   });
 }
 
@@ -157,7 +157,7 @@ async function runPreview(request, describeChange) {
     previewList.innerHTML = '';
 
     if (data.changes.length === 0) {
-      previewList.innerHTML = '<p class="text-sm text-gray-400">No changes to apply.</p>';
+      previewList.innerHTML = `<p class="text-sm text-gray-400">${escapeHtml(t('no_changes_to_apply'))}</p>`;
     } else {
       data.changes.forEach((change) => {
         const row = document.createElement('div');
@@ -182,7 +182,7 @@ async function confirmApply() {
 
   const confirmBtn = document.getElementById('preview-confirm');
   confirmBtn.disabled = true;
-  confirmBtn.textContent = 'Applying...';
+  confirmBtn.textContent = t('applying');
 
   try {
     await App.api('/api/batch.php', {
@@ -190,7 +190,7 @@ async function confirmApply() {
       body: JSON.stringify(Object.assign({ preview: false }, pendingRequest)),
     });
 
-    App.toast('Batch update applied', 'success');
+    App.toast(t('batch_update_applied'), 'success');
     sessionStorage.removeItem('batch_ids');
     document.getElementById('preview-section').classList.add('hidden');
     pendingRequest = null;
@@ -201,7 +201,7 @@ async function confirmApply() {
     App.toast(err.message, 'error');
   } finally {
     confirmBtn.disabled = false;
-    confirmBtn.textContent = 'Apply changes';
+    confirmBtn.textContent = t('apply_changes');
   }
 }
 
