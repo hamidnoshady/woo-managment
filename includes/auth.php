@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/Database.php';
+require_once __DIR__ . '/Settings.php';
 require_once __DIR__ . '/Users.php';
 
 /**
@@ -13,12 +14,9 @@ function start_app_session(): void
         return;
     }
 
-    $config = app_config();
-    $sessionConfig = $config['session'] ?? [];
-
-    session_name($sessionConfig['name'] ?? 'wcpm_session');
+    session_name((string) get_setting('session_name'));
     session_set_cookie_params([
-        'lifetime' => $sessionConfig['lifetime'] ?? 28800,
+        'lifetime' => (int) get_setting('session_lifetime'),
         'path'     => '/',
         'secure'   => !empty($_SERVER['HTTPS']),
         'httponly' => true,
@@ -141,18 +139,15 @@ function verify_csrf_api(): void
  */
 function request_otp(string $phone): array
 {
-    $config = app_config();
-
     if (bootstrap_user_by_phone($phone) === null) {
         // Avoid revealing whether a number is registered.
         return ['ok' => false, 'error' => 'This phone number is not authorized.'];
     }
 
-    $otpConfig = $config['otp'] ?? [];
-    $windowSeconds = $otpConfig['window_seconds'] ?? 600;
-    $maxPerWindow = $otpConfig['max_per_window'] ?? 3;
-    $length = $otpConfig['length'] ?? 5;
-    $expirySeconds = $otpConfig['expiry_seconds'] ?? 120;
+    $windowSeconds = (int) get_setting('otp_window_seconds');
+    $maxPerWindow = (int) get_setting('otp_max_per_window');
+    $length = (int) get_setting('otp_length');
+    $expirySeconds = (int) get_setting('otp_expiry_seconds');
 
     $pdo = Database::get();
     $now = time();
@@ -220,13 +215,10 @@ function verify_otp(string $phone, string $code): array
  */
 function send_kavenegar_otp(string $phone, string $code): array
 {
-    $config = app_config();
-    $kavenegar = $config['kavenegar'] ?? [];
+    $apiKey = (string) get_setting('kavenegar_api_key');
+    $template = (string) get_setting('kavenegar_template');
 
-    $apiKey = $kavenegar['api_key'] ?? '';
-    $template = $kavenegar['template'] ?? 'verify';
-
-    if ($apiKey === '' || $apiKey === 'YOUR_KAVENEGAR_API_KEY') {
+    if ($apiKey === '') {
         return ['ok' => false, 'error' => 'Kavenegar API key is not configured.'];
     }
 

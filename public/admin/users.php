@@ -25,6 +25,7 @@ $user = require_superadmin_page();
     <div class="px-4 pb-3 flex gap-2 text-sm">
       <a href="/admin/users.php" class="flex-1 text-center rounded-xl bg-gray-900 text-white py-2 font-medium">Users</a>
       <a href="/admin/sites.php" class="flex-1 text-center rounded-xl border border-gray-300 text-gray-700 py-2 font-medium">Sites</a>
+      <a href="/admin/settings.php" class="flex-1 text-center rounded-xl border border-gray-300 text-gray-700 py-2 font-medium">Settings</a>
     </div>
   </header>
 

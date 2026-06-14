@@ -2,11 +2,12 @@
 
 require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/Database.php';
+require_once __DIR__ . '/Settings.php';
 
 /**
  * User account management (superadmin / admin / shop_manager).
  * Users are stored in the SQLite database; superadmins are bootstrapped
- * from config('superadmins') on first login.
+ * from the "superadmin_phones" setting on first login.
  */
 
 const VALID_ROLES = ['superadmin', 'admin', 'shop_manager'];
@@ -31,7 +32,8 @@ function find_user_by_id(int $id): ?array
 
 /**
  * Returns the user record for $phone, creating it as a superadmin if the
- * phone number is listed in config('superadmins') and no account exists yet.
+ * phone number is listed in the "superadmin_phones" setting and no account
+ * exists yet.
  */
 function bootstrap_user_by_phone(string $phone): ?array
 {
@@ -40,10 +42,7 @@ function bootstrap_user_by_phone(string $phone): ?array
         return $existing;
     }
 
-    $config = app_config();
-    $superadmins = $config['superadmins'] ?? [];
-
-    if (!in_array($phone, $superadmins, true)) {
+    if (!in_array($phone, get_superadmin_phones(), true)) {
         return null;
     }
 

@@ -2,7 +2,7 @@
 
 /**
  * Minimal cURL-based client for the WooCommerce REST API (v3).
- * Credentials are read from config/config.php and never exposed to the browser.
+ * Credentials are read from the sites table and never exposed to the browser.
  */
 class WooCommerceClient
 {
