@@ -1,29 +1,6 @@
 <?php
 
 /**
- * Loads config/config.php, falling back to an error if it hasn't been created.
- */
-function app_config(): array
-{
-    static $config = null;
-
-    if ($config === null) {
-        $path = __DIR__ . '/../config/config.php';
-        if (!file_exists($path)) {
-            http_response_code(500);
-            header('Content-Type: application/json');
-            echo json_encode([
-                'error' => 'Missing config/config.php. Copy config/config.sample.php to config/config.php and fill in your credentials.',
-            ]);
-            exit;
-        }
-        $config = require $path;
-    }
-
-    return $config;
-}
-
-/**
  * Sends a JSON response and stops execution.
  */
 function json_response($data, int $status = 200): void
