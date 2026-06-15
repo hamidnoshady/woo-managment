@@ -21,7 +21,6 @@ $user = require_superadmin_page();
   <header class="sticky top-0 z-30 bg-white border-b border-gray-100">
     <div class="px-4 pt-4 pb-3 flex items-center justify-between">
       <h1 class="text-lg font-semibold text-gray-900"><?php echo htmlspecialchars(t('settings')); ?></h1>
-      <?php render_lang_switcher('/admin/settings.php'); ?>
     </div>
     <div class="px-4 pb-3 flex gap-2 text-sm">
       <a href="/admin/users.php" class="flex-1 text-center rounded-xl border border-gray-300 text-gray-700 py-2 font-medium"><?php echo htmlspecialchars(t('users')); ?></a>

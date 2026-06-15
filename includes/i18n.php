@@ -14,6 +14,7 @@ const TRANSLATIONS = [
         'nav_batch' => 'Batch',
         'nav_logs' => 'Logs',
         'nav_admin' => 'Admin',
+        'nav_settings' => 'Settings',
         'nav_logout' => 'Logout',
         'site_label' => 'Site',
         'site_switch' => 'Switch',
@@ -198,6 +199,13 @@ const TRANSLATIONS = [
         'group_session' => 'Session',
         'group_superadmins' => 'Superadmins',
 
+        // Account settings (all users)
+        'account_settings_title' => 'Settings · Product Manager',
+        'account_settings_heading' => 'Settings',
+        'account_section' => 'Account',
+        'language_section' => 'Language',
+        'language_section_help' => 'Choose the language used across the app.',
+
         'kavenegar_api_key_help' => 'API key from your Kavenegar account, used to send login codes.',
         'kavenegar_template_help' => 'Verify Lookup template name configured in your Kavenegar panel.',
         'otp_length_label' => 'OTP code length',
@@ -256,6 +264,7 @@ const TRANSLATIONS = [
         'nav_batch' => 'دسته‌ای',
         'nav_logs' => 'گزارش‌ها',
         'nav_admin' => 'مدیریت',
+        'nav_settings' => 'تنظیمات',
         'nav_logout' => 'خروج',
         'site_label' => 'فروشگاه',
         'site_switch' => 'تغییر',
@@ -439,6 +448,13 @@ const TRANSLATIONS = [
         'group_otp' => 'کدهای ورود (OTP)',
         'group_session' => 'نشست',
         'group_superadmins' => 'مدیران کل',
+
+        // Account settings (all users)
+        'account_settings_title' => 'تنظیمات · مدیریت محصولات',
+        'account_settings_heading' => 'تنظیمات',
+        'account_section' => 'حساب کاربری',
+        'language_section' => 'زبان',
+        'language_section_help' => 'زبان نمایش برنامه را انتخاب کنید.',
 
         'kavenegar_api_key_help' => 'کلید API حساب کاوه‌نگار شما، برای ارسال کد ورود استفاده می‌شود.',
         'kavenegar_template_help' => 'نام الگوی Verify Lookup که در پنل کاوه‌نگار تنظیم کرده‌اید.',

@@ -28,6 +28,9 @@ function render_bottom_nav(string $active, array $user): void
         <div class="text-lg leading-none mb-0.5">★</div><?php echo htmlspecialchars(t('nav_admin')); ?>
       </a>
       <?php endif; ?>
+      <a href="/settings.php" class="flex-1 py-3 text-center text-xs font-medium <?php echo $cls('settings'); ?>">
+        <div class="text-lg leading-none mb-0.5">⚙</div><?php echo htmlspecialchars(t('nav_settings')); ?>
+      </a>
       <button id="logout-btn" class="flex-1 py-3 text-center text-xs font-medium text-gray-400">
         <div class="text-lg leading-none mb-0.5">⎋</div><?php echo htmlspecialchars(t('nav_logout')); ?>
       </button>

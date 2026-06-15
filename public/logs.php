@@ -20,7 +20,6 @@ $user = require_login_page();
   <header class="sticky top-0 z-30 bg-white border-b border-gray-100">
     <div class="px-4 pt-4 pb-3 flex items-center justify-between">
       <h1 class="text-lg font-semibold text-gray-900"><?php echo htmlspecialchars(t('logs_heading')); ?></h1>
-      <?php render_lang_switcher('/logs.php'); ?>
     </div>
     <?php if ($user['role'] === 'superadmin'): ?>
     <div class="px-4 pb-3 flex gap-2">

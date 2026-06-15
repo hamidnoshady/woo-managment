@@ -24,7 +24,6 @@ $site = require_site_page($user);
     <div class="px-4 py-3 flex items-center gap-3">
       <a href="/products.php" class="text-gray-500 text-xl leading-none">&larr;</a>
       <h1 class="text-base font-semibold text-gray-900 flex-1"><?php echo htmlspecialchars(t('batch_title')); ?></h1>
-      <?php render_lang_switcher('/batch.php'); ?>
     </div>
   </header>
 

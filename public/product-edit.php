@@ -23,7 +23,6 @@ $productId = (int) ($_GET['id'] ?? 0);
   <header class="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
     <a href="/products.php" class="text-gray-500 text-xl leading-none">&larr;</a>
     <h1 class="text-base font-semibold text-gray-900 flex-1"><?php echo htmlspecialchars($productId > 0 ? t('edit_product') : t('new_product')); ?></h1>
-    <?php render_lang_switcher('/product-edit.php'); ?>
   </header>
   <?php require_once __DIR__ . '/../includes/nav.php'; render_site_switcher($site); ?>
 
