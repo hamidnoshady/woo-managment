@@ -52,7 +52,7 @@ $site = require_site_page($user);
   </main>
 
   <!-- Add button (floating) -->
-  <a href="/product-edit.php" id="add-fab"
+  <a href="/product-wizard.php" id="add-fab"
      class="fixed right-4 bottom-20 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-gray-900 text-white text-2xl shadow-lg active:scale-95 transition">
     +
   </a>
@@ -108,6 +108,8 @@ $site = require_site_page($user);
           <input id="filter-on-sale" type="checkbox" class="h-4 w-4 rounded border-gray-300">
           <?php echo htmlspecialchars(t('on_sale_only')); ?>
         </label>
+
+        <div id="custom-taxonomy-filters" class="space-y-4"></div>
 
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo htmlspecialchars(t('sort_by')); ?></label>

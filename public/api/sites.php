@@ -109,6 +109,8 @@ function map_site_detail(array $site): array
         'consumer_key' => mask_secret($site['consumer_key']),
         'consumer_secret' => mask_secret($site['consumer_secret']),
         'verify_ssl' => (bool) $site['verify_ssl'],
+        'wp_username' => $site['wp_username'] ?? '',
+        'wp_app_password' => $site['wp_app_password'] !== '' ? mask_secret($site['wp_app_password']) : '',
     ];
 }
 

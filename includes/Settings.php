@@ -18,6 +18,9 @@ const SETTINGS_DEFAULTS = [
     'session_name'         => 'wcpm_session',
     'session_lifetime'     => 28800,
     'superadmin_phones'    => '',
+    'ai_base_url'          => 'https://api.ai.arvancloud.ir/v1',
+    'ai_api_key'           => '',
+    'ai_model'             => '',
 ];
 
 /**
@@ -85,6 +88,24 @@ const SETTINGS_FIELDS = [
         'group' => 'Superadmins',
         'help' => 'Comma-separated phone numbers (e.g. 09121234567, 09129876543) that are automatically granted the superadmin role the first time they log in.',
     ],
+    'ai_base_url' => [
+        'label' => 'AI API base URL',
+        'type' => 'text',
+        'group' => 'AI (ArvanCloud)',
+        'help' => 'Base URL of an OpenAI-compatible chat completions API (e.g. ArvanCloud AI Platform).',
+    ],
+    'ai_api_key' => [
+        'label' => 'AI API key',
+        'type' => 'password',
+        'group' => 'AI (ArvanCloud)',
+        'help' => 'API key used to authenticate AI requests. Leave empty to disable AI features.',
+    ],
+    'ai_model' => [
+        'label' => 'AI model name',
+        'type' => 'text',
+        'group' => 'AI (ArvanCloud)',
+        'help' => 'Model identifier to use for generating product descriptions (e.g. gpt-4o-mini).',
+    ],
 ];
 
 /**
@@ -131,6 +152,14 @@ function update_settings(array $data): void
         }
         $stmt->execute([$key, (string) $value]);
     }
+}
+
+/**
+ * Returns true if AI features are configured (an API key is set).
+ */
+function ai_is_configured(): bool
+{
+    return trim((string) get_setting('ai_api_key')) !== '';
 }
 
 /**

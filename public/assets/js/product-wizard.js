@@ -1,10 +1,20 @@
 /**
- * Add / edit product page.
+ * Step-by-step "Add product" wizard.
  */
+
+const STEP_KEYS = [
+  'wizard_step_basic',
+  'wizard_step_pricing',
+  'wizard_step_inventory',
+  'wizard_step_categories',
+  'wizard_step_images',
+  'wizard_step_description',
+  'wizard_step_review',
+];
 
 const els = {
   loading: document.getElementById('loading'),
-  form: document.getElementById('product-form'),
+  form: document.getElementById('wizard-form'),
   name: document.getElementById('name'),
   sku: document.getElementById('sku'),
   regularPrice: document.getElementById('regular_price'),
@@ -23,9 +33,16 @@ const els = {
   description: document.getElementById('description'),
   aiGenerate: document.getElementById('ai-generate-description'),
   status: document.getElementById('status'),
-  saveBtn: document.getElementById('save-btn'),
-  deleteBtn: document.getElementById('delete-btn'),
+  stepIndicator: document.getElementById('step-indicator'),
+  progressBar: document.getElementById('progress-bar'),
+  backBtn: document.getElementById('wizard-back'),
+  nextBtn: document.getElementById('wizard-next'),
+  publishBtn: document.getElementById('wizard-publish'),
+  reviewSummary: document.getElementById('review-summary'),
 };
+
+const steps = Array.from(document.querySelectorAll('.wizard-step'));
+let currentStep = 0;
 
 init();
 
@@ -34,19 +51,12 @@ async function init() {
   await loadCategories();
   await loadCustomTaxonomies();
 
-  if (window.PRODUCT_ID > 0) {
-    await loadProduct(window.PRODUCT_ID);
-    if (window.CURRENT_USER.role === 'admin' || window.CURRENT_USER.role === 'superadmin') {
-      els.deleteBtn.classList.remove('hidden');
-    }
-  } else {
-    addImageRow('');
-  }
+  addImageRow('');
+  bindEvents();
+  showStep(0);
 
   els.loading.classList.add('hidden');
   els.form.classList.remove('hidden');
-
-  bindEvents();
 }
 
 async function ensureSession() {
@@ -115,45 +125,6 @@ function renderCustomTaxonomies(taxonomies) {
   els.customTaxonomies.classList.remove('hidden');
 }
 
-async function loadProduct(id) {
-  try {
-    const data = await App.api(`/api/product.php?id=${id}`);
-    const item = data.item;
-
-    els.name.value = item.name || '';
-    els.sku.value = item.sku || '';
-    els.regularPrice.value = item.regular_price || '';
-    els.salePrice.value = item.sale_price || '';
-    els.stockQuantity.value = item.stock_quantity ?? '';
-    els.stockStatus.value = item.stock_status || 'instock';
-    els.shortDescription.value = stripHtml(item.short_description || '');
-    els.description.value = stripHtml(item.description || '');
-    els.status.value = item.status || 'publish';
-
-    const selectedCategoryIds = new Set((item.categories || []).map((c) => String(c.id)));
-    els.categoriesList.querySelectorAll('.category-checkbox').forEach((cb) => {
-      cb.checked = selectedCategoryIds.has(cb.value);
-    });
-
-    const taxonomies = item.taxonomies || {};
-    els.customTaxonomies.querySelectorAll('[data-rest-base]').forEach((section) => {
-      const selected = new Set((taxonomies[section.dataset.restBase] || []).map(String));
-      section.querySelectorAll('.custom-term-checkbox').forEach((cb) => {
-        cb.checked = selected.has(cb.value);
-      });
-    });
-
-    const images = item.images || [];
-    if (images.length === 0) {
-      addImageRow('');
-    } else {
-      images.forEach((img) => addImageRow(img.src));
-    }
-  } catch (e) {
-    App.toast(e.message, 'error');
-  }
-}
-
 function addImageRow(value) {
   const row = document.createElement('div');
   row.className = 'flex gap-2';
@@ -164,6 +135,83 @@ function addImageRow(value) {
   `;
   row.querySelector('.remove-image').addEventListener('click', () => row.remove());
   els.imagesList.appendChild(row);
+}
+
+function collectCustomTaxonomies() {
+  const result = {};
+  els.customTaxonomies.querySelectorAll('[data-rest-base]').forEach((section) => {
+    result[section.dataset.restBase] = Array.from(section.querySelectorAll('.custom-term-checkbox:checked')).map((cb) => cb.value);
+  });
+  return result;
+}
+
+function showStep(index) {
+  currentStep = index;
+
+  steps.forEach((step) => {
+    step.classList.toggle('hidden', Number(step.dataset.step) !== index);
+  });
+
+  els.stepIndicator.textContent = t('wizard_step', index + 1, steps.length);
+  els.progressBar.style.width = `${((index + 1) / steps.length) * 100}%`;
+
+  els.backBtn.classList.toggle('hidden', index === 0);
+  els.nextBtn.classList.toggle('hidden', index === steps.length - 1);
+  els.publishBtn.classList.toggle('hidden', index !== steps.length - 1);
+
+  if (index === steps.length - 1) {
+    renderReview();
+  }
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function validateStep(index) {
+  if (index === 0 && els.name.value.trim() === '') {
+    App.toast(t('name_required'), 'error');
+    els.name.focus();
+    return false;
+  }
+  return true;
+}
+
+function renderReview() {
+  const selectedCategories = Array.from(els.categoriesList.querySelectorAll('.category-checkbox:checked'))
+    .map((cb) => cb.parentElement.textContent.trim());
+
+  const images = Array.from(els.imagesList.querySelectorAll('.image-url'))
+    .map((input) => input.value.trim())
+    .filter((v) => v !== '');
+
+  const customTaxonomies = [];
+  els.customTaxonomies.querySelectorAll('[data-rest-base]').forEach((section) => {
+    const names = Array.from(section.querySelectorAll('.custom-term-checkbox:checked'))
+      .map((cb) => cb.parentElement.textContent.trim());
+    if (names.length) {
+      customTaxonomies.push(`${section.querySelector('h2').textContent}: ${names.join(', ')}`);
+    }
+  });
+
+  const rows = [
+    [t('name'), els.name.value.trim() || '—'],
+    [t('sku'), els.sku.value.trim() || '—'],
+    [t('regular_price'), els.regularPrice.value || '—'],
+    [t('sale_price'), els.salePrice.value || '—'],
+    [t('stock_quantity'), els.stockQuantity.value || '0'],
+    [t('stock_status'), els.stockStatus.options[els.stockStatus.selectedIndex].text],
+    [t('categories'), selectedCategories.length ? selectedCategories.join(', ') : '—'],
+    [t('images_urls'), images.length ? String(images.length) : '—'],
+    [t('status'), els.status.options[els.status.selectedIndex].text],
+  ];
+
+  customTaxonomies.forEach((line) => rows.push(['', line]));
+
+  els.reviewSummary.innerHTML = rows.map(([label, value]) => `
+    <div class="flex justify-between gap-3 border-b border-gray-50 pb-2 last:border-0 last:pb-0">
+      <span class="text-gray-400">${escapeHtml(label)}</span>
+      <span class="font-medium text-gray-900 text-right">${escapeHtml(value)}</span>
+    </div>
+  `).join('');
 }
 
 function bindEvents() {
@@ -220,11 +268,25 @@ function bindEvents() {
     }
   });
 
+  els.backBtn.addEventListener('click', () => {
+    if (currentStep > 0) showStep(currentStep - 1);
+  });
+
+  els.nextBtn.addEventListener('click', () => {
+    if (!validateStep(currentStep)) return;
+    if (currentStep < steps.length - 1) showStep(currentStep + 1);
+  });
+
   els.form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const originalSaveLabel = els.saveBtn.textContent;
-    els.saveBtn.disabled = true;
-    els.saveBtn.textContent = t('saving');
+    if (!validateStep(0)) {
+      showStep(0);
+      return;
+    }
+
+    const originalLabel = els.publishBtn.textContent;
+    els.publishBtn.disabled = true;
+    els.publishBtn.textContent = t('wizard_publishing');
 
     const payload = {
       name: els.name.value.trim(),
@@ -243,13 +305,9 @@ function bindEvents() {
       taxonomies: collectCustomTaxonomies(),
     };
 
-    if (window.PRODUCT_ID > 0) {
-      payload.id = window.PRODUCT_ID;
-    }
-
     try {
       const data = await App.api('/api/product.php', {
-        method: window.PRODUCT_ID > 0 ? 'PUT' : 'POST',
+        method: 'POST',
         body: JSON.stringify(payload),
       });
       App.toast(t('product_saved'), 'success');
@@ -260,41 +318,10 @@ function bindEvents() {
     } catch (err) {
       App.toast(err.message, 'error');
     } finally {
-      els.saveBtn.disabled = false;
-      els.saveBtn.textContent = originalSaveLabel;
+      els.publishBtn.disabled = false;
+      els.publishBtn.textContent = originalLabel;
     }
   });
-
-  els.deleteBtn.addEventListener('click', async () => {
-    if (!confirm(t('delete_product_confirm'))) return;
-
-    els.deleteBtn.disabled = true;
-    try {
-      const data = await App.api(`/api/product.php?id=${window.PRODUCT_ID}`, { method: 'DELETE' });
-      App.toast(t('product_deleted'), 'success');
-      if (data.message) {
-        App.notifyOnNextPage(data.message);
-      }
-      window.location.href = '/products.php';
-    } catch (err) {
-      App.toast(err.message, 'error');
-      els.deleteBtn.disabled = false;
-    }
-  });
-}
-
-function collectCustomTaxonomies() {
-  const result = {};
-  els.customTaxonomies.querySelectorAll('[data-rest-base]').forEach((section) => {
-    result[section.dataset.restBase] = Array.from(section.querySelectorAll('.custom-term-checkbox:checked')).map((cb) => cb.value);
-  });
-  return result;
-}
-
-function stripHtml(html) {
-  const div = document.createElement('div');
-  div.innerHTML = html;
-  return div.textContent || '';
 }
 
 function escapeHtml(str) {

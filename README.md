@@ -17,7 +17,21 @@ deployed to any shared PHP 8+ host by uploading files.
   (category, stock status, price range, on-sale only), infinite scroll.
 - **Quick stock +/-** buttons directly on each product card.
 - **Add / edit / delete products**: name, SKU, prices, stock, categories,
-  images (by URL), description, status.
+  images (by URL or upload), short and long description, status.
+- **Add product wizard**: a step-by-step flow (basic info, pricing, inventory,
+  categories, images, description, review) for creating new products.
+- **Image uploads**: upload an image directly to the WordPress media library
+  from the product wizard or edit page (instead of pasting a URL), with
+  optional one-click edits: add a white background, increase quality, and/or
+  resize/frame the image to 1080×1080. Each edit is an independent checkbox
+  applied at upload time. Requires WordPress REST API credentials (see Setup).
+- **Custom (ACF) taxonomies**: taxonomies registered for products (e.g. brand,
+  material) with "Show in REST API" enabled are loaded as additional
+  attributes in the add-product wizard, the product edit page, and as filters
+  in the product list. Requires WordPress REST API credentials.
+- **AI-assisted descriptions**: optionally generate a short and long product
+  description with an AI model, triggered only when you click "Generate with
+  AI" (never automatic). Requires AI settings to be configured (see Setup).
 - **Batch mode**: multi-select products and apply bulk actions:
   - Increase or decrease price by a percentage (regular and/or sale price),
     with rounding modes: none, nearest whole number, round up, round down,
@@ -128,6 +142,43 @@ account exists**, so it's safe to leave on the server.
 - Each user (including superadmin) picks/switches their active site from
   `/sites.php`, accessible from the bottom nav. Superadmins can access every
   site; other roles only see the sites assigned to them.
+
+## Optional: WordPress REST API (image uploads & ACF taxonomies)
+
+Image uploads and custom (ACF) taxonomies use the core WordPress REST API
+(`/wp-json/wp/v2/...`), which is separate from the WooCommerce REST API and
+requires its own credentials:
+
+1. In WordPress, go to *Users → Profile* (for an admin/editor account) and
+   scroll to **Application Passwords**. Enter a name (e.g. `Product Manager`)
+   and click **Add New Application Password**. Copy the generated password
+   (it's only shown once).
+2. In the app, go to *Admin → Sites*, edit the site, and fill in the
+   **WordPress REST API** section with that user's WordPress username and the
+   application password you just created.
+3. For custom taxonomies (e.g. ACF taxonomies like "Brand") to appear in the
+   add-product wizard, the product edit page, and the product list filters,
+   each taxonomy must have **"Show in REST API"** enabled in its registration
+   (in ACF: the taxonomy's *Advanced Settings → Show in REST API*).
+
+If these credentials are not configured, the app continues to work normally —
+image upload, custom taxonomies, and the related filters are simply hidden /
+unavailable for that site.
+
+## Optional: AI-generated descriptions
+
+To enable the "Generate with AI" button (short + long product descriptions),
+go to *Admin → Settings* and fill in the **AI (ArvanCloud)** section:
+
+- **API base URL**: the OpenAI-compatible chat completions endpoint (defaults
+  to ArvanCloud AI's endpoint, `https://api.ai.arvancloud.ir/v1`).
+- **API key**: your AI provider API key.
+- **Model**: the model name to use for chat completions.
+
+This feature is entirely optional: if no API key is set, the "Generate with
+AI" button shows an error explaining it isn't configured, and the rest of the
+app is unaffected. AI is only called when a user explicitly clicks "Generate
+with AI" — it never runs automatically.
 
 ## Installing on cPanel
 

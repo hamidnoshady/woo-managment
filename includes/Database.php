@@ -63,9 +63,21 @@ class Database
                 consumer_key TEXT NOT NULL,
                 consumer_secret TEXT NOT NULL,
                 verify_ssl INTEGER NOT NULL DEFAULT 1,
+                wp_username TEXT NOT NULL DEFAULT \'\',
+                wp_app_password TEXT NOT NULL DEFAULT \'\',
                 created_at INTEGER NOT NULL
             )'
         );
+
+        // Migrate older installs that created the sites table before the
+        // WordPress REST API credential columns existed.
+        $siteColumns = array_column($pdo->query('PRAGMA table_info(sites)')->fetchAll(), 'name');
+        if (!in_array('wp_username', $siteColumns, true)) {
+            $pdo->exec("ALTER TABLE sites ADD COLUMN wp_username TEXT NOT NULL DEFAULT ''");
+        }
+        if (!in_array('wp_app_password', $siteColumns, true)) {
+            $pdo->exec("ALTER TABLE sites ADD COLUMN wp_app_password TEXT NOT NULL DEFAULT ''");
+        }
 
         $pdo->exec(
             'CREATE TABLE IF NOT EXISTS user_sites (
