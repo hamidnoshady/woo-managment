@@ -65,13 +65,17 @@ if ($method === 'POST' || $method === 'PUT') {
             json_response(['error' => $result['data']['message'] ?? 'Failed to save product'], $result['status'] ?: 502);
         }
 
+        $changeSummary = describe_product_changes($before['data'], $data, $result['data']);
+        $messageKey = $changeSummary !== '' ? 'log_product_updated_detail' : 'log_product_updated';
+        $messageParams = $changeSummary !== '' ? [$result['data']['name'] ?? '', $changeSummary] : [$result['data']['name'] ?? ''];
+
         $logId = log_activity(
             $user,
             (int) $site['id'],
             'site',
             'product_update',
-            'log_product_updated',
-            [$result['data']['name'] ?? ''],
+            $messageKey,
+            $messageParams,
             [
                 'type' => 'update_product',
                 'site_id' => (int) $site['id'],
@@ -120,7 +124,9 @@ if ($method === 'POST' || $method === 'PUT') {
 
     $item = map_product_detail($result['data']);
     $item['log_id'] = $logId;
-    $item['message'] = t($id > 0 ? 'log_product_updated' : 'log_product_created', $result['data']['name'] ?? '');
+    $item['message'] = $id > 0
+        ? t($messageKey, ...$messageParams)
+        : t('log_product_created', $result['data']['name'] ?? '');
     json_response(['item' => $item]);
 }
 
@@ -306,4 +312,47 @@ function sanitize_price($value): string
         $price = 0;
     }
     return format_wc_price($price);
+}
+
+/**
+ * Builds a short "field: old → new" summary of what actually changed in a
+ * product update, for the activity log (so "Updated product X" becomes
+ * something like "Updated product X (Regular price: 100 → 90)" - the same
+ * level of detail stock changes already get).
+ */
+function describe_product_changes(array $before, array $newData, array $after): string
+{
+    $fieldLabels = [
+        'name' => t('name'),
+        'sku' => t('sku'),
+        'regular_price' => t('regular_price'),
+        'sale_price' => t('sale_price'),
+        'stock_status' => t('stock_status'),
+        'stock_quantity' => t('stock_quantity'),
+        'status' => t('status'),
+    ];
+
+    $parts = [];
+    foreach ($fieldLabels as $key => $label) {
+        if (!array_key_exists($key, $newData)) {
+            continue;
+        }
+
+        $oldValue = $before[$key] ?? '';
+        $newValue = $after[$key] ?? $newData[$key];
+        if ((string) $oldValue === (string) $newValue) {
+            continue;
+        }
+
+        $oldDisplay = ($oldValue === '' || $oldValue === null) ? '—' : (string) $oldValue;
+        $newDisplay = ($newValue === '' || $newValue === null) ? '—' : (string) $newValue;
+        $parts[] = "{$label}: {$oldDisplay} \xE2\x86\x92 {$newDisplay}";
+    }
+
+    $bulkFields = ['categories', 'images', 'short_description', 'description'];
+    if (array_intersect($bulkFields, array_keys($newData))) {
+        $parts[] = t('other_details_updated');
+    }
+
+    return implode(', ', $parts);
 }

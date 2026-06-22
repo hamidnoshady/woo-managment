@@ -104,7 +104,7 @@ function renderLogItem(log) {
   const item = document.createElement('div');
   item.className = 'bg-white rounded-2xl border border-gray-100 p-3';
 
-  const who = window.CURRENT_USER.role === 'superadmin' && log.user_id !== window.CURRENT_USER.id
+  const who = log.user_id !== window.CURRENT_USER.id
     ? `<div class="text-xs text-gray-400 mt-0.5">${escapeHtml(log.user_name || log.user_phone)}</div>`
     : '';
 

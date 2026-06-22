@@ -314,6 +314,7 @@ function renderProductCard(product) {
  */
 function renderPriceRow(card, product) {
   const row = card.querySelector('.price-row');
+  row.className = 'mt-1 flex items-center gap-2 price-row';
   const stockBadge = stockStatusBadge(product.stock_status);
 
   const priceHtml = product.on_sale && product.sale_price
@@ -335,41 +336,92 @@ function renderPriceRow(card, product) {
 }
 
 function showPriceEditor(card, row, product) {
+  row.className = 'price-row price-row-editing flex flex-col gap-1.5 w-full';
   row.innerHTML = `
-    <input type="number" inputmode="decimal" min="0" step="any"
-           class="price-input regular-price-input w-24 rounded-lg border border-gray-300 px-2 py-1 text-xs focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none"
-           value="${escapeHtml(product.regular_price ?? '')}">
-    ${product.on_sale ? `<input type="number" inputmode="decimal" min="0" step="any"
-           class="price-input sale-price-input w-24 rounded-lg border border-gray-300 px-2 py-1 text-xs focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none"
-           placeholder="${escapeHtml(t('sale_price'))}"
-           value="${escapeHtml(product.sale_price ?? '')}">` : ''}
+    <div>
+      <label class="block text-[10px] text-gray-400 mb-0.5">${escapeHtml(t('regular_price'))}</label>
+      <input type="number" inputmode="decimal" min="0" step="any"
+             class="price-input regular-price-input w-full rounded-lg border border-gray-300 px-2 py-1 text-xs focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none"
+             value="${escapeHtml(product.regular_price ?? '')}">
+      <div class="regular-price-preview text-[10px] text-gray-400 mt-0.5"></div>
+    </div>
+    <div>
+      <label class="block text-[10px] text-gray-400 mb-0.5">${escapeHtml(t('sale_price_optional'))}</label>
+      <input type="number" inputmode="decimal" min="0" step="any"
+             class="price-input sale-price-input w-full rounded-lg border border-gray-300 px-2 py-1 text-xs focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none"
+             value="${escapeHtml(product.on_sale ? (product.sale_price ?? '') : '')}">
+      <div class="sale-price-preview text-[10px] text-gray-400 mt-0.5"></div>
+    </div>
+    <div class="price-edit-error hidden text-[10px] text-red-600"></div>
+    <div class="flex gap-1.5">
+      <button type="button" class="price-save flex-1 rounded-lg bg-gray-900 text-white text-xs font-medium py-1">${escapeHtml(t('save'))}</button>
+      <button type="button" class="price-cancel flex-1 rounded-lg border border-gray-300 text-gray-700 text-xs font-medium py-1">${escapeHtml(t('cancel'))}</button>
+    </div>
   `;
 
   const regularInput = row.querySelector('.regular-price-input');
   const saleInput = row.querySelector('.sale-price-input');
+  const regularPreview = row.querySelector('.regular-price-preview');
+  const salePreview = row.querySelector('.sale-price-preview');
+  const errorEl = row.querySelector('.price-edit-error');
 
-  let saved = false;
+  const updatePreview = (input, previewEl) => {
+    const value = parseFloat(input.value);
+    previewEl.textContent = !isNaN(value) && input.value.trim() !== '' ? App.formatToman(value) : '';
+  };
+  updatePreview(regularInput, regularPreview);
+  updatePreview(saleInput, salePreview);
+  regularInput.addEventListener('input', () => updatePreview(regularInput, regularPreview));
+  saleInput.addEventListener('input', () => updatePreview(saleInput, salePreview));
+
+  const showError = (message) => {
+    errorEl.textContent = message;
+    errorEl.classList.remove('hidden');
+  };
+  const clearError = () => errorEl.classList.add('hidden');
+
+  let resolved = false;
+  const cancel = () => {
+    if (resolved) return;
+    resolved = true;
+    renderPriceRow(card, product);
+  };
+
   const save = async () => {
-    if (saved) return;
-    saved = true;
+    if (resolved) return;
+    clearError();
 
     const regularValue = regularInput.value.trim();
-    const saleValue = saleInput ? saleInput.value.trim() : null;
+    const saleValue = saleInput.value.trim();
+    const regularNum = parseFloat(regularValue);
+    const saleNum = saleValue === '' ? null : parseFloat(saleValue);
 
-    const regularChanged = regularValue !== '' && regularValue !== String(product.regular_price ?? '');
-    const saleChanged = saleInput !== null && saleValue !== String(product.sale_price ?? '');
-
-    if (!regularChanged && !saleChanged) {
-      renderPriceRow(card, product);
+    if (regularValue === '' || isNaN(regularNum) || regularNum <= 0) {
+      showError(t('price_required'));
+      regularInput.focus();
+      return;
+    }
+    if (saleNum !== null && (isNaN(saleNum) || saleNum < 0 || saleNum >= regularNum)) {
+      showError(t('sale_price_must_be_lower'));
+      saleInput.focus();
       return;
     }
 
-    const payload = { id: product.id };
-    if (regularChanged) payload.regular_price = regularValue;
-    if (saleChanged) payload.sale_price = saleValue;
+    const regularChanged = regularValue !== String(product.regular_price ?? '');
+    const saleChanged = saleValue !== String(product.on_sale ? (product.sale_price ?? '') : '');
 
+    if (!regularChanged && !saleChanged) {
+      cancel();
+      return;
+    }
+
+    const payload = { id: product.id, regular_price: regularValue, sale_price: saleValue === '' ? '' : saleValue };
+
+    resolved = true;
     regularInput.disabled = true;
-    if (saleInput) saleInput.disabled = true;
+    saleInput.disabled = true;
+    row.querySelector('.price-save').disabled = true;
+    row.querySelector('.price-cancel').disabled = true;
 
     try {
       const data = await App.api('/api/product.php', {
@@ -388,15 +440,18 @@ function showPriceEditor(card, row, product) {
         App.notify(data.item.message, { logId: data.item.log_id, productId: product.id });
       }
     } catch (err) {
+      resolved = false;
       App.toast(err.message, 'error');
-      renderPriceRow(card, product);
+      regularInput.disabled = false;
+      saleInput.disabled = false;
+      row.querySelector('.price-save').disabled = false;
+      row.querySelector('.price-cancel').disabled = false;
+      showError(err.message);
     }
   };
 
-  const cancel = () => {
-    saved = true;
-    renderPriceRow(card, product);
-  };
+  row.querySelector('.price-save').addEventListener('click', (e) => { e.stopPropagation(); save(); });
+  row.querySelector('.price-cancel').addEventListener('click', (e) => { e.stopPropagation(); cancel(); });
 
   const onKeydown = (e) => {
     if (e.key === 'Enter') {
@@ -408,9 +463,11 @@ function showPriceEditor(card, row, product) {
     }
   };
 
+  // Clicking away cancels (reverts) rather than silently saving - an
+  // explicit Save click is required to actually commit a price change.
   const onFocusOut = (e) => {
     if (row.contains(e.relatedTarget)) return;
-    save();
+    cancel();
   };
 
   row.addEventListener('click', (e) => e.stopPropagation());

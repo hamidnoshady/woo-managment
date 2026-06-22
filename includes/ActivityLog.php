@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/Database.php';
 require_once __DIR__ . '/i18n.php';
+require_once __DIR__ . '/Sites.php';
 
 /**
  * Activity logging for site management changes (per-user logs visible to
@@ -89,8 +90,8 @@ function mark_activity_log_undone(int $id): void
  * - superadmin: sees all logs; pass $scope = 'system' to see only system
  *   logs, 'site' for site-management logs from all users, or 'mine' for
  *   their own logs only. Default (null) returns everything.
- * - admin/shop_manager: always scoped to their own site-management logs,
- *   regardless of $scope.
+ * - admin/shop_manager: sees site-management logs for every site they have
+ *   access to (not just their own actions), so they can see who did what.
  */
 function get_activity_logs(array $user, ?string $scope, int $page, int $perPage): array
 {
@@ -116,8 +117,17 @@ function get_activity_logs(array $user, ?string $scope, int $page, int $perPage)
     } else {
         $where[] = 'category = ?';
         $params[] = 'site';
-        $where[] = 'user_id = ?';
-        $params[] = (int) $user['id'];
+
+        $siteIds = array_map(fn($site) => (int) $site['id'], list_sites_for_user($user));
+        if (empty($siteIds)) {
+            // No accessible sites - show nothing rather than leaking every
+            // user's logs by leaving the site filter off entirely.
+            $siteIds = [0];
+        }
+        $where[] = 'site_id IN (' . implode(',', array_fill(0, count($siteIds), '?')) . ')';
+        foreach ($siteIds as $siteId) {
+            $params[] = $siteId;
+        }
     }
 
     $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
