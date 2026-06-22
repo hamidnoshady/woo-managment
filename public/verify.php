@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../includes/helpers.php';
+require_once __DIR__ . '/../includes/pwa.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/i18n.php';
 require_once __DIR__ . '/../includes/nav.php';
@@ -18,6 +19,7 @@ if (current_user() !== null) {
   <title><?php echo htmlspecialchars(t('verify_title')); ?></title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/assets/css/app.css">
+  <?php render_pwa_head(); ?>
 </head>
 <body class="bg-gray-50 min-h-screen flex items-center justify-center px-4">
   <div class="absolute top-4 right-4"><?php render_lang_switcher('/verify.php'); ?></div>
@@ -85,5 +87,6 @@ if (current_user() !== null) {
       window.location.href = '/login.php';
     });
   </script>
+  <?php render_pwa_register_script(); ?>
 </body>
 </html>

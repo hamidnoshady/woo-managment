@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../includes/helpers.php';
+require_once __DIR__ . '/../includes/pwa.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/nav.php';
 
@@ -14,6 +15,7 @@ $user = require_login_page();
   <title><?php echo htmlspecialchars(t('logs_title')); ?></title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/assets/css/app.css">
+  <?php render_pwa_head(); ?>
 </head>
 <body class="bg-gray-50 min-h-screen has-bottom-nav has-sidebar">
 
@@ -50,5 +52,6 @@ $user = require_login_page();
   <script src="/assets/js/i18n.js"></script>
   <script src="/assets/js/app.js"></script>
   <script src="/assets/js/logs.js"></script>
+  <?php render_pwa_register_script(); ?>
 </body>
 </html>

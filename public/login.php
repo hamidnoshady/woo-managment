@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../includes/helpers.php';
+require_once __DIR__ . '/../includes/pwa.php';
 require_once __DIR__ . '/../includes/Database.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/i18n.php';
@@ -26,6 +27,7 @@ if (current_user() !== null) {
   <title><?php echo htmlspecialchars(t('sign_in_title')); ?></title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/assets/css/app.css">
+  <?php render_pwa_head(); ?>
 </head>
 <body class="bg-gray-50 min-h-screen flex items-center justify-center px-4">
   <div class="absolute top-4 right-4"><?php render_lang_switcher('/login.php'); ?></div>
@@ -80,5 +82,6 @@ if (current_user() !== null) {
       }
     });
   </script>
+  <?php render_pwa_register_script(); ?>
 </body>
 </html>

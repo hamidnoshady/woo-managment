@@ -1,0 +1,27 @@
+{
+  "name": "Product Manager",
+  "short_name": "Products",
+  "description": "Manage WooCommerce products, stock, prices, and activity across your sites.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f9fafb",
+  "theme_color": "#111827",
+  "lang": "en",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/assets/icons/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "maskable"
+    }
+  ]
+}

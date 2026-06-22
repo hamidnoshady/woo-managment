@@ -179,6 +179,13 @@ input[type=number] {
   overflow: hidden;
 }
 
+/* Category tree collapse/expand chevron ("▸") points into the reading
+   direction; mirror it for RTL so it still reads as "expand this way". */
+[dir="rtl"] .cat-toggle {
+  display: inline-block;
+  transform: scaleX(-1);
+}
+
 /* Brief highlight on a product card after it's refreshed (e.g. via undo),
    so the user can tell which item just changed. */
 .highlight-flash {

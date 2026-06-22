@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../includes/helpers.php';
+require_once __DIR__ . '/../includes/pwa.php';
 require_once __DIR__ . '/../includes/Database.php';
 require_once __DIR__ . '/../includes/Settings.php';
 require_once __DIR__ . '/../includes/Users.php';
@@ -57,6 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <title><?php echo htmlspecialchars(t('install_title')); ?></title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/assets/css/app.css">
+  <?php render_pwa_head(); ?>
 </head>
 <body class="bg-gray-50 min-h-screen flex items-center justify-center px-4">
   <div class="absolute top-4 right-4"><?php render_lang_switcher('/install.php'); ?></div>
@@ -115,5 +117,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <?php echo htmlspecialchars(t('install_footer')); ?>
     </p>
   </div>
+  <?php render_pwa_register_script(); ?>
 </body>
 </html>

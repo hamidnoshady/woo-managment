@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../includes/helpers.php';
+require_once __DIR__ . '/../includes/pwa.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/site_context.php';
 require_once __DIR__ . '/../includes/i18n.php';
@@ -17,6 +18,7 @@ $productId = (int) ($_GET['id'] ?? 0);
   <title><?php echo htmlspecialchars($productId > 0 ? t('edit_product') : t('new_product')); ?> · Product Manager</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/assets/css/app.css">
+  <?php render_pwa_head(); ?>
 </head>
 <body class="bg-gray-50 min-h-screen has-bottom-nav has-sidebar">
 
@@ -159,5 +161,6 @@ $productId = (int) ($_GET['id'] ?? 0);
   <script src="/assets/js/i18n.js"></script>
   <script src="/assets/js/app.js"></script>
   <script src="/assets/js/product-edit.js"></script>
+  <?php render_pwa_register_script(); ?>
 </body>
 </html>

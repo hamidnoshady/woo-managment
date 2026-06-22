@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../includes/helpers.php';
+require_once __DIR__ . '/../includes/pwa.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/i18n.php';
 require_once __DIR__ . '/../includes/nav.php';
@@ -24,6 +25,7 @@ $lang = current_lang();
   <title><?php echo htmlspecialchars(t('account_settings_title')); ?></title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/assets/css/app.css">
+  <?php render_pwa_head(); ?>
 </head>
 <body class="bg-gray-50 min-h-screen has-bottom-nav has-sidebar">
 
@@ -84,5 +86,6 @@ $lang = current_lang();
   <script>
     document.getElementById('logout-btn').addEventListener('click', () => App.logout());
   </script>
+  <?php render_pwa_register_script(); ?>
 </body>
 </html>
