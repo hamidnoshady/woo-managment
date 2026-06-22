@@ -15,7 +15,9 @@ $user = require_login_page();
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/assets/css/app.css">
 </head>
-<body class="bg-gray-50 min-h-screen has-bottom-nav">
+<body class="bg-gray-50 min-h-screen has-bottom-nav has-sidebar">
+
+  <?php render_desktop_sidebar('logs', $user); ?>
 
   <header class="sticky top-0 z-30 bg-white border-b border-gray-100">
     <div class="px-4 pt-4 pb-3 flex items-center justify-between">

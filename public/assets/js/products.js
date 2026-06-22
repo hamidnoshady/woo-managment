@@ -35,7 +35,31 @@ async function init() {
   bindEvents();
   await loadProducts(true);
 
-  App.onUndo = () => loadProducts(true);
+  App.onUndo = (logId, productId) => refreshSingleProduct(productId);
+}
+
+/**
+ * Re-fetches a single product (used after an undo) and patches its card in
+ * place, then scrolls it into view with a brief highlight. Avoids resetting
+ * the whole list/scroll position the way a full reload would.
+ */
+async function refreshSingleProduct(productId) {
+  if (!productId) return;
+  const card = listEl.querySelector(`[data-id="${productId}"]`);
+  if (!card) return;
+
+  try {
+    const data = await App.api(`/api/product.php?id=${productId}&summary=1`);
+    const updated = data.item;
+    const fresh = renderProductCard(updated);
+    card.replaceWith(fresh);
+    fresh.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    fresh.classList.add('highlight-flash');
+    setTimeout(() => fresh.classList.remove('highlight-flash'), 1500);
+  } catch (e) {
+    // The product may have been deleted/undone away entirely; leave the
+    // list as-is rather than forcing a disruptive full reload.
+  }
 }
 
 async function ensureSession() {
@@ -235,7 +259,7 @@ function renderProductCard(product) {
           badgeWrap.outerHTML = stockStatusBadge(result.stock_status);
         }
         if (result.log_id) {
-          App.notify(result.message, { logId: result.log_id });
+          App.notify(result.message, { logId: result.log_id, productId: product.id });
         }
       } catch (err) {
         App.toast(err.message, 'error');
@@ -351,7 +375,7 @@ function showPriceEditor(card, row, product) {
       renderPriceRow(card, product);
 
       if (data.item.log_id) {
-        App.notify(data.item.message, { logId: data.item.log_id });
+        App.notify(data.item.message, { logId: data.item.log_id, productId: product.id });
       }
     } catch (err) {
       App.toast(err.message, 'error');

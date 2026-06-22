@@ -23,6 +23,12 @@ if ($method === 'GET') {
         json_response(['error' => $result['data']['message'] ?? 'Product not found'], $result['status'] ?: 404);
     }
 
+    // The list page uses this to re-fetch a single product card (e.g. after
+    // an undo) without pulling in description/images/taxonomy detail.
+    if (($_GET['summary'] ?? '') === '1') {
+        json_response(['item' => map_product_summary($result['data'])]);
+    }
+
     $item = map_product_detail($result['data']);
 
     $wp = wordpress_client_for_site($site);

@@ -103,3 +103,26 @@ function format_wc_price(float $price): string
 {
     return number_format($price, 2, '.', '');
 }
+
+/**
+ * Maps a raw WooCommerce product to the compact shape used by product list
+ * cards (and by single-product refreshes after an undo).
+ */
+function map_product_summary(array $product): array
+{
+    return [
+        'id' => $product['id'],
+        'name' => $product['name'],
+        'sku' => $product['sku'],
+        'price' => $product['price'],
+        'regular_price' => $product['regular_price'],
+        'sale_price' => $product['sale_price'],
+        'on_sale' => $product['on_sale'],
+        'stock_quantity' => $product['stock_quantity'],
+        'stock_status' => $product['stock_status'],
+        'manage_stock' => $product['manage_stock'],
+        'image' => $product['images'][0]['src'] ?? null,
+        'categories' => array_map(fn($c) => ['id' => $c['id'], 'name' => $c['name']], $product['categories'] ?? []),
+        'permalink' => $product['permalink'] ?? null,
+    ];
+}

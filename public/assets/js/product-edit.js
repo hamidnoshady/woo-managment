@@ -30,23 +30,28 @@ const els = {
 init();
 
 async function init() {
-  await ensureSession();
-  await loadCategories();
-  await loadCustomTaxonomies();
+  try {
+    await ensureSession();
+    await loadCategories();
+    await loadCustomTaxonomies();
 
-  if (window.PRODUCT_ID > 0) {
-    await loadProduct(window.PRODUCT_ID);
-    if (window.CURRENT_USER.role === 'admin' || window.CURRENT_USER.role === 'superadmin') {
-      els.deleteBtn.classList.remove('hidden');
+    if (window.PRODUCT_ID > 0) {
+      await loadProduct(window.PRODUCT_ID);
+      if (window.CURRENT_USER.role === 'admin' || window.CURRENT_USER.role === 'superadmin') {
+        els.deleteBtn.classList.remove('hidden');
+      }
+    } else {
+      addImageRow('');
     }
-  } else {
-    addImageRow('');
+
+    bindEvents();
+  } catch (e) {
+    console.error('Product edit page failed to initialize:', e);
+    App.toast(e.message || 'Failed to load the form.', 'error');
+  } finally {
+    els.loading.classList.add('hidden');
+    els.form.classList.remove('hidden');
   }
-
-  els.loading.classList.add('hidden');
-  els.form.classList.remove('hidden');
-
-  bindEvents();
 }
 
 async function ensureSession() {

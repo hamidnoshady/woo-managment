@@ -17,7 +17,9 @@ $site = require_site_page($user);
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/assets/css/app.css">
 </head>
-<body class="bg-gray-50 min-h-screen has-bottom-nav">
+<body class="bg-gray-50 min-h-screen has-bottom-nav has-sidebar">
+
+  <?php require_once __DIR__ . '/../includes/nav.php'; render_desktop_sidebar('products', $user, $site); ?>
 
   <header class="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
     <a href="/products.php" class="text-gray-500 text-xl leading-none">&larr;</a>
@@ -27,7 +29,7 @@ $site = require_site_page($user);
     </div>
     <?php render_lang_switcher('/product-wizard.php'); ?>
   </header>
-  <?php require_once __DIR__ . '/../includes/nav.php'; render_site_switcher($site); ?>
+  <?php render_site_switcher($site); ?>
 
   <!-- Progress bar -->
   <div class="px-4 pt-3">

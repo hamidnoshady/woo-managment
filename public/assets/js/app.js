@@ -83,9 +83,11 @@ const App = {
   /**
    * Shows an in-app notification for a change that was just made. If
    * `logId` is provided, an "Undo" button is shown with a countdown for
-   * the duration of the undo window (10s by default).
+   * the duration of the undo window (10s by default). `productId`, if
+   * given, is passed through to `onUndo` so the caller can refresh just
+   * that one item instead of reloading everything.
    */
-  notify(message, { logId = null, duration = 10000 } = {}) {
+  notify(message, { logId = null, productId = null, duration = 10000 } = {}) {
     let container = document.querySelector('.notif');
     if (!container) {
       container = document.createElement('div');
@@ -136,7 +138,7 @@ const App = {
           });
           this.toast(t('undo_applied'), 'success');
           if (typeof this.onUndo === 'function') {
-            this.onUndo(logId);
+            this.onUndo(logId, productId);
           }
         } catch (err) {
           this.toast(err.message || t('undo_failed'), 'error');
@@ -209,4 +211,8 @@ const App = {
   },
 };
 
-document.addEventListener('DOMContentLoaded', () => App.showPendingNotify());
+document.addEventListener('DOMContentLoaded', () => {
+  App.showPendingNotify();
+  const desktopLogout = document.getElementById('logout-btn-desktop');
+  if (desktopLogout) desktopLogout.addEventListener('click', () => App.logout());
+});

@@ -178,3 +178,81 @@ input[type=number] {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* Brief highlight on a product card after it's refreshed (e.g. via undo),
+   so the user can tell which item just changed. */
+.highlight-flash {
+  animation: highlight-flash 1.5s ease-out;
+}
+
+@keyframes highlight-flash {
+  0% { background-color: #fef9c3; }
+  100% { background-color: transparent; }
+}
+
+/* ----------------------------------------------------------------------
+   Desktop layout (>=1024px): a fixed sidebar replaces the bottom tab bar,
+   and pages get extra inline padding to make room for it.
+   ---------------------------------------------------------------------- */
+.desktop-sidebar {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .desktop-sidebar {
+    display: flex;
+  }
+
+  .has-bottom-nav {
+    padding-bottom: 0;
+  }
+
+  body.has-sidebar {
+    padding-left: 16rem;
+  }
+
+  [dir="rtl"] body.has-sidebar {
+    padding-left: 0;
+    padding-right: 16rem;
+  }
+
+  .bottom-nav,
+  .mobile-site-switcher {
+    display: none;
+  }
+
+  #add-fab {
+    bottom: 1.5rem;
+  }
+
+  .selection-bar-desktop {
+    bottom: 1rem;
+    left: 16rem;
+  }
+
+  [dir="rtl"] .selection-bar-desktop {
+    left: 0;
+    right: 16rem;
+  }
+
+  /* The mobile filter bottom-sheet becomes a persistent inline panel. */
+  #filter-sheet {
+    display: block !important;
+    position: static !important;
+    z-index: auto;
+  }
+
+  #filter-overlay {
+    display: none !important;
+  }
+
+  #filter-sheet > div {
+    position: static !important;
+    max-height: none !important;
+    border-radius: 1rem !important;
+  }
+
+  #filter-btn {
+    display: none;
+  }
+}

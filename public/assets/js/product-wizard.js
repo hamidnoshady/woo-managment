@@ -47,16 +47,24 @@ let currentStep = 0;
 init();
 
 async function init() {
-  await ensureSession();
-  await loadCategories();
-  await loadCustomTaxonomies();
+  try {
+    await ensureSession();
+    await loadCategories();
+    await loadCustomTaxonomies();
 
-  addImageRow('');
-  bindEvents();
-  showStep(0);
-
-  els.loading.classList.add('hidden');
-  els.form.classList.remove('hidden');
+    addImageRow('');
+    bindEvents();
+    showStep(0);
+  } catch (e) {
+    // Don't leave the page stuck on the loading state if anything above
+    // throws unexpectedly; surface the error and still show the form so
+    // the user isn't left looking at a blank page.
+    console.error('Product wizard failed to initialize:', e);
+    App.toast(e.message || 'Failed to load the form.', 'error');
+  } finally {
+    els.loading.classList.add('hidden');
+    els.form.classList.remove('hidden');
+  }
 }
 
 async function ensureSession() {
