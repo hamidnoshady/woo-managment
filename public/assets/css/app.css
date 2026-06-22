@@ -203,6 +203,17 @@ input[type=number] {
     display: flex;
   }
 
+  /* The sidebar itself must flip sides with the page direction (it's
+     fixed, so Tailwind's `left-0` utility in the markup doesn't flip
+     automatically) - otherwise it overlaps content instead of sitting in
+     the space the body padding below reserves for it. */
+  [dir="rtl"] .desktop-sidebar {
+    left: auto;
+    right: 0;
+    border-right: none;
+    border-left: 1px solid #f3f4f6;
+  }
+
   .has-bottom-nav {
     padding-bottom: 0;
   }
@@ -247,8 +258,9 @@ input[type=number] {
   }
 
   #filter-sheet > div {
-    position: static !important;
-    max-height: none !important;
+    position: sticky !important;
+    top: 5rem !important;
+    max-height: calc(100vh - 6rem) !important;
     border-radius: 1rem !important;
   }
 

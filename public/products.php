@@ -57,9 +57,9 @@ $site = require_site_page($user);
     </main>
 
     <!-- Filter sheet (mobile: bottom-sheet modal; desktop: persistent side panel) -->
-    <div id="filter-sheet" class="hidden fixed inset-0 z-40 lg:w-72 lg:flex-shrink-0 lg:order-2">
+    <div id="filter-sheet" class="hidden fixed inset-0 z-40 lg:w-80 xl:w-96 lg:flex-shrink-0 lg:order-2">
       <div id="filter-overlay" class="absolute inset-0 bg-black/40"></div>
-      <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl p-4 max-h-[85vh] overflow-y-auto lg:sticky lg:top-20 lg:border lg:border-gray-100">
+      <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl p-4 max-h-[85vh] overflow-y-auto lg:p-5 lg:border lg:border-gray-100">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-base font-semibold text-gray-900"><?php echo htmlspecialchars(t('filters')); ?></h2>
           <button id="filter-close" class="text-gray-400 text-xl leading-none lg:hidden">&times;</button>
