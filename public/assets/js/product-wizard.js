@@ -85,6 +85,7 @@ async function loadCategories() {
     data.items.forEach((cat) => {
       const label = document.createElement('label');
       label.className = 'flex items-center gap-2 text-sm text-gray-700';
+      label.style.paddingInlineStart = `${(cat.depth || 0) * 1.25}rem`;
       label.innerHTML = `<input type="checkbox" value="${cat.id}" class="category-checkbox h-4 w-4 rounded border-gray-300"> ${escapeHtml(cat.name)}`;
       els.categoriesList.appendChild(label);
     });
@@ -96,15 +97,25 @@ async function loadCategories() {
 async function loadCustomTaxonomies() {
   try {
     const data = await App.api('/api/taxonomies.php');
-    renderCustomTaxonomies(data.items || []);
+    renderCustomTaxonomies(data.items || [], data.reason);
   } catch (e) {
-    // Optional feature; ignore failures (e.g. no WordPress credentials).
+    renderCustomTaxonomies([], 'error');
   }
 }
 
-function renderCustomTaxonomies(taxonomies) {
+function renderCustomTaxonomies(taxonomies, reason) {
   els.customTaxonomies.innerHTML = '';
-  if (!taxonomies.length) return;
+
+  if (!taxonomies.length) {
+    if (reason) {
+      const notice = document.createElement('p');
+      notice.className = 'text-xs text-gray-400 bg-white rounded-2xl border border-gray-100 p-4';
+      notice.textContent = reason === 'no_credentials' ? t('wp_credentials_missing') : t('no_custom_taxonomies');
+      els.customTaxonomies.appendChild(notice);
+      els.customTaxonomies.classList.remove('hidden');
+    }
+    return;
+  }
 
   taxonomies.forEach((tax) => {
     const section = document.createElement('div');

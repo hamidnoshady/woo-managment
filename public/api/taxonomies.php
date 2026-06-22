@@ -14,7 +14,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 
 $wp = wordpress_client_for_site($site);
 if ($wp === null) {
-    json_response(['items' => []]);
+    // No WordPress Application Password configured for this site - the
+    // UI needs this distinguished from "no ACF taxonomies exist" so it can
+    // tell the user what to actually do about it.
+    json_response(['items' => [], 'reason' => 'no_credentials']);
 }
 
-json_response(['items' => $wp->listCustomProductTaxonomies()]);
+$items = $wp->listCustomProductTaxonomies();
+json_response(['items' => $items, 'reason' => empty($items) ? 'none_found' : null]);

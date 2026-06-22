@@ -81,7 +81,7 @@ async function loadCategories() {
     data.items.forEach((cat) => {
       const opt = document.createElement('option');
       opt.value = cat.id;
-      opt.textContent = `${cat.name} (${cat.count})`;
+      opt.textContent = `${'— '.repeat(cat.depth || 0)}${cat.name} (${cat.count})`;
       select.appendChild(opt);
     });
   } catch (e) {
@@ -114,10 +114,20 @@ function buildQuery(page) {
 }
 
 async function loadCustomTaxonomyFilters() {
+  const container = document.getElementById('custom-taxonomy-filters');
   try {
     const data = await App.api('/api/taxonomies.php');
-    const container = document.getElementById('custom-taxonomy-filters');
-    (data.items || []).forEach((tax) => {
+    const items = data.items || [];
+
+    if (!items.length && data.reason) {
+      const notice = document.createElement('p');
+      notice.className = 'text-xs text-gray-400';
+      notice.textContent = data.reason === 'no_credentials' ? t('wp_credentials_missing') : t('no_custom_taxonomies');
+      container.appendChild(notice);
+      return;
+    }
+
+    items.forEach((tax) => {
       const wrap = document.createElement('div');
 
       const label = document.createElement('label');

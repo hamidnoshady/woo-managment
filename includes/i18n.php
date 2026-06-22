@@ -248,7 +248,7 @@ const TRANSLATIONS = [
         'image_edit_enhance' => 'Increase quality',
         'image_edit_resize' => 'Resize to frame 1080×1080',
         'custom_taxonomies' => 'Additional attributes',
-        'no_custom_taxonomies' => 'No custom attributes available for this site.',
+        'no_custom_taxonomies' => 'No custom (e.g. ACF) taxonomies were found for products on this site. Make sure the taxonomy has "Show in REST API" enabled.',
 
         // Product wizard
         'product_wizard_title' => 'Add product · Product Manager',
@@ -539,7 +539,7 @@ const TRANSLATIONS = [
         'image_edit_enhance' => 'افزایش کیفیت',
         'image_edit_resize' => 'تغییر اندازه به قاب ۱۰۸۰×۱۰۸۰',
         'custom_taxonomies' => 'ویژگی‌های اضافی',
-        'no_custom_taxonomies' => 'هیچ ویژگی سفارشی برای این فروشگاه موجود نیست.',
+        'no_custom_taxonomies' => 'هیچ طبقه‌بندی سفارشی (مثلاً ACF) برای محصولات این فروشگاه یافت نشد. بررسی کنید که گزینه «نمایش در REST API» برای آن طبقه‌بندی فعال باشد.',
 
         // Product wizard
         'product_wizard_title' => 'افزودن محصول · مدیریت محصولات',
