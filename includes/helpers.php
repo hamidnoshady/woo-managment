@@ -1,6 +1,29 @@
 <?php
 
 /**
+ * Installs a shutdown handler that turns an uncaught fatal error into a
+ * JSON error response instead of leaking raw HTML. Call this at the top of
+ * API endpoint files only (not HTML page files), right after requiring
+ * this file - otherwise a real page fatal would render as a JSON blob.
+ */
+function install_json_fatal_handler(): void
+{
+    register_shutdown_function(function () {
+        $error = error_get_last();
+        if ($error === null || headers_sent()) {
+            return;
+        }
+        $fatalTypes = [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR];
+        if (!in_array($error['type'], $fatalTypes, true)) {
+            return;
+        }
+        http_response_code(500);
+        header('Content-Type: application/json');
+        echo json_encode(['error' => 'Internal server error.'], JSON_UNESCAPED_UNICODE);
+    });
+}
+
+/**
  * Sends a JSON response and stops execution.
  */
 function json_response($data, int $status = 200): void

@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../../includes/helpers.php';
+install_json_fatal_handler();
 require_once __DIR__ . '/../../includes/i18n.php';
 
 $lang = (string) ($_GET['lang'] ?? '');

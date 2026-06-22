@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../../includes/helpers.php';
+install_json_fatal_handler();
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/Settings.php';
 require_once __DIR__ . '/../../includes/i18n.php';
@@ -20,6 +21,7 @@ function settings_group_key(string $group): string
         'Login codes (OTP)'   => 'group_otp',
         'Session'             => 'group_session',
         'Superadmins'         => 'group_superadmins',
+        'AI (OpenRouter)'     => 'group_ai',
     ];
 
     return $map[$group] ?? $group;

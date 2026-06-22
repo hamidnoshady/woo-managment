@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../../includes/helpers.php';
+install_json_fatal_handler();
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/ActivityLog.php';
 require_once __DIR__ . '/../../includes/WooCommerceClient.php';

@@ -228,7 +228,7 @@ const TRANSLATIONS = [
         'session_lifetime_help' => 'How long a login session lasts (default 28800 = 8 hours).',
         'superadmin_phones_label' => 'Bootstrap superadmin phone numbers',
         'superadmin_phones_help' => 'Comma-separated phone numbers (e.g. 09121234567, 09129876543) that are automatically granted the superadmin role the first time they log in.',
-        'group_ai' => 'AI (ArvanCloud)',
+        'group_ai' => 'AI (OpenRouter)',
 
         // Currency
         'currency_unit' => 'Toman',
@@ -247,6 +247,8 @@ const TRANSLATIONS = [
         'image_edit_white_bg' => 'Add white background',
         'image_edit_enhance' => 'Increase quality',
         'image_edit_resize' => 'Resize to frame 1080×1080',
+        'image_edit_ai' => 'Edit with AI (clean background, sharpen)',
+        'ai_image_not_configured' => 'AI image editing is not configured. Set an image model in Admin → Settings, or use the basic edit options above instead.',
         'custom_taxonomies' => 'Additional attributes',
         'no_custom_taxonomies' => 'No custom (e.g. ACF) taxonomies were found for products on this site. Make sure the taxonomy has "Show in REST API" enabled.',
 
@@ -519,7 +521,7 @@ const TRANSLATIONS = [
         'session_lifetime_help' => 'مدت زمان اعتبار نشست ورود (پیش‌فرض ۲۸۸۰۰ = ۸ ساعت).',
         'superadmin_phones_label' => 'شماره‌های مدیر کل اولیه',
         'superadmin_phones_help' => 'شماره‌های موبایل جداشده با کاما (مثلاً 09121234567, 09129876543) که در اولین ورود به‌طور خودکار نقش مدیر کل می‌گیرند.',
-        'group_ai' => 'هوش مصنوعی (آروان کلاد)',
+        'group_ai' => 'هوش مصنوعی (OpenRouter)',
 
         // Currency
         'currency_unit' => 'تومان',
@@ -538,6 +540,8 @@ const TRANSLATIONS = [
         'image_edit_white_bg' => 'افزودن پس‌زمینه سفید',
         'image_edit_enhance' => 'افزایش کیفیت',
         'image_edit_resize' => 'تغییر اندازه به قاب ۱۰۸۰×۱۰۸۰',
+        'image_edit_ai' => 'ویرایش با هوش مصنوعی (پاک‌سازی پس‌زمینه، افزایش وضوح)',
+        'ai_image_not_configured' => 'ویرایش تصویر با هوش مصنوعی تنظیم نشده است. یک مدل تصویر در مدیریت ← تنظیمات تعیین کنید، یا از گزینه‌های ویرایش پایه بالا استفاده کنید.',
         'custom_taxonomies' => 'ویژگی‌های اضافی',
         'no_custom_taxonomies' => 'هیچ طبقه‌بندی سفارشی (مثلاً ACF) برای محصولات این فروشگاه یافت نشد. بررسی کنید که گزینه «نمایش در REST API» برای آن طبقه‌بندی فعال باشد.',
 

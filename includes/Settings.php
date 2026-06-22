@@ -18,9 +18,10 @@ const SETTINGS_DEFAULTS = [
     'session_name'         => 'wcpm_session',
     'session_lifetime'     => 28800,
     'superadmin_phones'    => '',
-    'ai_base_url'          => 'https://api.ai.arvancloud.ir/v1',
+    'ai_base_url'          => 'https://openrouter.ai/api/v1',
     'ai_api_key'           => '',
     'ai_model'             => '',
+    'ai_image_model'       => '',
 ];
 
 /**
@@ -91,20 +92,26 @@ const SETTINGS_FIELDS = [
     'ai_base_url' => [
         'label' => 'AI API base URL',
         'type' => 'text',
-        'group' => 'AI (ArvanCloud)',
-        'help' => 'Base URL of an OpenAI-compatible chat completions API (e.g. ArvanCloud AI Platform).',
+        'group' => 'AI (OpenRouter)',
+        'help' => 'Base URL of an OpenAI-compatible chat completions API. Defaults to OpenRouter (https://openrouter.ai/api/v1).',
     ],
     'ai_api_key' => [
         'label' => 'AI API key',
         'type' => 'password',
-        'group' => 'AI (ArvanCloud)',
-        'help' => 'API key used to authenticate AI requests. Leave empty to disable AI features.',
+        'group' => 'AI (OpenRouter)',
+        'help' => 'Your OpenRouter API key (https://openrouter.ai/keys). Leave empty to disable AI features.',
     ],
     'ai_model' => [
-        'label' => 'AI model name',
+        'label' => 'Text model (descriptions)',
         'type' => 'text',
-        'group' => 'AI (ArvanCloud)',
-        'help' => 'Model identifier to use for generating product descriptions (e.g. gpt-4o-mini).',
+        'group' => 'AI (OpenRouter)',
+        'help' => 'Model used to generate short and long product descriptions, e.g. "openai/gpt-4o-mini" or "anthropic/claude-3.5-haiku". See openrouter.ai/models.',
+    ],
+    'ai_image_model' => [
+        'label' => 'Image model (photo editing)',
+        'type' => 'text',
+        'group' => 'AI (OpenRouter)',
+        'help' => 'Optional. A separate, image-output-capable model used for the "Edit with AI" product photo option, e.g. "google/gemini-2.5-flash-image-preview". Leave empty to disable AI image editing (the basic white-background/enhance/resize options still work without this).',
     ],
 ];
 

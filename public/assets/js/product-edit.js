@@ -16,12 +16,15 @@ const els = {
   imagesList: document.getElementById('images-list'),
   addImage: document.getElementById('add-image'),
   imageUpload: document.getElementById('image-upload'),
+  uploadStatus: document.getElementById('upload-status'),
   editWhiteBg: document.getElementById('edit-white-bg'),
   editEnhance: document.getElementById('edit-enhance'),
   editResize: document.getElementById('edit-resize'),
+  editAi: document.getElementById('edit-ai'),
   shortDescription: document.getElementById('short_description'),
   description: document.getElementById('description'),
-  aiGenerate: document.getElementById('ai-generate-description'),
+  aiGenerateShort: document.getElementById('ai-generate-short'),
+  aiGenerateLong: document.getElementById('ai-generate-long'),
   status: document.getElementById('status'),
   saveBtn: document.getElementById('save-btn'),
   deleteBtn: document.getElementById('delete-btn'),
@@ -69,13 +72,7 @@ async function ensureSession() {
 async function loadCategories() {
   try {
     const data = await App.api('/api/categories.php');
-    data.items.forEach((cat) => {
-      const label = document.createElement('label');
-      label.className = 'flex items-center gap-2 text-sm text-gray-700';
-      label.style.paddingInlineStart = `${(cat.depth || 0) * 1.25}rem`;
-      label.innerHTML = `<input type="checkbox" value="${cat.id}" class="category-checkbox h-4 w-4 rounded border-gray-300"> ${escapeHtml(cat.name)}`;
-      els.categoriesList.appendChild(label);
-    });
+    App.renderCategoryCheckboxTree(els.categoriesList, data.items);
   } catch (e) {
     App.toast(e.message, 'error');
   }
@@ -150,6 +147,7 @@ async function loadProduct(id) {
     els.categoriesList.querySelectorAll('.category-checkbox').forEach((cb) => {
       cb.checked = selectedCategoryIds.has(cb.value);
     });
+    App.expandCheckedCategoryAncestors(els.categoriesList);
 
     const taxonomies = item.taxonomies || {};
     els.customTaxonomies.querySelectorAll('[data-rest-base]').forEach((section) => {
@@ -194,8 +192,11 @@ function bindEvents() {
     formData.append('white_bg', els.editWhiteBg.checked ? '1' : '0');
     formData.append('enhance', els.editEnhance.checked ? '1' : '0');
     formData.append('resize_frame', els.editResize.checked ? '1' : '0');
+    formData.append('ai_edit', els.editAi.checked ? '1' : '0');
 
     els.imageUpload.disabled = true;
+    els.uploadStatus.textContent = t('uploading');
+    els.uploadStatus.classList.remove('hidden');
     try {
       const data = await App.api('/api/media.php', { method: 'POST', body: formData });
       addImageRow(data.item.src);
@@ -204,37 +205,12 @@ function bindEvents() {
     } finally {
       els.imageUpload.disabled = false;
       els.imageUpload.value = '';
+      els.uploadStatus.classList.add('hidden');
     }
   });
 
-  els.aiGenerate.addEventListener('click', async () => {
-    const originalLabel = els.aiGenerate.textContent;
-    els.aiGenerate.disabled = true;
-    els.aiGenerate.textContent = t('generating');
-
-    try {
-      const payload = {
-        name: els.name.value.trim(),
-        categories: Array.from(els.categoriesList.querySelectorAll('.category-checkbox:checked'))
-          .map((cb) => cb.parentElement.textContent.trim()),
-        attributes: {
-          [t('sku')]: els.sku.value.trim(),
-        },
-      };
-      const data = await App.api('/api/ai.php?action=describe', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      });
-      els.shortDescription.value = data.short_description || '';
-      els.description.value = data.description || '';
-      App.toast(t('ai_description_generated'), 'success');
-    } catch (err) {
-      App.toast(err.message, 'error');
-    } finally {
-      els.aiGenerate.disabled = false;
-      els.aiGenerate.textContent = originalLabel;
-    }
-  });
+  els.aiGenerateShort.addEventListener('click', () => generateDescription('short', els.aiGenerateShort, els.shortDescription));
+  els.aiGenerateLong.addEventListener('click', () => generateDescription('long', els.aiGenerateLong, els.description));
 
   els.form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -297,6 +273,38 @@ function bindEvents() {
       els.deleteBtn.disabled = false;
     }
   });
+}
+
+/**
+ * Generates just one description field (short or long) via AI, so
+ * regenerating one doesn't touch the other.
+ */
+async function generateDescription(field, btn, targetEl) {
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = t('generating');
+
+  try {
+    const payload = {
+      name: els.name.value.trim(),
+      categories: Array.from(els.categoriesList.querySelectorAll('.category-checkbox:checked'))
+        .map((cb) => cb.parentElement.querySelector('.cat-name').textContent.trim()),
+      attributes: {
+        [t('sku')]: els.sku.value.trim(),
+      },
+    };
+    const data = await App.api(`/api/ai.php?action=describe_${field}`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    targetEl.value = (field === 'short' ? data.short_description : data.description) || '';
+    App.toast(t('ai_description_generated'), 'success');
+  } catch (err) {
+    App.toast(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+  }
 }
 
 function collectCustomTaxonomies() {

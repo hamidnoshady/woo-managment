@@ -209,6 +209,114 @@ const App = {
     sessionStorage.clear();
     window.location.href = '/login.php';
   },
+
+  /**
+   * Renders a collapsible category checkbox tree into `container` from the
+   * flat (parent-before-children, depth-tagged) list returned by
+   * /api/categories.php. Each checkbox keeps the `category-checkbox` class
+   * and `value` (category id) the calling page already expects, so existing
+   * selection-reading code doesn't need to change - only the nesting does.
+   * Parents with children start collapsed; use expandCheckedCategoryAncestors()
+   * after marking checkboxes checked to reveal the path to a selection.
+   */
+  renderCategoryCheckboxTree(container, categories) {
+    container.innerHTML = '';
+
+    const byParent = {};
+    categories.forEach((cat) => {
+      const parentId = cat.parent || 0;
+      (byParent[parentId] = byParent[parentId] || []).push(cat);
+    });
+
+    const renderLevel = (parentId, depth) => {
+      const list = byParent[parentId];
+      if (!list) return null;
+
+      const levelWrap = document.createElement('div');
+      levelWrap.className = depth === 0
+        ? 'space-y-1'
+        : 'cat-children hidden space-y-1 ms-2 ps-3 border-s border-gray-100 mt-1';
+
+      list.forEach((cat) => {
+        const hasChildren = !!byParent[cat.id];
+
+        const row = document.createElement('div');
+        row.className = 'flex items-center gap-1.5';
+
+        if (hasChildren) {
+          const toggle = document.createElement('button');
+          toggle.type = 'button';
+          toggle.className = 'cat-toggle h-5 w-5 flex items-center justify-center text-gray-400 flex-shrink-0 text-xs';
+          toggle.textContent = '▸';
+          toggle.setAttribute('aria-label', 'Expand');
+          row.appendChild(toggle);
+        } else {
+          const spacer = document.createElement('span');
+          spacer.className = 'w-5 flex-shrink-0';
+          row.appendChild(spacer);
+        }
+
+        const label = document.createElement('label');
+        label.className = 'flex items-center gap-2 text-sm text-gray-700 flex-1';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = cat.id;
+        checkbox.className = 'category-checkbox h-4 w-4 rounded border-gray-300';
+        label.appendChild(checkbox);
+
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'cat-name';
+        nameSpan.textContent = cat.name;
+        label.appendChild(nameSpan);
+
+        if (typeof cat.count === 'number') {
+          const countSpan = document.createElement('span');
+          countSpan.className = 'text-xs text-gray-400';
+          countSpan.textContent = `(${cat.count})`;
+          label.appendChild(countSpan);
+        }
+
+        row.appendChild(label);
+        levelWrap.appendChild(row);
+
+        if (hasChildren) {
+          const childWrap = renderLevel(cat.id, depth + 1);
+          levelWrap.appendChild(childWrap);
+
+          row.querySelector('.cat-toggle').addEventListener('click', () => {
+            const willShow = childWrap.classList.contains('hidden');
+            childWrap.classList.toggle('hidden', !willShow);
+            row.querySelector('.cat-toggle').textContent = willShow ? '▾' : '▸';
+          });
+        }
+      });
+
+      return levelWrap;
+    };
+
+    const root = renderLevel(0, 0);
+    if (root) container.appendChild(root);
+  },
+
+  /**
+   * Expands every collapsed ancestor of any currently-checked checkbox
+   * inside `container` (call after setting .checked on pre-selected
+   * categories, e.g. when loading an existing product for edit).
+   */
+  expandCheckedCategoryAncestors(container) {
+    container.querySelectorAll('.category-checkbox:checked').forEach((checkbox) => {
+      let node = checkbox.closest('.cat-children');
+      while (node) {
+        node.classList.remove('hidden');
+        const toggle = node.previousElementSibling && node.previousElementSibling.querySelector
+          ? node.previousElementSibling.querySelector('.cat-toggle')
+          : null;
+        if (toggle) toggle.textContent = '▾';
+        node = node.parentElement ? node.parentElement.closest('.cat-children') : null;
+      }
+    });
+  },
 };
 
 document.addEventListener('DOMContentLoaded', () => {

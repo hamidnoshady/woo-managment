@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../../includes/helpers.php';
+install_json_fatal_handler();
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/Sites.php';
 require_once __DIR__ . '/../../includes/site_context.php';
@@ -41,29 +42,60 @@ if (!in_array($mimeType, $allowedMimes, true)) {
 $whiteBg = !empty($_POST['white_bg']) && $_POST['white_bg'] !== '0';
 $enhance = !empty($_POST['enhance']) && $_POST['enhance'] !== '0';
 $resizeFrame = !empty($_POST['resize_frame']) && $_POST['resize_frame'] !== '0';
+$aiEdit = !empty($_POST['ai_edit']) && $_POST['ai_edit'] !== '0';
 
-if ($whiteBg || $enhance || $resizeFrame) {
-    $image = ImageProcessor::load($content);
-    if ($image === null) {
-        json_response(['error' => 'Could not process this image.'], 422);
-    }
-
-    if ($whiteBg) {
-        $image = ImageProcessor::addWhiteBackground($image);
-    }
-    if ($enhance) {
-        $image = ImageProcessor::enhanceQuality($image);
-    }
-    if ($resizeFrame) {
-        $image = ImageProcessor::resizeToFrame($image);
-    }
-
-    $content = ImageProcessor::toJpeg($image);
-    $mimeType = 'image/jpeg';
-    $filename = preg_replace('/\.[^.]+$/', '', $filename) . '.jpg';
+// Image edits rely on the GD extension; without it, fail with a clear
+// error instead of an uncaught fatal (which would surface to the browser
+// as an opaque 500 with no JSON body).
+if (($whiteBg || $enhance || $resizeFrame) && !extension_loaded('gd')) {
+    json_response(['error' => 'Image editing is unavailable on this server (the GD PHP extension is not installed). Upload without edit options, or ask your host to enable GD.'], 500);
 }
 
-$result = $wp->uploadMedia($content, $filename, $mimeType);
+try {
+    if ($whiteBg || $enhance || $resizeFrame) {
+        $image = ImageProcessor::load($content);
+        if ($image === null) {
+            json_response(['error' => 'Could not process this image.'], 422);
+        }
+
+        if ($whiteBg) {
+            $image = ImageProcessor::addWhiteBackground($image);
+        }
+        if ($enhance) {
+            $image = ImageProcessor::enhanceQuality($image);
+        }
+        if ($resizeFrame) {
+            $image = ImageProcessor::resizeToFrame($image);
+        }
+
+        $content = ImageProcessor::toJpeg($image);
+        $mimeType = 'image/jpeg';
+        $filename = preg_replace('/\.[^.]+$/', '', $filename) . '.jpg';
+    }
+
+    if ($aiEdit) {
+        require_once __DIR__ . '/../../includes/AiClient.php';
+        $ai = new AiClient();
+        if (!$ai->isImageConfigured()) {
+            json_response(['error' => t('ai_image_not_configured')], 422);
+        }
+        $aiResult = $ai->editImage($content, $mimeType, (string) ($_POST['ai_instruction'] ?? ''));
+        if (!$aiResult['ok']) {
+            json_response(['error' => $aiResult['error']], 502);
+        }
+        $content = $aiResult['content'];
+        $mimeType = $aiResult['mime_type'];
+        $filename = preg_replace('/\.[^.]+$/', '', $filename) . '.jpg';
+    }
+} catch (\Throwable $e) {
+    json_response(['error' => 'Failed to process the image: ' . $e->getMessage()], 500);
+}
+
+try {
+    $result = $wp->uploadMedia($content, $filename, $mimeType);
+} catch (\Throwable $e) {
+    json_response(['error' => 'Failed to upload the image: ' . $e->getMessage()], 500);
+}
 
 if ($result['status'] < 200 || $result['status'] >= 300) {
     json_response(['error' => $result['data']['message'] ?? 'Failed to upload image'], $result['status'] ?: 502);

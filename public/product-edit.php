@@ -86,12 +86,13 @@ $productId = (int) ($_GET['id'] ?? 0);
         <h2 class="text-sm font-semibold text-gray-900"><?php echo htmlspecialchars(t('images_urls')); ?></h2>
         <div id="images-list" class="space-y-2"></div>
         <div class="flex flex-wrap gap-2">
-          <button type="button" id="add-image" class="text-sm font-medium text-gray-600"><?php echo htmlspecialchars(t('add_image_url')); ?></button>
-          <label class="text-sm font-medium text-gray-600 cursor-pointer">
+          <button type="button" id="add-image" class="rounded-xl border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"><?php echo htmlspecialchars(t('add_image_url')); ?></button>
+          <label class="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 cursor-pointer">
             <?php echo htmlspecialchars(t('upload_image')); ?>
             <input type="file" id="image-upload" accept="image/*" class="hidden">
           </label>
         </div>
+        <p id="upload-status" class="hidden text-xs text-blue-600"></p>
         <div class="space-y-1 pt-1">
           <p class="text-xs font-medium text-gray-500"><?php echo htmlspecialchars(t('image_edit_options')); ?></p>
           <label class="flex items-center gap-2 text-sm text-gray-700">
@@ -106,20 +107,27 @@ $productId = (int) ($_GET['id'] ?? 0);
             <input id="edit-resize" type="checkbox" class="h-4 w-4 rounded border-gray-300">
             <?php echo htmlspecialchars(t('image_edit_resize')); ?>
           </label>
+          <label class="flex items-center gap-2 text-sm text-purple-700">
+            <input id="edit-ai" type="checkbox" class="h-4 w-4 rounded border-gray-300">
+            <?php echo htmlspecialchars(t('image_edit_ai')); ?>
+          </label>
         </div>
       </div>
 
       <div class="bg-white rounded-2xl border border-gray-100 p-4 space-y-4">
-        <div class="flex items-center justify-between">
-          <h2 class="text-sm font-semibold text-gray-900"><?php echo htmlspecialchars(t('description')); ?></h2>
-          <button type="button" id="ai-generate-description" class="text-sm font-medium text-gray-600"><?php echo htmlspecialchars(t('generate_with_ai')); ?></button>
-        </div>
+        <h2 class="text-sm font-semibold text-gray-900"><?php echo htmlspecialchars(t('description')); ?></h2>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo htmlspecialchars(t('short_description')); ?></label>
+          <div class="flex items-center justify-between mb-1">
+            <label class="block text-sm font-medium text-gray-700"><?php echo htmlspecialchars(t('short_description')); ?></label>
+            <button type="button" id="ai-generate-short" class="text-xs font-medium text-blue-600"><?php echo htmlspecialchars(t('generate_with_ai')); ?></button>
+          </div>
           <textarea id="short_description" rows="3" class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none"></textarea>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo htmlspecialchars(t('long_description')); ?></label>
+          <div class="flex items-center justify-between mb-1">
+            <label class="block text-sm font-medium text-gray-700"><?php echo htmlspecialchars(t('long_description')); ?></label>
+            <button type="button" id="ai-generate-long" class="text-xs font-medium text-blue-600"><?php echo htmlspecialchars(t('generate_with_ai')); ?></button>
+          </div>
           <textarea id="description" rows="6" class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none"></textarea>
         </div>
         <div>
