@@ -1,5 +1,23 @@
 <?php
 
+require_once __DIR__ . '/Database.php';
+
+// How long a cached products-list response stays fresh. Short on purpose:
+// this app shows live stock/price data, so a stale list for too long would
+// mislead whoever is acting on it.
+const PRODUCTS_CACHE_TTL_SECONDS = 10;
+
+/**
+ * Invalidates every cached products-list variant for a site. Call this
+ * after any request that creates, updates, or deletes a product (or its
+ * stock) on that site, so the next list fetch reflects the change
+ * immediately instead of waiting out the cache TTL.
+ */
+function invalidate_products_cache(int $siteId): void
+{
+    cache_delete_prefix('products:' . $siteId . ':');
+}
+
 /**
  * Installs a shutdown handler that turns an uncaught fatal error into a
  * JSON error response instead of leaking raw HTML. Call this at the top of
@@ -32,6 +50,51 @@ function json_response($data, int $status = 200): void
     header('Content-Type: application/json');
     echo json_encode($data, JSON_UNESCAPED_UNICODE);
     exit;
+}
+
+/**
+ * Reads a JSON value previously stored with cache_set(), or null if missing
+ * or expired. Backed by the `kv_cache` SQLite table — used to avoid
+ * round-tripping to the WooCommerce/WordPress REST APIs for data (like
+ * category lists) that rarely changes between requests.
+ */
+function cache_get(string $key)
+{
+    $pdo = Database::get();
+    $stmt = $pdo->prepare('SELECT value FROM kv_cache WHERE key = ? AND expires_at > ?');
+    $stmt->execute([$key, time()]);
+    $row = $stmt->fetch();
+    if ($row === false) {
+        return null;
+    }
+    return json_decode($row['value'], true);
+}
+
+/**
+ * Stores a JSON-encodable value under $key for $ttlSeconds.
+ */
+function cache_set(string $key, $value, int $ttlSeconds): void
+{
+    $pdo = Database::get();
+    $stmt = $pdo->prepare(
+        'INSERT INTO kv_cache (key, value, expires_at) VALUES (?, ?, ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, expires_at = excluded.expires_at'
+    );
+    $stmt->execute([$key, json_encode($value, JSON_UNESCAPED_UNICODE), time() + $ttlSeconds]);
+}
+
+/**
+ * Deletes all cache entries whose key starts with $prefix. Used to
+ * invalidate every cached products-list variant (different filters/pages
+ * produce different keys) for a site as soon as that site's products are
+ * mutated, so edits are never hidden behind a stale cached list.
+ */
+function cache_delete_prefix(string $prefix): void
+{
+    $pdo = Database::get();
+    $stmt = $pdo->prepare('DELETE FROM kv_cache WHERE key LIKE ? ESCAPE \'\\\'');
+    $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $prefix);
+    $stmt->execute([$escaped . '%']);
 }
 
 /**

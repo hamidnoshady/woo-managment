@@ -86,7 +86,7 @@ if ($action === 'price') {
         json_response(['preview' => true, 'changes' => $changes]);
     }
 
-    $results = apply_batch_updates($client, $batchUpdates ?? []);
+    $results = apply_batch_updates($client, $batchUpdates ?? [], (int) $site['id']);
 
     $logId = null;
     if (!empty($changes)) {
@@ -155,7 +155,7 @@ if ($action === 'stock') {
         json_response(['preview' => true, 'changes' => $changes]);
     }
 
-    $results = apply_batch_updates($client, $batchUpdates);
+    $results = apply_batch_updates($client, $batchUpdates, (int) $site['id']);
 
     $logId = null;
     if (!empty($changes)) {
@@ -206,7 +206,7 @@ function fetch_products_by_ids(WooCommerceClient $client, array $ids): array
 /**
  * Sends product updates to WooCommerce in batches of up to 100.
  */
-function apply_batch_updates(WooCommerceClient $client, array $updates): array
+function apply_batch_updates(WooCommerceClient $client, array $updates, int $siteId): array
 {
     $results = [];
     foreach (array_chunk($updates, 100) as $chunk) {
@@ -215,6 +215,9 @@ function apply_batch_updates(WooCommerceClient $client, array $updates): array
             json_response(['error' => $result['data']['message'] ?? 'Batch update failed'], $result['status'] ?: 502);
         }
         $results = array_merge($results, $result['data']['update'] ?? []);
+    }
+    if (!empty($updates)) {
+        invalidate_products_cache($siteId);
     }
     return $results;
 }

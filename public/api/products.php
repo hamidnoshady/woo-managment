@@ -61,6 +61,22 @@ if (!empty($taxFilters)) {
     $params['include'] = implode(',', $matchingIds);
 }
 
+// Optional client-side price range filter (applied to the current page only).
+$minPrice = isset($_GET['min_price']) && $_GET['min_price'] !== '' ? (float) $_GET['min_price'] : null;
+$maxPrice = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (float) $_GET['max_price'] : null;
+
+// Cache the rendered list per site+filter combination for a few seconds.
+// This is intentionally short: long enough to make repeat loads (paging
+// back and forth, the page re-rendering, a duplicate request) feel instant,
+// but short enough that stock/price edits and undos are never hidden
+// behind a stale list for more than a moment.
+ksort($params);
+$cacheKey = 'products:' . $site['id'] . ':' . md5(json_encode($params) . '|' . $minPrice . '|' . $maxPrice);
+$cached = cache_get($cacheKey);
+if ($cached !== null) {
+    json_response($cached);
+}
+
 $result = $client->listProducts($params);
 
 if ($result['status'] < 200 || $result['status'] >= 300) {
@@ -68,10 +84,6 @@ if ($result['status'] < 200 || $result['status'] >= 300) {
 }
 
 $products = is_array($result['data']) ? $result['data'] : [];
-
-// Optional client-side price range filter (applied to the current page only).
-$minPrice = isset($_GET['min_price']) && $_GET['min_price'] !== '' ? (float) $_GET['min_price'] : null;
-$maxPrice = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (float) $_GET['max_price'] : null;
 
 if ($minPrice !== null || $maxPrice !== null) {
     $products = array_values(array_filter($products, function ($product) use ($minPrice, $maxPrice) {
@@ -88,10 +100,14 @@ if ($minPrice !== null || $maxPrice !== null) {
 
 $items = array_map('map_product_summary', $products);
 
-json_response([
+$response = [
     'items' => $items,
     'page' => $params['page'],
     'per_page' => $params['per_page'],
     'total' => (int) ($result['headers']['x-wp-total'] ?? count($items)),
     'total_pages' => (int) ($result['headers']['x-wp-totalpages'] ?? 1),
-]);
+];
+
+cache_set($cacheKey, $response, PRODUCTS_CACHE_TTL_SECONDS);
+
+json_response($response);

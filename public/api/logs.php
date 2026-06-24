@@ -78,6 +78,7 @@ if ($method === 'POST' && $action === 'undo') {
             json_response(['error' => 'This change can no longer be undone.'], 409);
     }
 
+    invalidate_products_cache((int) $site['id']);
     mark_activity_log_undone($id);
 
     $params = json_decode((string) $log['message_params'], true);

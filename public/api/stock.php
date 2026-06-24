@@ -59,6 +59,7 @@ $result = $client->updateProduct($id, $data);
 if ($result['status'] < 200 || $result['status'] >= 300) {
     json_response(['error' => $result['data']['message'] ?? 'Failed to update stock'], $result['status'] ?: 502);
 }
+invalidate_products_cache((int) $site['id']);
 
 $logId = null;
 if ($newQty !== $currentQty) {

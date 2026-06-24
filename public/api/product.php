@@ -64,6 +64,7 @@ if ($method === 'POST' || $method === 'PUT') {
         if ($result['status'] < 200 || $result['status'] >= 300) {
             json_response(['error' => $result['data']['message'] ?? 'Failed to save product'], $result['status'] ?: 502);
         }
+        invalidate_products_cache((int) $site['id']);
 
         $changeSummary = describe_product_changes($before['data'], $data, $result['data']);
         $messageKey = $changeSummary !== '' ? 'log_product_updated_detail' : 'log_product_updated';
@@ -88,6 +89,7 @@ if ($method === 'POST' || $method === 'PUT') {
         if ($result['status'] < 200 || $result['status'] >= 300) {
             json_response(['error' => $result['data']['message'] ?? 'Failed to save product'], $result['status'] ?: 502);
         }
+        invalidate_products_cache((int) $site['id']);
 
         $logId = log_activity(
             $user,
@@ -145,6 +147,7 @@ if ($method === 'DELETE') {
     if ($result['status'] < 200 || $result['status'] >= 300) {
         json_response(['error' => $result['data']['message'] ?? 'Failed to delete product'], $result['status'] ?: 502);
     }
+    invalidate_products_cache((int) $site['id']);
 
     $logId = log_activity(
         $user,
