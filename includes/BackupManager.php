@@ -23,41 +23,53 @@ class BackupManager
     {
         $type = $type === 'full' ? 'full' : 'database';
 
-        $s3 = self::s3Client();
-        if ($s3 === null) {
-            return self::recordFailure($type, 'S3 backup storage is not configured (see Admin -> Settings).');
-        }
-
         try {
-            $dbDumpPath = self::writeDatabaseDumpToTempFile();
-            if ($type === 'database') {
-                $localPath = $dbDumpPath;
-                $contentType = 'application/sql';
-                $extension = '.sql';
-            } else {
-                $localPath = self::buildFullArchive($dbDumpPath);
-                @unlink($dbDumpPath);
-                $contentType = 'application/zip';
-                $extension = '.zip';
+            $s3 = self::s3Client();
+            if ($s3 === null) {
+                return self::recordFailure($type, 'S3 backup storage is not configured (see Admin -> Settings).');
             }
+
+            $dbDumpPath = null;
+            try {
+                $dbDumpPath = self::writeDatabaseDumpToTempFile();
+                if ($type === 'database') {
+                    $localPath = $dbDumpPath;
+                    $contentType = 'application/sql';
+                    $extension = '.sql';
+                } else {
+                    $localPath = self::buildFullArchive($dbDumpPath);
+                    @unlink($dbDumpPath);
+                    $contentType = 'application/zip';
+                    $extension = '.zip';
+                }
+            } catch (Throwable $e) {
+                if ($dbDumpPath !== null) {
+                    @unlink($dbDumpPath);
+                }
+                return self::recordFailure($type, $e->getMessage());
+            }
+
+            $key = 'backups/' . $type . '-' . gmdate('Y-m-d_H-i-s') . $extension;
+            $size = (int) filesize($localPath);
+            $body = (string) file_get_contents($localPath);
+            @unlink($localPath);
+
+            $result = $s3->putObject($key, $body, $contentType);
+            if (!$result['ok']) {
+                return self::recordFailure($type, $result['error'], $key, $size);
+            }
+
+            self::recordResult($type, 'success', $key, $size, '');
+            self::pruneOldBackups($s3);
+
+            return ['ok' => true, 'type' => $type, 's3_key' => $key, 'size_bytes' => $size, 'error' => ''];
         } catch (Throwable $e) {
-            return self::recordFailure($type, $e->getMessage());
+            try {
+                return self::recordFailure($type, $e->getMessage());
+            } catch (Throwable $inner) {
+                return ['ok' => false, 'type' => $type, 's3_key' => '', 'size_bytes' => 0, 'error' => $e->getMessage()];
+            }
         }
-
-        $key = 'backups/' . $type . '-' . gmdate('Y-m-d_H-i-s') . $extension;
-        $size = (int) filesize($localPath);
-        $body = (string) file_get_contents($localPath);
-        @unlink($localPath);
-
-        $result = $s3->putObject($key, $body, $contentType);
-        if (!$result['ok']) {
-            return self::recordFailure($type, $result['error'], $key, $size);
-        }
-
-        self::recordResult($type, 'success', $key, $size, '');
-        self::pruneOldBackups($s3);
-
-        return ['ok' => true, 'type' => $type, 's3_key' => $key, 'size_bytes' => $size, 'error' => ''];
     }
 
     /**
@@ -152,6 +164,7 @@ class BackupManager
 
         $zip = new ZipArchive();
         if ($zip->open($zipPath, ZipArchive::OVERWRITE) !== true) {
+            @unlink($zipPath);
             throw new RuntimeException('Could not create the backup archive.');
         }
 
