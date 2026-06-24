@@ -121,7 +121,7 @@ const SETTINGS_FIELDS = [
 function get_settings(): array
 {
     $pdo = Database::get();
-    $rows = $pdo->query('SELECT key, value FROM settings')->fetchAll();
+    $rows = $pdo->query('SELECT `key`, value FROM settings')->fetchAll();
 
     $settings = SETTINGS_DEFAULTS;
     foreach ($rows as $row) {
@@ -149,8 +149,8 @@ function update_settings(array $data): void
 {
     $pdo = Database::get();
     $stmt = $pdo->prepare(
-        'INSERT INTO settings (key, value) VALUES (?, ?)
-         ON CONFLICT(key) DO UPDATE SET value = excluded.value'
+        'INSERT INTO settings (`key`, value) VALUES (?, ?)
+         ON DUPLICATE KEY UPDATE value = VALUES(value)'
     );
 
     foreach ($data as $key => $value) {

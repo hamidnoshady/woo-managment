@@ -61,7 +61,7 @@ function json_response($data, int $status = 200): void
 function cache_get(string $key)
 {
     $pdo = Database::get();
-    $stmt = $pdo->prepare('SELECT value FROM kv_cache WHERE key = ? AND expires_at > ?');
+    $stmt = $pdo->prepare('SELECT value FROM kv_cache WHERE `key` = ? AND expires_at > ?');
     $stmt->execute([$key, time()]);
     $row = $stmt->fetch();
     if ($row === false) {
@@ -77,8 +77,8 @@ function cache_set(string $key, $value, int $ttlSeconds): void
 {
     $pdo = Database::get();
     $stmt = $pdo->prepare(
-        'INSERT INTO kv_cache (key, value, expires_at) VALUES (?, ?, ?)
-         ON CONFLICT(key) DO UPDATE SET value = excluded.value, expires_at = excluded.expires_at'
+        'INSERT INTO kv_cache (`key`, value, expires_at) VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE value = VALUES(value), expires_at = VALUES(expires_at)'
     );
     $stmt->execute([$key, json_encode($value, JSON_UNESCAPED_UNICODE), time() + $ttlSeconds]);
 }
@@ -92,7 +92,7 @@ function cache_set(string $key, $value, int $ttlSeconds): void
 function cache_delete_prefix(string $prefix): void
 {
     $pdo = Database::get();
-    $stmt = $pdo->prepare('DELETE FROM kv_cache WHERE key LIKE ? ESCAPE \'\\\'');
+    $stmt = $pdo->prepare('DELETE FROM kv_cache WHERE `key` LIKE ? ESCAPE \'\\\'');
     $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $prefix);
     $stmt->execute([$escaped . '%']);
 }
