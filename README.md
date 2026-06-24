@@ -50,8 +50,10 @@ deployed to any shared PHP 8+ host by uploading files.
 
 ## Requirements
 
-- PHP 8.0+ with `curl` and `pdo_sqlite` extensions enabled (both are included
+- PHP 8.0+ with `curl` and `pdo_mysql` extensions enabled (both are included
   by default on virtually all shared hosts).
+- A MySQL 5.7+/MariaDB 10.2+ database (most shared hosts provide this via
+  cPanel -> MySQL Databases).
 - An existing WordPress + WooCommerce store with the REST API enabled.
 - A [Kavenegar](https://kavenegar.com) account with a Verify Lookup template
   configured for OTP codes.
@@ -61,7 +63,6 @@ deployed to any shared PHP 8+ host by uploading files.
 ```
 wc-product-manager/
   includes/      # PHP classes & helpers (WooCommerce client, auth, settings, etc.)
-  data/          # SQLite database for users/sites/settings/OTP codes (created automatically)
   public/        # web root — point your domain/subdomain here
     install.php  # one-time first-run setup wizard (creates the first superadmin)
     api/         # backend JSON endpoints
@@ -70,14 +71,17 @@ wc-product-manager/
     *.php        # pages (login, sites, products, product-edit, batch, ...)
 ```
 
-`includes/` and `data/` are outside `public/` and additionally protected with
+`includes/` is outside `public/` and additionally protected with
 `.htaccess` (`Require all denied`) in case your web root is ever pointed at
 the project root by mistake.
 
-There is **no config file to create or edit**. Everything (Kavenegar API key,
-OTP settings, session settings, superadmin phone numbers, WooCommerce sites,
-and users) is stored in the SQLite database (`data/app.sqlite`) and managed
-from the app itself.
+Everything except database connection details (Kavenegar API key, OTP
+settings, session settings, superadmin phone numbers, WooCommerce sites, and
+users) is stored in the MySQL database and managed from the app itself.
+Database connection details live in `includes/config.php` (copy it from
+`includes/config.example.php` and fill in the MySQL database you created via
+cPanel/phpMyAdmin) — this one file can't live in the database itself, since
+the app needs a database connection before it can read anything out of it.
 
 ## Setup
 
@@ -97,21 +101,20 @@ enter these in the app later, in *Admin → Sites*.
 You can enter these during the initial setup wizard, or skip and add them
 later from *Admin → Settings*.
 
-### 3. Upload to your host
+### 3. Create a MySQL database
 
-Upload the entire `wc-product-manager` directory to your server, and point
-your domain/subdomain's document root at `wc-product-manager/public`.
+Via cPanel -> MySQL Databases (or phpMyAdmin), create a new database and a
+database user with full privileges on it. Note the database name, username,
+password, and host (usually `localhost` or `127.0.0.1` on shared hosting).
 
-If you can't change the document root (e.g. you must use a subfolder of
-`public_html`), upload the whole project as a subfolder, but make sure
-`includes/` and `data/` are placed **outside** the publicly served folder —
-or rely on the included `.htaccess` files as a second line of defense
-(requires `AllowOverride All` / Apache).
+### 4. Upload to your host and configure the database connection
 
-### 4. Permissions
+Upload the entire project directory to your server, and point your
+domain/subdomain's document root at the `public` folder inside it (see the
+cPanel-specific steps below if you can't change the document root).
 
-Ensure the web server user can create/write `data/app.sqlite` (the `data/`
-folder needs to be writable, e.g. `chmod 775 data`).
+Copy `includes/config.example.php` to `includes/config.php` and fill in the
+database details from step 3.
 
 ### 5. Run the first-run setup wizard
 
@@ -197,12 +200,14 @@ with AI" — it never runs automatically.
 
 3. **Check PHP version & extensions.**
    - cPanel → *MultiPHP Manager* → select PHP 8.0+ for the domain.
-   - cPanel → *MultiPHP INI Editor* → confirm `curl` and `pdo_sqlite` (or
-     `sqlite3`) extensions are enabled (they're on by default on most hosts).
+   - cPanel → *MultiPHP INI Editor* → confirm `curl` and `pdo_mysql`
+     extensions are enabled (they're on by default on most hosts).
 
-4. **Make `data/` writable.**
-   - File Manager → right-click `data/` → *Permissions* → set to `775`
-     (or `777` if your host's PHP runs as a different user).
+4. **Create a MySQL database.**
+   - cPanel → *MySQL Databases* → create a database and a user with full
+     privileges on it. Note the database name, username, password, and host.
+   - Copy `includes/config.example.php` to `includes/config.php` (e.g. via
+     File Manager) and fill in those details.
 
 5. **Run the setup wizard.**
    - Visit your domain — you'll be redirected to `/install.php`.
@@ -232,9 +237,9 @@ There are two ways to grant the `superadmin` role to additional accounts:
   mainly useful for pre-authorizing someone who doesn't have an account yet.
 
 If you ever lose access to all superadmin accounts, you can restore access by
-opening `data/app.sqlite` with any SQLite client and updating a user's `role`
-column to `superadmin` (or deleting all rows from the `users` table so
-`/install.php` runs again).
+opening phpMyAdmin and updating a user's `role` column to `superadmin` in the
+`users` table (or deleting all rows from the `users` table so `/install.php`
+runs again).
 
 ## Security notes
 
