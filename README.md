@@ -183,6 +183,32 @@ AI" button shows an error explaining it isn't configured, and the rest of the
 app is unaffected. AI is only called when a user explicitly clicks "Generate
 with AI" — it never runs automatically.
 
+## Optional: Automated backups (S3)
+
+To enable database and full-app backups to S3-compatible storage, go to
+*Admin → Settings* and fill in the **Backups (S3)** section:
+
+- **S3 endpoint URL**: e.g. `https://s3.us-east-1.amazonaws.com` for AWS, or
+  your provider's endpoint for MinIO/DigitalOcean Spaces/Backblaze B2/etc.
+- **S3 region**, **S3 bucket name**, **S3 access key**, **S3 secret key**:
+  from your storage provider. Create the bucket yourself first.
+- **Backup retention (days)**: backups older than this are deleted from S3
+  automatically after each run (default 30).
+
+Then go to *Admin → Backups* to:
+
+- Trigger a database-only or full (code + database) backup immediately with
+  the "Run backup now" buttons.
+- Copy the two pre-built cron URLs (each includes an auto-generated secret
+  token) into cPanel → *Cron Jobs*, e.g.:
+  - Database backup daily: `0 3 * * *` → `wget -q -O /dev/null "https://yourdomain.com/cron/backup.php?type=database&token=..."`
+  - Full backup weekly: `0 4 * * 0` → `wget -q -O /dev/null "https://yourdomain.com/cron/backup.php?type=full&token=..."`
+- Review backup history (type, status, size, and any error) on the same page.
+
+This feature is entirely optional: if no S3 settings are configured, backup
+attempts simply fail with a clear error on the Admin → Backups page, and the
+rest of the app is unaffected.
+
 ## Installing on cPanel
 
 1. **Create the app directory.** In cPanel → *File Manager* (or via FTP/SSH),
