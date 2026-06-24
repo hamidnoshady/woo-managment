@@ -22,6 +22,13 @@ const SETTINGS_DEFAULTS = [
     'ai_api_key'           => '',
     'ai_model'             => '',
     'ai_image_model'       => '',
+    'backup_cron_token'    => '',
+    's3_endpoint'          => '',
+    's3_region'            => '',
+    's3_bucket'            => '',
+    's3_access_key'        => '',
+    's3_secret_key'        => '',
+    'backup_retention_days' => 30,
 ];
 
 /**
@@ -112,6 +119,42 @@ const SETTINGS_FIELDS = [
         'type' => 'text',
         'group' => 'AI (OpenRouter)',
         'help' => 'Optional. A separate, image-output-capable model used for the "Edit with AI" product photo option, e.g. "google/gemini-2.5-flash-image-preview". Leave empty to disable AI image editing (the basic white-background/enhance/resize options still work without this).',
+    ],
+    's3_endpoint' => [
+        'label' => 'S3 endpoint URL',
+        'type' => 'text',
+        'group' => 'Backups (S3)',
+        'help' => 'Base URL of your S3-compatible storage, e.g. https://s3.us-east-1.amazonaws.com or a custom/self-hosted endpoint.',
+    ],
+    's3_region' => [
+        'label' => 'S3 region',
+        'type' => 'text',
+        'group' => 'Backups (S3)',
+        'help' => 'Region name required for request signing, e.g. us-east-1 (use any value your provider expects if it is not AWS).',
+    ],
+    's3_bucket' => [
+        'label' => 'S3 bucket name',
+        'type' => 'text',
+        'group' => 'Backups (S3)',
+        'help' => 'Bucket backups are uploaded to. Create it with your storage provider first.',
+    ],
+    's3_access_key' => [
+        'label' => 'S3 access key',
+        'type' => 'password',
+        'group' => 'Backups (S3)',
+        'help' => 'Access key ID for the bucket above.',
+    ],
+    's3_secret_key' => [
+        'label' => 'S3 secret key',
+        'type' => 'password',
+        'group' => 'Backups (S3)',
+        'help' => 'Secret access key for the bucket above.',
+    ],
+    'backup_retention_days' => [
+        'label' => 'Backup retention (days)',
+        'type' => 'number',
+        'group' => 'Backups (S3)',
+        'help' => 'Backups older than this are deleted from S3 automatically after each run.',
     ],
 ];
 

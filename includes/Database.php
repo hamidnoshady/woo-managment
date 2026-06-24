@@ -128,6 +128,19 @@ class Database
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
         );
 
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS backups (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                type VARCHAR(20) NOT NULL,
+                status VARCHAR(20) NOT NULL,
+                s3_key VARCHAR(500) NOT NULL DEFAULT \'\',
+                size_bytes BIGINT NOT NULL DEFAULT 0,
+                error TEXT NULL,
+                created_at INT NOT NULL,
+                KEY idx_backups_created (created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
+        );
+
         self::$pdo = $pdo;
         return $pdo;
     }

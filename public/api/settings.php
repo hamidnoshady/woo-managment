@@ -22,6 +22,7 @@ function settings_group_key(string $group): string
         'Session'             => 'group_session',
         'Superadmins'         => 'group_superadmins',
         'AI (OpenRouter)'     => 'group_ai',
+        'Backups (S3)'        => 'group_backup',
     ];
 
     return $map[$group] ?? $group;
