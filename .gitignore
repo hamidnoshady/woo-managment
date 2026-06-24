@@ -1,3 +1,2 @@
-data/*.sqlite
-data/*.sqlite-journal
+includes/config.php
 .worktrees/
