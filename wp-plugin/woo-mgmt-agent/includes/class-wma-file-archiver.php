@@ -10,7 +10,7 @@ class Wma_File_Archiver
 
     public static function zip_step(array &$job): bool
     {
-        $cursor = json_decode((string) $job['cursor_json'], true);
+        $cursor = json_decode((string) $job['cursor_json'], true) ?: [];
         $fileIndex = $cursor['file_index'] ?? 0;
 
         $files = self::list_files();
@@ -19,8 +19,12 @@ class Wma_File_Archiver
         }
 
         $zipPath = self::zip_path((int) $job['job_id']);
+        wp_mkdir_p(dirname($zipPath));
         $zip = new ZipArchive();
-        $zip->open($zipPath, ZipArchive::CREATE);
+        $result = $zip->open($zipPath, ZipArchive::CREATE);
+        if ($result !== true) {
+            throw new RuntimeException('Could not open the backup archive for writing.');
+        }
 
         $batch = array_slice($files, $fileIndex, self::BATCH_FILES);
         foreach ($batch as $absolute => $relative) {
