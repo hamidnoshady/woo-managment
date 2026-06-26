@@ -7,6 +7,7 @@ require_once __DIR__ . '/../includes/i18n.php';
 require_once __DIR__ . '/../includes/nav.php';
 
 $user = require_login_page();
+$isSuperadmin = $user['role'] === 'superadmin';
 
 $roleLabels = [
     'superadmin'   => t('role_superadmin'),
@@ -35,19 +36,26 @@ $lang = current_lang();
     <div class="px-4 pt-4 pb-3 flex items-center justify-between">
       <h1 class="text-lg font-semibold text-gray-900"><?php echo htmlspecialchars(t('account_settings_heading')); ?></h1>
     </div>
+    <?php if ($isSuperadmin): ?>
+    <div class="px-4 pb-3 flex gap-2 text-sm">
+      <a href="/admin/users.php" class="flex-1 text-center rounded-xl border border-gray-300 text-gray-700 py-2 font-medium"><?php echo htmlspecialchars(t('users')); ?></a>
+      <a href="/admin/sites.php" class="flex-1 text-center rounded-xl border border-gray-300 text-gray-700 py-2 font-medium"><?php echo htmlspecialchars(t("sites")); ?></a>
+      <a href="/admin/settings.php" class="flex-1 text-center rounded-xl border border-gray-300 text-gray-700 py-2 font-medium"><?php echo htmlspecialchars(t('settings')); ?></a>
+      <a href="/settings.php" class="flex-1 text-center rounded-xl bg-gray-900 text-white py-2 font-medium"><?php echo htmlspecialchars(t('account_section')); ?></a>
+    </div>
+    <?php endif; ?>
   </header>
 
   <main class="px-4 py-3 space-y-4">
 
     <section class="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
       <h2 class="text-sm font-semibold text-gray-900"><?php echo htmlspecialchars(t('account_section')); ?></h2>
-      <div class="space-y-2 text-sm">
-        <?php if ($user['name'] !== ''): ?>
-        <div class="flex items-center justify-between">
-          <span class="text-gray-500"><?php echo htmlspecialchars(t('name')); ?></span>
-          <span class="font-medium text-gray-900"><?php echo htmlspecialchars($user['name']); ?></span>
+      <form id="profile-form" class="space-y-3 text-sm">
+        <div>
+          <label class="block text-gray-500 mb-1" for="profile-name"><?php echo htmlspecialchars(t('name')); ?></label>
+          <input id="profile-name" type="text" value="<?php echo htmlspecialchars($user['name']); ?>"
+                 class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none">
         </div>
-        <?php endif; ?>
         <div class="flex items-center justify-between">
           <span class="text-gray-500"><?php echo htmlspecialchars(t('mobile_number')); ?></span>
           <span class="font-medium text-gray-900" dir="ltr"><?php echo htmlspecialchars($user['phone']); ?></span>
@@ -56,7 +64,8 @@ $lang = current_lang();
           <span class="text-gray-500"><?php echo htmlspecialchars(t('role')); ?></span>
           <span class="font-medium text-gray-900"><?php echo htmlspecialchars($roleLabel); ?></span>
         </div>
-      </div>
+        <button type="submit" id="profile-save-btn" class="w-full rounded-xl bg-gray-900 text-white font-medium py-2.5 text-sm"><?php echo htmlspecialchars(t('save')); ?></button>
+      </form>
     </section>
 
     <section class="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
@@ -85,6 +94,21 @@ $lang = current_lang();
   <script src="/assets/js/app.js"></script>
   <script>
     document.getElementById('logout-btn').addEventListener('click', () => App.logout());
+
+    document.getElementById('profile-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('profile-save-btn');
+      const name = document.getElementById('profile-name').value.trim();
+      btn.disabled = true;
+      try {
+        await App.api('/api/profile.php', { method: 'PUT', body: JSON.stringify({ name }) });
+        App.toast(t('profile_saved'), 'success');
+      } catch (err) {
+        App.toast(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    });
   </script>
   <?php render_pwa_register_script(); ?>
 </body>

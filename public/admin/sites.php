@@ -20,7 +20,7 @@ $user = require_superadmin_page();
 </head>
 <body class="bg-gray-50 min-h-screen has-bottom-nav has-sidebar">
 
-  <?php render_desktop_sidebar('admin', $user); ?>
+  <?php render_desktop_sidebar('settings', $user); ?>
 
   <header class="sticky top-0 z-30 bg-white border-b border-gray-100">
     <div class="px-4 pt-4 pb-3 flex items-center justify-between">
@@ -34,6 +34,7 @@ $user = require_superadmin_page();
       <a href="/admin/sites.php" class="flex-1 text-center rounded-xl bg-gray-900 text-white py-2 font-medium"><?php echo htmlspecialchars(t("sites")); ?></a>
       <a href="/admin/settings.php" class="flex-1 text-center rounded-xl border border-gray-300 text-gray-700 py-2 font-medium"><?php echo htmlspecialchars(t('settings')); ?></a>
       <a href="/admin/backups.php" class="flex-1 text-center rounded-xl border border-gray-300 text-gray-700 py-2 font-medium"><?php echo htmlspecialchars(t('backups')); ?></a>
+      <a href="/settings.php" class="flex-1 text-center rounded-xl border border-gray-300 text-gray-700 py-2 font-medium"><?php echo htmlspecialchars(t('account_section')); ?></a>
     </div>
   </header>
 
@@ -42,7 +43,7 @@ $user = require_superadmin_page();
     <div id="site-list" class="hidden space-y-3"></div>
   </main>
 
-  <?php render_bottom_nav('admin', $user); ?>
+  <?php render_bottom_nav('settings', $user); ?>
 
   <!-- Site form sheet -->
   <div id="site-sheet" class="hidden fixed inset-0 z-40">

@@ -140,7 +140,6 @@ class Database
                 KEY idx_backups_created (created_at)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
         );
-
         self::$pdo = $pdo;
         return $pdo;
     }

@@ -9,6 +9,13 @@ require_once __DIR__ . '/../../includes/site_context.php';
 
 $user = require_login_api();
 $site = require_site_api($user);
+
+$cacheKey = 'categories:' . $site['id'];
+$cached = cache_get($cacheKey);
+if ($cached !== null) {
+    json_response(['items' => $cached]);
+}
+
 $client = woocommerce_client_for_site($site);
 
 $result = $client->listCategories(['orderby' => 'name', 'order' => 'asc']);
@@ -26,7 +33,10 @@ $categories = array_map(function ($cat) {
     ];
 }, is_array($result['data']) ? $result['data'] : []);
 
-json_response(['items' => flatten_category_tree($categories)]);
+$items = flatten_category_tree($categories);
+cache_set($cacheKey, $items, 120);
+
+json_response(['items' => $items]);
 
 /**
  * Reorders a flat WooCommerce category list into hierarchical (depth-first,

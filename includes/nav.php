@@ -5,30 +5,23 @@ require_once __DIR__ . '/i18n.php';
 /**
  * Shared bottom navigation bar.
  *
- * @param string $active One of: products, batch, logs, admin
+ * @param string $active One of: products, logs, settings
  * @param array  $user    Current user (['role' => ...])
  */
 function render_bottom_nav(string $active, array $user): void
 {
     $isSuperadmin = $user['role'] === 'superadmin';
+    $settingsHref = $isSuperadmin ? '/admin/users.php' : '/settings.php';
     $cls = fn($key) => $active === $key ? 'text-gray-900' : 'text-gray-400';
     ?>
     <nav class="bottom-nav fixed bottom-0 left-0 right-0 z-20 bg-white border-t border-gray-100 flex">
       <a href="/products.php" class="flex-1 py-3 text-center text-xs font-medium <?php echo $cls('products'); ?>">
         <div class="text-lg leading-none mb-0.5">▤</div><?php echo htmlspecialchars(t('nav_products')); ?>
       </a>
-      <a href="/batch.php" class="flex-1 py-3 text-center text-xs font-medium <?php echo $cls('batch'); ?>">
-        <div class="text-lg leading-none mb-0.5">%</div><?php echo htmlspecialchars(t('nav_batch')); ?>
-      </a>
       <a href="/logs.php" class="flex-1 py-3 text-center text-xs font-medium <?php echo $cls('logs'); ?>">
         <div class="text-lg leading-none mb-0.5">🕒</div><?php echo htmlspecialchars(t('nav_logs')); ?>
       </a>
-      <?php if ($isSuperadmin): ?>
-      <a href="/admin/users.php" class="flex-1 py-3 text-center text-xs font-medium <?php echo $cls('admin'); ?>">
-        <div class="text-lg leading-none mb-0.5">★</div><?php echo htmlspecialchars(t('nav_admin')); ?>
-      </a>
-      <?php endif; ?>
-      <a href="/settings.php" class="flex-1 py-3 text-center text-xs font-medium <?php echo $cls('settings'); ?>">
+      <a href="<?php echo $settingsHref; ?>" class="flex-1 py-3 text-center text-xs font-medium <?php echo $cls('settings'); ?>">
         <div class="text-lg leading-none mb-0.5">⚙</div><?php echo htmlspecialchars(t('nav_settings')); ?>
       </a>
       <button id="logout-btn" class="flex-1 py-3 text-center text-xs font-medium text-gray-400">
@@ -57,12 +50,13 @@ function render_site_switcher(array $site): void
  * bar. Add the `has-sidebar` class to <body> on pages that include this so
  * content gets the matching inline padding (see app.css).
  *
- * @param string     $active One of: products, batch, logs, admin, settings
- * @param array|null $site   Current site, if this page is site-scoped (omit for global pages like logs/settings/admin).
+ * @param string     $active One of: products, logs, settings
+ * @param array|null $site   Current site, if this page is site-scoped (omit for global pages like logs/settings).
  */
 function render_desktop_sidebar(string $active, array $user, ?array $site = null): void
 {
     $isSuperadmin = $user['role'] === 'superadmin';
+    $settingsHref = $isSuperadmin ? '/admin/users.php' : '/settings.php';
     $cls = fn($key) => $active === $key
         ? 'bg-gray-100 text-gray-900'
         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900';
@@ -83,18 +77,10 @@ function render_desktop_sidebar(string $active, array $user, ?array $site = null
         <a href="/products.php" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium <?php echo $cls('products'); ?>">
           <span class="text-base leading-none">▤</span><?php echo htmlspecialchars(t('nav_products')); ?>
         </a>
-        <a href="/batch.php" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium <?php echo $cls('batch'); ?>">
-          <span class="text-base leading-none">%</span><?php echo htmlspecialchars(t('nav_batch')); ?>
-        </a>
         <a href="/logs.php" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium <?php echo $cls('logs'); ?>">
           <span class="text-base leading-none">🕒</span><?php echo htmlspecialchars(t('nav_logs')); ?>
         </a>
-        <?php if ($isSuperadmin): ?>
-        <a href="/admin/users.php" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium <?php echo $cls('admin'); ?>">
-          <span class="text-base leading-none">★</span><?php echo htmlspecialchars(t('nav_admin')); ?>
-        </a>
-        <?php endif; ?>
-        <a href="/settings.php" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium <?php echo $cls('settings'); ?>">
+        <a href="<?php echo $settingsHref; ?>" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium <?php echo $cls('settings'); ?>">
           <span class="text-base leading-none">⚙</span><?php echo htmlspecialchars(t('nav_settings')); ?>
         </a>
       </nav>

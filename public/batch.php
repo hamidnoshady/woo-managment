@@ -21,7 +21,7 @@ $site = require_site_page($user);
 </head>
 <body class="bg-gray-50 min-h-screen has-bottom-nav has-sidebar">
 
-  <?php render_desktop_sidebar('batch', $user, $site); ?>
+  <?php render_desktop_sidebar('products', $user, $site); ?>
 
   <header class="sticky top-0 z-30 bg-white border-b border-gray-100">
     <?php render_site_switcher($site); ?>
@@ -128,7 +128,7 @@ $site = require_site_page($user);
     </div>
   </main>
 
-  <?php render_bottom_nav('batch', $user); ?>
+  <?php render_bottom_nav('products', $user); ?>
 
   <script>
     window.CURRENT_USER = <?php echo json_encode(['id' => $user['id'], 'phone' => $user['phone'], 'name' => $user['name'], 'role' => $user['role']]); ?>;

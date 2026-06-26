@@ -161,8 +161,16 @@ const SETTINGS_FIELDS = [
 /**
  * Returns all settings, merging stored values over the defaults.
  */
-function get_settings(): array
+function get_settings(bool $forceReload = false): array
 {
+    static $cached = null;
+    if ($forceReload) {
+        $cached = null;
+    }
+    if ($cached !== null) {
+        return $cached;
+    }
+
     $pdo = Database::get();
     $rows = $pdo->query('SELECT `key`, value FROM settings')->fetchAll();
 
@@ -173,6 +181,7 @@ function get_settings(): array
         }
     }
 
+    $cached = $settings;
     return $settings;
 }
 
@@ -202,6 +211,8 @@ function update_settings(array $data): void
         }
         $stmt->execute([$key, (string) $value]);
     }
+
+    get_settings(true);
 }
 
 /**

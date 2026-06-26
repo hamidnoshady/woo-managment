@@ -13,6 +13,15 @@
 # Disable directory listing
 Options -Indexes
 
+# Long-lived caching for static assets (filenames don't carry a content hash,
+# so keep this modest rather than "immutable" — a deploy can change content
+# under the same path).
+<IfModule mod_headers.c>
+    <FilesMatch "\.(js|css|woff2?|ttf|svg|png|jpe?g|gif|webp)$">
+        Header set Cache-Control "public, max-age=86400"
+    </FilesMatch>
+</IfModule>
+
 # Production-safe PHP error handling (for mod_php; see also .user.ini for PHP-FPM/CGI)
 <IfModule mod_php.c>
     php_flag display_errors off
