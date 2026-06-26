@@ -19,8 +19,13 @@ class Wma_Backup_Job
             switch ($job['step']) {
                 case 'dump_db':
                     if (Wma_Db_Dumper::dump_step($job)) {
-                        $job['step'] = $job['scope'] === 'full' ? 'zip_files' : 'upload';
-                        $job['cursor_json'] = wp_json_encode(['file_index' => 0]);
+                        if ($job['scope'] === 'full') {
+                            $job['step'] = 'zip_files';
+                            $job['cursor_json'] = wp_json_encode(['file_index' => 0]);
+                        } else {
+                            $job['step'] = 'upload';
+                            $job['cursor_json'] = wp_json_encode(['source_index' => 0, 'byte_offset' => 0, 'part_index' => 0]);
+                        }
                     }
                     break;
                 case 'zip_files':
@@ -82,6 +87,9 @@ class Wma_Backup_Job
         $partPath = sys_get_temp_dir() . '/wma-upload-' . $job['job_id'] . '-' . $partKey;
 
         $fh = fopen($sourcePath, 'rb');
+        if ($fh === false) {
+            throw new RuntimeException("Could not open source file for upload: {$sourcePath}");
+        }
         fseek($fh, $cursor['byte_offset']);
         $chunk = fread($fh, self::PART_BYTES);
         fclose($fh);
@@ -90,13 +98,13 @@ class Wma_Backup_Job
         $presign = Wma_Relay::request_presigned_url((int) $job['job_id'], $partKey, 'PUT');
         if (!$presign['ok']) {
             @unlink($partPath);
-            throw new RuntimeException($presign['error']);
+            throw new RuntimeException("Presign failed for {$partKey}: {$presign['error']}");
         }
 
         $upload = Wma_Relay::put_file($presign['url'], $partPath);
         if (!$upload['ok']) {
             @unlink($partPath);
-            throw new RuntimeException($upload['error']);
+            throw new RuntimeException("Upload failed for {$partKey}: {$upload['error']}");
         }
 
         $parts = json_decode((string) $job['parts_json'], true) ?: [];
