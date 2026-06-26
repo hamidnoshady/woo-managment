@@ -12,6 +12,9 @@ defined('ABSPATH') || exit;
 define('WMA_DIR', __DIR__);
 
 require_once WMA_DIR . '/includes/class-wma-db.php';
+require_once WMA_DIR . '/includes/class-wma-settings.php';
+
+Wma_Settings::register();
 
 register_activation_hook(__FILE__, function () {
     Wma_Db::create_table();
