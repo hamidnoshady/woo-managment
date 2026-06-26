@@ -30,6 +30,9 @@ class Wma_Db_Dumper
 
         $table = $tables[$cursor['table_index']];
         $fh = fopen($dumpPath, 'a');
+        if ($fh === false) {
+            throw new RuntimeException('Could not open the database dump file for writing.');
+        }
 
         if ($cursor['offset'] === 0) {
             $createRow = $wpdb->get_row("SHOW CREATE TABLE `{$table}`", ARRAY_A);
