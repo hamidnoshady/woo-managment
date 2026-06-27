@@ -113,10 +113,14 @@ class Wma_Rest
         if ($err = self::require_woocommerce()) {
             return $err;
         }
-        $product = Wma_Products::get_product((int) $request->get_param('id'));
-        return $product === null
-            ? new WP_REST_Response(['error' => 'Product not found'], 404)
-            : new WP_REST_Response(['item' => $product], 200);
+        try {
+            $product = Wma_Products::get_product((int) $request->get_param('id'));
+            return $product === null
+                ? new WP_REST_Response(['error' => 'Product not found'], 404)
+                : new WP_REST_Response(['item' => $product], 200);
+        } catch (Throwable $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 500);
+        }
     }
 
     public static function create_product(WP_REST_Request $request): WP_REST_Response
@@ -151,9 +155,13 @@ class Wma_Rest
         if ($err = self::require_woocommerce()) {
             return $err;
         }
-        $force = (bool) $request->get_param('force');
-        $ok = Wma_Products::delete_product((int) $request->get_param('id'), $force);
-        return $ok ? new WP_REST_Response(['ok' => true], 200) : new WP_REST_Response(['error' => 'Product not found'], 404);
+        try {
+            $force = (bool) $request->get_param('force');
+            $ok = Wma_Products::delete_product((int) $request->get_param('id'), $force);
+            return $ok ? new WP_REST_Response(['ok' => true], 200) : new WP_REST_Response(['error' => 'Product not found'], 404);
+        } catch (Throwable $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 500);
+        }
     }
 
     public static function batch_products(WP_REST_Request $request): WP_REST_Response
