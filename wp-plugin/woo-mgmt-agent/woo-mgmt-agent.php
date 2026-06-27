@@ -13,8 +13,19 @@ define('WMA_DIR', __DIR__);
 
 require_once WMA_DIR . '/includes/class-wma-db.php';
 require_once WMA_DIR . '/includes/class-wma-settings.php';
+require_once WMA_DIR . '/includes/class-wma-auth.php';
+require_once WMA_DIR . '/includes/class-wma-relay.php';
+require_once WMA_DIR . '/includes/class-wma-db-dumper.php';
+require_once WMA_DIR . '/includes/class-wma-file-archiver.php';
+require_once WMA_DIR . '/includes/class-wma-backup-job.php';
+require_once WMA_DIR . '/includes/class-wma-restore-job.php';
+require_once WMA_DIR . '/includes/class-wma-products.php';
+require_once WMA_DIR . '/includes/class-wma-taxonomies.php';
+require_once WMA_DIR . '/includes/class-wma-media.php';
+require_once WMA_DIR . '/includes/class-wma-rest.php';
 
 Wma_Settings::register();
+Wma_Rest::register();
 
 register_activation_hook(__FILE__, function () {
     Wma_Db::create_table();
