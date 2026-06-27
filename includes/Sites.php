@@ -1,8 +1,7 @@
 <?php
 
 require_once __DIR__ . '/Database.php';
-require_once __DIR__ . '/WooCommerceClient.php';
-require_once __DIR__ . '/WordPressClient.php';
+require_once __DIR__ . '/SiteAgentClient.php';
 
 /**
  * WooCommerce site management. Each site stores its own REST API
@@ -67,18 +66,11 @@ function user_can_access_site(array $user, int $siteId): bool
 function create_site(array $data): array
 {
     $pdo = Database::get();
-    $stmt = $pdo->prepare(
-        'INSERT INTO sites (name, store_url, consumer_key, consumer_secret, verify_ssl, wp_username, wp_app_password, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-    );
+    $stmt = $pdo->prepare('INSERT INTO sites (name, store_url, verify_ssl, created_at) VALUES (?, ?, ?, ?)');
     $stmt->execute([
         $data['name'],
         rtrim($data['store_url'], '/'),
-        $data['consumer_key'],
-        $data['consumer_secret'],
         !empty($data['verify_ssl']) ? 1 : 0,
-        trim((string) ($data['wp_username'] ?? '')),
-        trim((string) ($data['wp_app_password'] ?? '')),
         time(),
     ]);
 
@@ -90,21 +82,10 @@ function update_site(int $id, array $data): array
     $fields = [];
     $params = [];
 
-    $map = [
-        'name' => 'name',
-        'store_url' => 'store_url',
-        'consumer_key' => 'consumer_key',
-        'consumer_secret' => 'consumer_secret',
-        'wp_username' => 'wp_username',
-        'wp_app_password' => 'wp_app_password',
-    ];
-
+    $map = ['name' => 'name', 'store_url' => 'store_url', 'backup_schedule' => 'backup_schedule'];
     foreach ($map as $key => $column) {
         if (array_key_exists($key, $data) && $data[$key] !== '') {
-            $value = $data[$key];
-            if ($key === 'store_url') {
-                $value = rtrim($value, '/');
-            }
+            $value = $key === 'store_url' ? rtrim($data[$key], '/') : $data[$key];
             $fields[] = "{$column} = ?";
             $params[] = $value;
         }
@@ -113,6 +94,14 @@ function update_site(int $id, array $data): array
     if (array_key_exists('verify_ssl', $data)) {
         $fields[] = 'verify_ssl = ?';
         $params[] = !empty($data['verify_ssl']) ? 1 : 0;
+    }
+    if (array_key_exists('backup_enabled', $data)) {
+        $fields[] = 'backup_enabled = ?';
+        $params[] = !empty($data['backup_enabled']) ? 1 : 0;
+    }
+    if (array_key_exists('backup_retention_days', $data)) {
+        $fields[] = 'backup_retention_days = ?';
+        $params[] = max(1, (int) $data['backup_retention_days']);
     }
 
     if (!empty($fields)) {
@@ -133,42 +122,58 @@ function delete_site(int $id): void
 }
 
 /**
- * Builds a WooCommerceClient for the given site.
+ * Builds a SiteAgentClient for the given site — the sole connection method
+ * for products, categories, taxonomies, media, and backup/restore.
  */
-function woocommerce_client_for_site(array $site): WooCommerceClient
+function site_agent_client_for_site(array $site): SiteAgentClient
 {
-    return new WooCommerceClient([
-        'store_url' => $site['store_url'],
-        'consumer_key' => $site['consumer_key'],
-        'consumer_secret' => $site['consumer_secret'],
-        'verify_ssl' => (bool) $site['verify_ssl'],
-    ]);
+    return new SiteAgentClient($site);
 }
 
 /**
- * Returns true if the site has WordPress REST API credentials configured
- * (needed for media uploads and custom/ACF taxonomies).
+ * Generates a new pairing token for the site's woo-mgmt-agent plugin,
+ * invalidating any previous one immediately. Returns the plaintext token —
+ * shown once to the admin, then only ever used internally for outbound
+ * calls to the plugin.
  */
-function site_has_wordpress_credentials(array $site): bool
+function generate_agent_token(int $siteId): string
 {
-    return trim((string) ($site['wp_username'] ?? '')) !== ''
-        && trim((string) ($site['wp_app_password'] ?? '')) !== '';
+    $token = bin2hex(random_bytes(32));
+    $pdo = Database::get();
+    $stmt = $pdo->prepare('UPDATE sites SET agent_token = ?, agent_paired_at = NULL WHERE id = ?');
+    $stmt->execute([$token, $siteId]);
+    return $token;
 }
 
 /**
- * Builds a WordPressClient for the given site, or null if WordPress REST
- * API credentials are not configured for it.
+ * Records that the plugin has successfully responded to a call, for the
+ * "agent connected / never connected / stale" indicator in the UI.
  */
-function wordpress_client_for_site(array $site): ?WordPressClient
+function mark_agent_seen(int $siteId): void
 {
-    if (!site_has_wordpress_credentials($site)) {
+    $pdo = Database::get();
+    $now = time();
+    $stmt = $pdo->prepare(
+        'UPDATE sites SET agent_last_seen_at = ?, agent_paired_at = COALESCE(agent_paired_at, ?) WHERE id = ?'
+    );
+    $stmt->execute([$now, $now, $siteId]);
+}
+
+/**
+ * Resolves a site by its agent pairing token (constant-time comparison
+ * against every site's token — the table is small enough that scanning is
+ * simpler and safer than indexing a secret column).
+ */
+function get_site_by_agent_token(string $token): ?array
+{
+    if ($token === '') {
         return null;
     }
-
-    return new WordPressClient([
-        'store_url' => $site['store_url'],
-        'username' => $site['wp_username'],
-        'app_password' => $site['wp_app_password'],
-        'verify_ssl' => (bool) $site['verify_ssl'],
-    ]);
+    $pdo = Database::get();
+    foreach ($pdo->query("SELECT * FROM sites WHERE agent_token != ''")->fetchAll() as $site) {
+        if (hash_equals($site['agent_token'], $token)) {
+            return $site;
+        }
+    }
+    return null;
 }
