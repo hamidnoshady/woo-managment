@@ -16,12 +16,12 @@ if ($cached !== null) {
     json_response(['items' => $cached]);
 }
 
-$client = woocommerce_client_for_site($site);
+$client = site_agent_client_for_site($site);
 
-$result = $client->listCategories(['orderby' => 'name', 'order' => 'asc']);
-
-if ($result['status'] < 200 || $result['status'] >= 300) {
-    json_response(['error' => $result['data']['message'] ?? 'Failed to fetch categories'], $result['status'] ?: 502);
+try {
+    $result = $client->listCategories();
+} catch (RuntimeException $e) {
+    json_response(['error' => $e->getMessage()], 502);
 }
 
 $categories = array_map(function ($cat) {
@@ -31,7 +31,7 @@ $categories = array_map(function ($cat) {
         'count' => $cat['count'],
         'parent' => $cat['parent'] ?? 0,
     ];
-}, is_array($result['data']) ? $result['data'] : []);
+}, is_array($result) ? $result : []);
 
 $items = flatten_category_tree($categories);
 cache_set($cacheKey, $items, 120);

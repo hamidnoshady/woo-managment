@@ -11,7 +11,7 @@ require_once __DIR__ . '/../../includes/ActivityLog.php';
 $method = $_SERVER['REQUEST_METHOD'];
 $user = require_login_api();
 $site = require_site_api($user);
-$client = woocommerce_client_for_site($site);
+$client = site_agent_client_for_site($site);
 
 if ($method === 'GET') {
     $id = (int) ($_GET['id'] ?? 0);
@@ -19,26 +19,23 @@ if ($method === 'GET') {
         json_response(['error' => 'Invalid product id'], 422);
     }
 
-    $result = $client->getProduct($id);
-    if ($result['status'] < 200 || $result['status'] >= 300) {
-        json_response(['error' => $result['data']['message'] ?? 'Product not found'], $result['status'] ?: 404);
+    try {
+        $product = $client->getProduct($id);
+    } catch (RuntimeException $e) {
+        json_response(['error' => $e->getMessage()], 502);
+    }
+    if ($product === null) {
+        json_response(['error' => 'Product not found'], 404);
     }
 
     // The list page uses this to re-fetch a single product card (e.g. after
     // an undo) without pulling in description/images/taxonomy detail.
     if (($_GET['summary'] ?? '') === '1') {
-        json_response(['item' => map_product_summary($result['data'])]);
+        json_response(['item' => map_product_summary($product)]);
     }
 
-    $item = map_product_detail($result['data']);
-
-    $wp = wordpress_client_for_site($site);
-    if ($wp !== null) {
-        $wpResult = $wp->getProduct($id);
-        if ($wpResult['status'] >= 200 && $wpResult['status'] < 300 && is_array($wpResult['data'])) {
-            $item['taxonomies'] = extract_taxonomy_terms($wpResult['data'], $wp);
-        }
-    }
+    $item = map_product_detail($product);
+    $item['taxonomies'] = $product['taxonomies'] ?? [];
 
     json_response(['item' => $item]);
 }
@@ -52,23 +49,46 @@ if ($method === 'POST' || $method === 'PUT') {
     $id = (int) ($body['id'] ?? 0);
     $data = build_product_payload($body);
 
+    // Custom (e.g. ACF) taxonomies are assigned in the same save as the
+    // rest of the product fields.
+    if (isset($body['taxonomies']) && is_array($body['taxonomies'])) {
+        $taxonomyFields = [];
+        foreach ($body['taxonomies'] as $restBase => $termIds) {
+            if (!is_array($termIds)) {
+                continue;
+            }
+            $taxonomyFields[(string) $restBase] = array_map('intval', $termIds);
+        }
+        if (!empty($taxonomyFields)) {
+            $data['taxonomies'] = $taxonomyFields;
+        }
+    }
+
     if ($id > 0) {
         // Capture the previous values of the fields we're about to change, for undo.
-        $before = $client->getProduct($id);
-        if ($before['status'] < 200 || $before['status'] >= 300) {
-            json_response(['error' => $before['data']['message'] ?? 'Product not found'], $before['status'] ?: 404);
+        try {
+            $before = $client->getProduct($id);
+        } catch (RuntimeException $e) {
+            json_response(['error' => $e->getMessage()], 502);
         }
-        $previous = build_undo_data($before['data'], $data);
+        if ($before === null) {
+            json_response(['error' => 'Product not found'], 404);
+        }
+        $previous = build_undo_data($before, $data);
 
-        $result = $client->updateProduct($id, $data);
-        if ($result['status'] < 200 || $result['status'] >= 300) {
-            json_response(['error' => $result['data']['message'] ?? 'Failed to save product'], $result['status'] ?: 502);
+        try {
+            $product = $client->updateProduct($id, $data);
+        } catch (RuntimeException $e) {
+            json_response(['error' => $e->getMessage()], 502);
+        }
+        if ($product === null) {
+            json_response(['error' => 'Product not found'], 404);
         }
         invalidate_products_cache((int) $site['id']);
 
-        $changeSummary = describe_product_changes($before['data'], $data, $result['data']);
+        $changeSummary = describe_product_changes($before, $data, $product);
         $messageKey = $changeSummary !== '' ? 'log_product_updated_detail' : 'log_product_updated';
-        $messageParams = $changeSummary !== '' ? [$result['data']['name'] ?? '', $changeSummary] : [$result['data']['name'] ?? ''];
+        $messageParams = $changeSummary !== '' ? [$product['name'] ?? '', $changeSummary] : [$product['name'] ?? ''];
 
         $logId = log_activity(
             $user,
@@ -85,9 +105,10 @@ if ($method === 'POST' || $method === 'PUT') {
             ]
         );
     } else {
-        $result = $client->createProduct($data);
-        if ($result['status'] < 200 || $result['status'] >= 300) {
-            json_response(['error' => $result['data']['message'] ?? 'Failed to save product'], $result['status'] ?: 502);
+        try {
+            $product = $client->createProduct($data);
+        } catch (RuntimeException $e) {
+            json_response(['error' => $e->getMessage()], 502);
         }
         invalidate_products_cache((int) $site['id']);
 
@@ -97,38 +118,20 @@ if ($method === 'POST' || $method === 'PUT') {
             'site',
             'product_create',
             'log_product_created',
-            [$result['data']['name'] ?? ''],
+            [$product['name'] ?? ''],
             [
                 'type' => 'delete_product',
                 'site_id' => (int) $site['id'],
-                'product_id' => (int) ($result['data']['id'] ?? 0),
+                'product_id' => (int) ($product['id'] ?? 0),
             ]
         );
     }
 
-    // Custom (e.g. ACF) taxonomies aren't supported by the WooCommerce REST
-    // API, so they're written separately via the WordPress REST API.
-    if (isset($body['taxonomies']) && is_array($body['taxonomies'])) {
-        $wp = wordpress_client_for_site($site);
-        if ($wp !== null) {
-            $taxonomyFields = [];
-            foreach ($body['taxonomies'] as $restBase => $termIds) {
-                if (!is_array($termIds)) {
-                    continue;
-                }
-                $taxonomyFields[(string) $restBase] = array_map('intval', $termIds);
-            }
-            if (!empty($taxonomyFields)) {
-                $wp->updateProductTaxonomies((int) ($result['data']['id'] ?? $id), $taxonomyFields);
-            }
-        }
-    }
-
-    $item = map_product_detail($result['data']);
+    $item = map_product_detail($product);
     $item['log_id'] = $logId;
     $item['message'] = $id > 0
         ? t($messageKey, ...$messageParams)
-        : t('log_product_created', $result['data']['name'] ?? '');
+        : t('log_product_created', $product['name'] ?? '');
     json_response(['item' => $item]);
 }
 
@@ -140,12 +143,16 @@ if ($method === 'DELETE') {
         json_response(['error' => 'Invalid product id'], 422);
     }
 
-    $before = $client->getProduct($id);
-    $productName = $before['status'] >= 200 && $before['status'] < 300 ? (string) ($before['data']['name'] ?? '') : '';
+    try {
+        $before = $client->getProduct($id);
+        $productName = $before !== null ? (string) ($before['name'] ?? '') : '';
 
-    $result = $client->deleteProduct($id, true);
-    if ($result['status'] < 200 || $result['status'] >= 300) {
-        json_response(['error' => $result['data']['message'] ?? 'Failed to delete product'], $result['status'] ?: 502);
+        $deleted = $client->deleteProduct($id, true);
+    } catch (RuntimeException $e) {
+        json_response(['error' => $e->getMessage()], 502);
+    }
+    if (!$deleted) {
+        json_response(['error' => 'Failed to delete product'], 502);
     }
     invalidate_products_cache((int) $site['id']);
 
@@ -183,21 +190,6 @@ function map_product_detail(array $product): array
         'status' => $product['status'] ?? 'publish',
         'permalink' => $product['permalink'] ?? null,
     ];
-}
-
-/**
- * Reads the currently-assigned custom taxonomy term IDs for a product from
- * the WordPress REST API response, keyed by taxonomy rest_base.
- */
-function extract_taxonomy_terms(array $wpProduct, WordPressClient $wp): array
-{
-    $result = [];
-    foreach ($wp->listCustomProductTaxonomies() as $tax) {
-        $restBase = $tax['rest_base'];
-        $value = $wpProduct[$restBase] ?? [];
-        $result[$restBase] = is_array($value) ? array_map('intval', $value) : [];
-    }
-    return $result;
 }
 
 /**

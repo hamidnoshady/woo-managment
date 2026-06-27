@@ -9,7 +9,7 @@ require_once __DIR__ . '/../../includes/site_context.php';
 
 $user = require_login_api();
 $site = require_site_api($user);
-$client = woocommerce_client_for_site($site);
+$client = site_agent_client_for_site($site);
 
 $params = [
     'per_page' => max(1, min(100, (int) ($_GET['per_page'] ?? 20))),
@@ -43,22 +43,7 @@ foreach ($_GET as $key => $value) {
 }
 
 if (!empty($taxFilters)) {
-    $wp = wordpress_client_for_site($site);
-    if ($wp === null) {
-        json_response(['items' => [], 'page' => $params['page'], 'per_page' => $params['per_page'], 'total' => 0, 'total_pages' => 1]);
-    }
-
-    $matchingIds = null;
-    foreach ($taxFilters as $restBase => $termId) {
-        $ids = $wp->listProductIdsByTerm($restBase, $termId);
-        $matchingIds = $matchingIds === null ? $ids : array_intersect($matchingIds, $ids);
-    }
-
-    if (empty($matchingIds)) {
-        json_response(['items' => [], 'page' => $params['page'], 'per_page' => $params['per_page'], 'total' => 0, 'total_pages' => 1]);
-    }
-
-    $params['include'] = implode(',', $matchingIds);
+    $params['taxonomy_terms'] = $taxFilters;
 }
 
 // Optional client-side price range filter (applied to the current page only).
@@ -77,13 +62,13 @@ if ($cached !== null) {
     json_response($cached);
 }
 
-$result = $client->listProducts($params);
-
-if ($result['status'] < 200 || $result['status'] >= 300) {
-    json_response(['error' => $result['data']['message'] ?? 'Failed to fetch products'], $result['status'] ?: 502);
+try {
+    $result = $client->listProducts($params);
+} catch (RuntimeException $e) {
+    json_response(['error' => $e->getMessage()], 502);
 }
 
-$products = is_array($result['data']) ? $result['data'] : [];
+$products = is_array($result['items'] ?? null) ? $result['items'] : [];
 
 if ($minPrice !== null || $maxPrice !== null) {
     $products = array_values(array_filter($products, function ($product) use ($minPrice, $maxPrice) {
@@ -104,8 +89,8 @@ $response = [
     'items' => $items,
     'page' => $params['page'],
     'per_page' => $params['per_page'],
-    'total' => (int) ($result['headers']['x-wp-total'] ?? count($items)),
-    'total_pages' => (int) ($result['headers']['x-wp-totalpages'] ?? 1),
+    'total' => (int) ($result['total'] ?? count($items)),
+    'total_pages' => (int) ($result['total_pages'] ?? 1),
 ];
 
 cache_set($cacheKey, $response, PRODUCTS_CACHE_TTL_SECONDS);
