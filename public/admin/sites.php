@@ -69,43 +69,29 @@ $user = require_superadmin_page();
                  class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none">
         </div>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo htmlspecialchars(t('consumer_key')); ?></label>
-          <input id="site-ck" type="text" autocomplete="off" placeholder="ck_..."
-                 class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm font-mono focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none">
-          <p id="site-ck-hint" class="hidden text-xs text-gray-400 mt-1"></p>
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo htmlspecialchars(t('consumer_secret')); ?></label>
-          <input id="site-cs" type="text" autocomplete="off" placeholder="cs_..."
-                 class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm font-mono focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none">
-          <p id="site-cs-hint" class="hidden text-xs text-gray-400 mt-1"></p>
-        </div>
-
         <label class="flex items-center gap-2 text-sm text-gray-700">
           <input id="site-verify-ssl" type="checkbox" checked class="h-4 w-4 rounded border-gray-300">
           <?php echo htmlspecialchars(t('verify_ssl')); ?>
         </label>
 
-        <div class="border-t border-gray-100 pt-4 space-y-4">
-          <div>
-            <h3 class="text-sm font-semibold text-gray-900"><?php echo htmlspecialchars(t('wp_api_heading')); ?></h3>
-            <p class="text-xs text-gray-400 mt-1"><?php echo htmlspecialchars(t('wp_api_help')); ?></p>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo htmlspecialchars(t('wp_username')); ?></label>
-            <input id="site-wp-username" type="text" autocomplete="off"
-                   class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm font-mono focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none">
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo htmlspecialchars(t('wp_app_password')); ?></label>
-            <input id="site-wp-app-password" type="text" autocomplete="off" placeholder="xxxx xxxx xxxx xxxx xxxx xxxx"
-                   class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm font-mono focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none">
-            <p id="site-wp-app-password-hint" class="hidden text-xs text-gray-400 mt-1"></p>
-          </div>
+        <div class="space-y-2 border-t border-gray-100 pt-3 mt-3">
+          <h3 class="text-xs font-semibold text-gray-500 uppercase"><?php echo htmlspecialchars(t('site_connection_heading')); ?></h3>
+          <div id="site-agent-status" class="text-xs text-gray-400"></div>
+          <button type="button" id="generate-agent-token-btn" class="w-full rounded-xl border border-gray-300 text-gray-700 font-medium py-2 text-sm"><?php echo htmlspecialchars(t('generate_pairing_token')); ?></button>
+          <div id="agent-token-display" class="hidden text-xs font-mono bg-gray-50 rounded-lg p-2 break-all" dir="ltr"></div>
+        </div>
+        <div class="space-y-2 border-t border-gray-100 pt-3 mt-3">
+          <h3 class="text-xs font-semibold text-gray-500 uppercase"><?php echo htmlspecialchars(t('site_backups_heading')); ?></h3>
+          <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox" id="site-backup-enabled">
+            <?php echo htmlspecialchars(t('site_backup_enabled')); ?>
+          </label>
+          <select id="site-backup-schedule" class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm">
+            <option value="off"><?php echo htmlspecialchars(t('schedule_off')); ?></option>
+            <option value="daily"><?php echo htmlspecialchars(t('schedule_daily')); ?></option>
+            <option value="weekly"><?php echo htmlspecialchars(t('schedule_weekly')); ?></option>
+          </select>
+          <input type="number" id="site-backup-retention" min="1" class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" placeholder="<?php echo htmlspecialchars(t('backup_retention_days_placeholder')); ?>">
         </div>
 
         <div class="flex gap-2 pt-2">

@@ -1,5 +1,6 @@
 /**
- * Superadmin: manage WooCommerce sites (stores) and their REST API credentials.
+ * Superadmin: manage WooCommerce sites (stores), their agent pairing token,
+ * and backup settings.
  */
 
 const sheet = document.getElementById('site-sheet');
@@ -83,20 +84,37 @@ function bindEvents() {
       App.toast(err.message, 'error');
     }
   });
+
+  document.getElementById('generate-agent-token-btn').addEventListener('click', async () => {
+    const siteId = document.getElementById('site-id').value;
+    if (!siteId) return;
+    try {
+      const res = await App.api('/api/sites.php?action=generate_agent_token', {
+        method: 'POST',
+        body: JSON.stringify({ site_id: Number(siteId) }),
+      });
+      const display = document.getElementById('agent-token-display');
+      display.textContent = res.token;
+      display.classList.remove('hidden');
+      App.toast(t('pairing_token_generated_help'), 'success');
+    } catch (err) {
+      App.toast(err.message, 'error');
+    }
+  });
 }
 
 async function openSheet(id) {
   form.reset();
   document.getElementById('site-id').value = id || '';
-  document.getElementById('site-ck-hint').classList.add('hidden');
-  document.getElementById('site-cs-hint').classList.add('hidden');
-  document.getElementById('site-wp-app-password-hint').classList.add('hidden');
-  document.getElementById('site-ck').placeholder = 'ck_...';
-  document.getElementById('site-cs').placeholder = 'cs_...';
-  document.getElementById('site-wp-app-password').placeholder = 'xxxx xxxx xxxx xxxx xxxx xxxx';
   document.getElementById('site-delete-btn').classList.toggle('hidden', !id);
   document.getElementById('site-sheet-title').textContent = id ? t('edit_site') : t('add_site');
   document.getElementById('site-verify-ssl').checked = true;
+  document.getElementById('generate-agent-token-btn').classList.toggle('hidden', !id);
+  document.getElementById('agent-token-display').classList.add('hidden');
+  document.getElementById('site-agent-status').textContent = '';
+  document.getElementById('site-backup-enabled').checked = false;
+  document.getElementById('site-backup-schedule').value = 'off';
+  document.getElementById('site-backup-retention').value = '';
 
   if (id) {
     try {
@@ -105,25 +123,15 @@ async function openSheet(id) {
       document.getElementById('site-name').value = item.name;
       document.getElementById('site-url').value = item.store_url;
       document.getElementById('site-verify-ssl').checked = item.verify_ssl;
+      document.getElementById('site-backup-enabled').checked = item.backup_enabled;
+      document.getElementById('site-backup-schedule').value = item.backup_schedule || 'off';
+      document.getElementById('site-backup-retention').value = item.backup_retention_days || '';
 
-      document.getElementById('site-ck').placeholder = item.consumer_key;
-      document.getElementById('site-cs').placeholder = item.consumer_secret;
-
-      const ckHint = document.getElementById('site-ck-hint');
-      ckHint.textContent = t('current_value_leave_blank', item.consumer_key);
-      ckHint.classList.remove('hidden');
-
-      const csHint = document.getElementById('site-cs-hint');
-      csHint.textContent = t('current_value_leave_blank', item.consumer_secret);
-      csHint.classList.remove('hidden');
-
-      document.getElementById('site-wp-username').value = item.wp_username || '';
-      if (item.wp_app_password) {
-        document.getElementById('site-wp-app-password').placeholder = item.wp_app_password;
-        const wpHint = document.getElementById('site-wp-app-password-hint');
-        wpHint.textContent = t('current_value_leave_blank', item.wp_app_password);
-        wpHint.classList.remove('hidden');
-      }
+      document.getElementById('site-agent-status').textContent = !item.agent_paired
+        ? t('agent_never_paired')
+        : item.agent_last_seen_at
+          ? t('agent_last_seen', new Date(item.agent_last_seen_at * 1000).toLocaleString())
+          : t('agent_connected');
     } catch (err) {
       App.toast(err.message, 'error');
       return;
@@ -143,16 +151,10 @@ async function saveSite() {
     name: document.getElementById('site-name').value.trim(),
     store_url: document.getElementById('site-url').value.trim(),
     verify_ssl: document.getElementById('site-verify-ssl').checked,
+    backup_enabled: document.getElementById('site-backup-enabled').checked,
+    backup_schedule: document.getElementById('site-backup-schedule').value,
+    backup_retention_days: Number(document.getElementById('site-backup-retention').value) || 30,
   };
-
-  const ck = document.getElementById('site-ck').value.trim();
-  const cs = document.getElementById('site-cs').value.trim();
-  if (ck !== '' || !id) payload.consumer_key = ck;
-  if (cs !== '' || !id) payload.consumer_secret = cs;
-
-  payload.wp_username = document.getElementById('site-wp-username').value.trim();
-  const wpPass = document.getElementById('site-wp-app-password').value.trim();
-  if (wpPass !== '') payload.wp_app_password = wpPass;
 
   const saveBtn = document.getElementById('site-save-btn');
   saveBtn.disabled = true;

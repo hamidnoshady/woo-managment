@@ -51,6 +51,17 @@ if ($method === 'POST' && $action === 'select') {
 // Site CRUD is restricted to superadmins.
 require_superadmin_api();
 
+if ($method === 'POST' && $action === 'generate_agent_token') {
+    $id = (int) ($body['site_id'] ?? 0);
+    $site = get_site($id);
+    if ($site === null) {
+        json_response(['error' => 'Site not found'], 404);
+    }
+    $token = generate_agent_token($id);
+    log_activity($user, $id, 'site', 'site_agent_token', 'log_site_agent_token_generated', [$site['name']]);
+    json_response(['token' => $token]);
+}
+
 if ($method === 'POST') {
     $errors = validate_site_payload($body, true);
     if (!empty($errors)) {
@@ -107,24 +118,18 @@ function map_site_detail(array $site): array
         'id' => (int) $site['id'],
         'name' => $site['name'],
         'store_url' => $site['store_url'],
-        'consumer_key' => mask_secret($site['consumer_key']),
-        'consumer_secret' => mask_secret($site['consumer_secret']),
         'verify_ssl' => (bool) $site['verify_ssl'],
-        'wp_username' => $site['wp_username'] ?? '',
-        'wp_app_password' => $site['wp_app_password'] !== '' ? mask_secret($site['wp_app_password']) : '',
+        'agent_paired' => !empty($site['agent_token']),
+        'agent_paired_at' => $site['agent_paired_at'] !== null ? (int) $site['agent_paired_at'] : null,
+        'agent_last_seen_at' => $site['agent_last_seen_at'] !== null ? (int) $site['agent_last_seen_at'] : null,
+        'backup_enabled' => (bool) $site['backup_enabled'],
+        'backup_schedule' => $site['backup_schedule'],
+        'backup_retention_days' => (int) $site['backup_retention_days'],
     ];
 }
 
-function mask_secret(string $value): string
-{
-    if (strlen($value) <= 6) {
-        return str_repeat('*', strlen($value));
-    }
-    return substr($value, 0, 4) . str_repeat('*', strlen($value) - 8) . substr($value, -4);
-}
-
 /**
- * Validates a site create/update payload. $requireAll forces credential
+ * Validates a site create/update payload. $requireAll forces required
  * fields to be present (for creation); updates may omit fields to keep
  * the existing value.
  */
@@ -142,15 +147,6 @@ function validate_site_payload(array $body, bool $requireAll): array
             $errors[] = 'Store URL is required.';
         } elseif ($url !== '' && !filter_var($url, FILTER_VALIDATE_URL)) {
             $errors[] = 'Store URL must be a valid URL.';
-        }
-    }
-
-    if ($requireAll) {
-        if (trim((string) ($body['consumer_key'] ?? '')) === '') {
-            $errors[] = 'Consumer key is required.';
-        }
-        if (trim((string) ($body['consumer_secret'] ?? '')) === '') {
-            $errors[] = 'Consumer secret is required.';
         }
     }
 
