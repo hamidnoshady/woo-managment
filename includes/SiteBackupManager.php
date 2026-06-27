@@ -148,9 +148,31 @@ class SiteBackupManager
             return ['ok' => false, 'url' => '', 'error' => 'S3 backup storage is not configured.'];
         }
 
-        $key = "backups/site-{$site['id']}/{$jobId}/{$partKey}";
+        $effectiveJobId = self::resolveS3JobId($site, $jobId);
+        $key = "backups/site-{$site['id']}/{$effectiveJobId}/{$partKey}";
         $url = $s3->presignedUrl(strtoupper($method) === 'GET' ? 'GET' : 'PUT', $key, 900);
         return ['ok' => true, 'url' => $url, 'error' => ''];
+    }
+
+    /**
+     * Restore jobs are ticked using an offset job_id (RESTORE_AGENT_ID_OFFSET
+     * + restore local id), but the backup parts they download were uploaded
+     * under the *source backup's* own id as the S3 prefix (see startBackup).
+     * Resolve restore-range ids to that source backup id before building the
+     * key. The safety-snapshot range (9_000_000_000+) is plugin-internal only
+     * and already uses the raw offset id consistently for both its uploads
+     * and reads, so it must NOT be resolved here.
+     */
+    private static function resolveS3JobId(array $site, int $jobId): int
+    {
+        if ($jobId >= self::RESTORE_AGENT_ID_OFFSET && $jobId < 9_000_000_000) {
+            $restoreLocalId = $jobId - self::RESTORE_AGENT_ID_OFFSET;
+            $restore = self::getRestore($restoreLocalId);
+            if ($restore !== null && (int) $restore['site_id'] === (int) $site['id']) {
+                return (int) $restore['source_backup_id'];
+            }
+        }
+        return $jobId;
     }
 
     public static function listForSite(int $siteId, int $limit = 50): array
