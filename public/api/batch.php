@@ -3,7 +3,6 @@
 require_once __DIR__ . '/../../includes/helpers.php';
 install_json_fatal_handler();
 require_once __DIR__ . '/../../includes/auth.php';
-require_once __DIR__ . '/../../includes/WooCommerceClient.php';
 require_once __DIR__ . '/../../includes/Sites.php';
 require_once __DIR__ . '/../../includes/site_context.php';
 require_once __DIR__ . '/../../includes/ActivityLog.php';
@@ -27,7 +26,7 @@ if (empty($ids)) {
 $action = $body['action'] ?? '';
 $preview = !empty($body['preview']);
 
-$client = woocommerce_client_for_site($site);
+$client = site_agent_client_for_site($site);
 
 if ($action === 'price') {
     // Bulk price changes are restricted to admins.
@@ -186,35 +185,38 @@ if ($action === 'stock') {
 json_response(['error' => 'Unknown batch action'], 400);
 
 /**
- * Fetches full product data for a list of IDs (WooCommerce has no "get many by id"
- * filter for arbitrary fields we need, so we request them via the include param).
+ * Fetches full product data for a list of IDs. The plugin has no "get many
+ * by id" filter, so each id is fetched individually (missing/deleted ids
+ * are simply skipped).
  */
-function fetch_products_by_ids(WooCommerceClient $client, array $ids): array
+function fetch_products_by_ids(SiteAgentClient $client, array $ids): array
 {
-    $result = $client->listProducts([
-        'include' => implode(',', $ids),
-        'per_page' => 100,
-    ]);
-
-    if ($result['status'] < 200 || $result['status'] >= 300) {
-        json_response(['error' => $result['data']['message'] ?? 'Failed to fetch products'], $result['status'] ?: 502);
+    $items = [];
+    foreach ($ids as $id) {
+        try {
+            $product = $client->getProduct($id);
+        } catch (RuntimeException $e) {
+            json_response(['error' => $e->getMessage()], 502);
+        }
+        if ($product !== null) {
+            $items[] = $product;
+        }
     }
-
-    return is_array($result['data']) ? $result['data'] : [];
+    return $items;
 }
 
 /**
- * Sends product updates to WooCommerce in batches of up to 100.
+ * Sends product updates to the site agent in batches of up to 100.
  */
-function apply_batch_updates(WooCommerceClient $client, array $updates, int $siteId): array
+function apply_batch_updates(SiteAgentClient $client, array $updates, int $siteId): array
 {
     $results = [];
     foreach (array_chunk($updates, 100) as $chunk) {
-        $result = $client->batchProducts(['update' => $chunk]);
-        if ($result['status'] < 200 || $result['status'] >= 300) {
-            json_response(['error' => $result['data']['message'] ?? 'Batch update failed'], $result['status'] ?: 502);
+        try {
+            $results = array_merge($results, $client->batchProducts($chunk));
+        } catch (RuntimeException $e) {
+            json_response(['error' => $e->getMessage()], 502);
         }
-        $results = array_merge($results, $result['data']['update'] ?? []);
     }
     if (!empty($updates)) {
         invalidate_products_cache($siteId);
