@@ -24,7 +24,7 @@ function renderList(items) {
 function renderRow(item) {
   const statusClass = item.status === 'completed' ? 'text-green-600' : item.status === 'failed' ? 'text-red-600' : 'text-gray-500';
   const restoreBtn = item.status === 'completed'
-    ? `<button class="restore-btn text-xs text-gray-700 underline" data-id="${item.id}" data-type="${item.type}">${App.t('restore')}</button>`
+    ? `<button class="restore-btn text-xs text-gray-700 underline" data-id="${item.id}" data-type="${item.type}">${t('restore')}</button>`
     : '';
   return `<div class="bg-white rounded-2xl border border-gray-100 p-3 flex items-center justify-between" data-job-id="${item.id}">
     <div>
@@ -75,14 +75,14 @@ document.getElementById('run-site-full-backup-btn').addEventListener('click', ()
 listEl.addEventListener('click', async (e) => {
   const btn = e.target.closest('.restore-btn');
   if (!btn) return;
-  if (!confirm(App.t('restore_confirm'))) return;
+  if (!confirm(t('restore_confirm'))) return;
 
   try {
     const res = await App.api('/api/site-restores.php?action=start', {
       method: 'POST',
       body: JSON.stringify({ source_backup_id: Number(btn.dataset.id), scope: btn.dataset.type }),
     });
-    App.toast(App.t('restore_started'));
+    App.toast(t('restore_started'));
 
     const pollRestore = async () => {
       try {
@@ -91,7 +91,7 @@ listEl.addEventListener('click', async (e) => {
           setTimeout(pollRestore, 3000);
           return;
         }
-        App.toast(r.item.status === 'completed' ? App.t('restore_completed') : App.t('restore_failed') + ': ' + r.item.error);
+        App.toast(r.item.status === 'completed' ? t('restore_completed') : t('restore_failed') + ': ' + r.item.error);
       } catch (err) {
         App.toast(err.message, 'error');
       }

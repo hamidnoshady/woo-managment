@@ -48,7 +48,7 @@ function bindEvents() {
   document.getElementById('backup-before-changes-btn')?.addEventListener('click', async (e) => {
     const status = document.getElementById('backup-before-changes-status');
     e.target.disabled = true;
-    status.textContent = App.t('backup_in_progress');
+    status.textContent = t('backup_in_progress');
 
     try {
       const res = await App.api('/api/site-backups.php?action=start', {
@@ -63,16 +63,16 @@ function bindEvents() {
             setTimeout(poll, 3000);
             return;
           }
-          status.textContent = r.item.status === 'completed' ? App.t('backup_done') : App.t('backup_failed');
+          status.textContent = r.item.status === 'completed' ? t('backup_done') : t('backup_failed');
         } catch (err) {
-          status.textContent = App.t('backup_failed');
+          status.textContent = t('backup_failed');
         } finally {
           e.target.disabled = false;
         }
       };
       poll();
     } catch (err) {
-      status.textContent = App.t('backup_failed');
+      status.textContent = t('backup_failed');
       e.target.disabled = false;
     }
   });
