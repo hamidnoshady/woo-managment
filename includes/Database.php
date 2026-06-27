@@ -140,7 +140,83 @@ class Database
                 KEY idx_backups_created (created_at)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
         );
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS site_backups (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                site_id INT NOT NULL,
+                type VARCHAR(20) NOT NULL,
+                status VARCHAR(20) NOT NULL DEFAULT \'running\',
+                step_label VARCHAR(50) NOT NULL DEFAULT \'\',
+                percent INT NOT NULL DEFAULT 0,
+                total_size_bytes BIGINT NOT NULL DEFAULT 0,
+                s3_prefix VARCHAR(500) NOT NULL DEFAULT \'\',
+                manifest_json TEXT NULL,
+                error TEXT NULL,
+                started_at INT NOT NULL,
+                completed_at INT NULL,
+                last_tick_at INT NOT NULL,
+                KEY idx_site_backups_site (site_id, id),
+                CONSTRAINT fk_site_backups_site FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
+        );
+
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS site_restores (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                site_id INT NOT NULL,
+                source_backup_id INT NOT NULL,
+                type VARCHAR(20) NOT NULL,
+                status VARCHAR(20) NOT NULL DEFAULT \'running\',
+                step_label VARCHAR(50) NOT NULL DEFAULT \'\',
+                percent INT NOT NULL DEFAULT 0,
+                safety_backup_id INT NULL,
+                error TEXT NULL,
+                started_at INT NOT NULL,
+                completed_at INT NULL,
+                last_tick_at INT NOT NULL,
+                KEY idx_site_restores_site (site_id, id),
+                CONSTRAINT fk_site_restores_site FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE,
+                CONSTRAINT fk_site_restores_backup FOREIGN KEY (source_backup_id) REFERENCES site_backups(id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
+        );
+
+        self::addColumnIfMissing($pdo, 'sites', 'agent_token', "VARCHAR(64) NOT NULL DEFAULT ''");
+        self::addColumnIfMissing($pdo, 'sites', 'agent_paired_at', 'INT NULL');
+        self::addColumnIfMissing($pdo, 'sites', 'agent_last_seen_at', 'INT NULL');
+        self::addColumnIfMissing($pdo, 'sites', 'backup_enabled', 'TINYINT NOT NULL DEFAULT 0');
+        self::addColumnIfMissing($pdo, 'sites', 'backup_schedule', "VARCHAR(20) NOT NULL DEFAULT 'off'");
+        self::addColumnIfMissing($pdo, 'sites', 'backup_retention_days', 'INT NOT NULL DEFAULT 30');
+
+        self::dropColumnIfPresent($pdo, 'sites', 'consumer_key');
+        self::dropColumnIfPresent($pdo, 'sites', 'consumer_secret');
+        self::dropColumnIfPresent($pdo, 'sites', 'wp_username');
+        self::dropColumnIfPresent($pdo, 'sites', 'wp_app_password');
+
         self::$pdo = $pdo;
         return $pdo;
+    }
+
+    private static function addColumnIfMissing(PDO $pdo, string $table, string $column, string $definition): void
+    {
+        $stmt = $pdo->prepare(
+            'SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?'
+        );
+        $stmt->execute([$table, $column]);
+        if (!$stmt->fetchColumn()) {
+            $pdo->exec("ALTER TABLE {$table} ADD COLUMN {$column} {$definition}");
+        }
+    }
+
+    private static function dropColumnIfPresent(PDO $pdo, string $table, string $column): void
+    {
+        $stmt = $pdo->prepare(
+            'SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?'
+        );
+        $stmt->execute([$table, $column]);
+        if ($stmt->fetchColumn()) {
+            $pdo->exec("ALTER TABLE {$table} DROP COLUMN {$column}");
+        }
     }
 }
