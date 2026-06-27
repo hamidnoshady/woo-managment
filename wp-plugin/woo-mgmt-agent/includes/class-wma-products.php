@@ -60,6 +60,7 @@ class Wma_Products
     public static function create_product(array $data): array
     {
         $product = new WC_Product_Simple();
+        $product->save(); // assign a real post ID before any taxonomy term assignment
         self::apply_fields($product, $data);
         $product->save();
         return self::product_to_array($product);
@@ -92,9 +93,16 @@ class Wma_Products
         $results = [];
         foreach ($items as $item) {
             $id = (int) ($item['id'] ?? 0);
-            $updated = $id > 0 ? self::update_product($id, $item) : null;
-            if ($updated !== null) {
-                $results[] = $updated;
+            if ($id <= 0) {
+                continue;
+            }
+            try {
+                $updated = self::update_product($id, $item);
+                if ($updated !== null) {
+                    $results[] = $updated;
+                }
+            } catch (Throwable $e) {
+                continue;
             }
         }
         return $results;
