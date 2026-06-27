@@ -185,8 +185,14 @@ class Wma_Restore_Job
                     continue;
                 }
                 $backupOld = $target . '-pre-restore-' . $job['job_id'];
-                rename($target, $backupOld);
-                rename($source, $target);
+                if (!rename($target, $backupOld)) {
+                    throw new RuntimeException("Restore swap failed: could not move aside existing {$folder} directory.");
+                }
+                if (!rename($source, $target)) {
+                    // try to restore the original so the site isn't left without its old folder
+                    @rename($backupOld, $target);
+                    throw new RuntimeException("Restore swap failed: could not move new {$folder} directory into place.");
+                }
                 self::recursive_delete($backupOld);
             }
         }
@@ -196,7 +202,48 @@ class Wma_Restore_Job
     private static function split_statements(string $path): array
     {
         $sql = file_get_contents($path);
-        return array_filter(array_map('trim', explode(";\n", $sql)));
+        $statements = [];
+        $current = '';
+        $inString = false;
+        $quoteChar = '';
+        $length = strlen($sql);
+
+        for ($i = 0; $i < $length; $i++) {
+            $char = $sql[$i];
+            $current .= $char;
+
+            if ($inString) {
+                if ($char === '\\' && $i + 1 < $length) {
+                    $current .= $sql[++$i];
+                    continue;
+                }
+                if ($char === $quoteChar) {
+                    $inString = false;
+                }
+                continue;
+            }
+
+            if ($char === "'" || $char === '"') {
+                $inString = true;
+                $quoteChar = $char;
+                continue;
+            }
+
+            if ($char === ';') {
+                $trimmed = trim($current);
+                if ($trimmed !== '' && !str_starts_with($trimmed, '--')) {
+                    $statements[] = $trimmed;
+                }
+                $current = '';
+            }
+        }
+
+        $trimmed = trim($current);
+        if ($trimmed !== '' && !str_starts_with($trimmed, '--')) {
+            $statements[] = $trimmed;
+        }
+
+        return $statements;
     }
 
     private static function recursive_delete(string $dir): void
