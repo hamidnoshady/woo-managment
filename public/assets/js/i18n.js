@@ -254,7 +254,19 @@ const I18N = {
         "log_site_created": "Added site \"%s\"",
         "log_site_updated": "Updated site \"%s\"",
         "log_site_deleted": "Deleted site \"%s\"",
-        "log_settings_updated": "Updated app settings"
+        "log_settings_updated": "Updated app settings",
+        "restore": "Restore",
+        "restore_confirm": "Restoring will replace the live site with this backup. A safety snapshot of the current state is taken automatically first. Continue?",
+        "restore_started": "Restore started.",
+        "restore_completed": "Restore completed.",
+        "restore_failed": "Restore failed",
+        "agent_connected": "Connected",
+        "agent_never_paired": "Never paired",
+        "agent_last_seen": "Last seen: %s",
+        "pairing_token_generated_help": "Copy this token into the plugin's settings screen on the site. It will not be shown again.",
+        "backup_in_progress": "Backing up...",
+        "backup_done": "Backup complete",
+        "backup_failed": "Backup failed"
     },
     "fa": {
         "nav_products": "محصولات",
@@ -511,7 +523,19 @@ const I18N = {
         "log_site_created": "فروشگاه \"%s\" اضافه شد",
         "log_site_updated": "فروشگاه \"%s\" به‌روزرسانی شد",
         "log_site_deleted": "فروشگاه \"%s\" حذف شد",
-        "log_settings_updated": "تنظیمات برنامه به‌روزرسانی شد"
+        "log_settings_updated": "تنظیمات برنامه به‌روزرسانی شد",
+        "restore": "بازگردانی",
+        "restore_confirm": "بازگردانی، سایت فعلی را با این پشتیبان جایگزین می‌کند. ابتدا به‌طور خودکار از وضعیت فعلی یک نسخه ایمنی گرفته می‌شود. ادامه می‌دهید؟",
+        "restore_started": "بازگردانی آغاز شد.",
+        "restore_completed": "بازگردانی با موفقیت انجام شد.",
+        "restore_failed": "بازگردانی ناموفق بود",
+        "agent_connected": "متصل",
+        "agent_never_paired": "هنوز متصل نشده",
+        "agent_last_seen": "آخرین اتصال: %s",
+        "pairing_token_generated_help": "این توکن را در صفحه تنظیمات افزونه روی سایت وارد کنید. دوباره نمایش داده نمی‌شود.",
+        "backup_in_progress": "در حال پشتیبان‌گیری...",
+        "backup_done": "پشتیبان‌گیری کامل شد",
+        "backup_failed": "پشتیبان‌گیری ناموفق بود"
     }
 };
 
