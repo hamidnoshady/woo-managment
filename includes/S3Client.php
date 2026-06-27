@@ -47,6 +47,49 @@ class S3Client
     }
 
     /**
+     * Builds a presigned URL for PUT or GET, valid for $expiresInSeconds.
+     * Signs via query string (not the header-based signing request() uses)
+     * so the URL itself is usable by a party that never sees the secret
+     * key — the agent plugin.
+     */
+    public function presignedUrl(string $method, string $key, int $expiresInSeconds = 900): string
+    {
+        $host = (string) parse_url($this->endpoint, PHP_URL_HOST);
+        $scheme = parse_url($this->endpoint, PHP_URL_SCHEME) ?: 'https';
+
+        $encodedKey = implode('/', array_map('rawurlencode', explode('/', $key)));
+        $canonicalUri = '/' . rawurlencode($this->bucket) . '/' . $encodedKey;
+
+        $amzDate = gmdate('Ymd\THis\Z');
+        $dateStamp = gmdate('Ymd');
+        $credentialScope = "{$dateStamp}/{$this->region}/s3/aws4_request";
+        $credential = "{$this->accessKey}/{$credentialScope}";
+
+        $queryParams = [
+            'X-Amz-Algorithm' => 'AWS4-HMAC-SHA256',
+            'X-Amz-Credential' => $credential,
+            'X-Amz-Date' => $amzDate,
+            'X-Amz-Expires' => (string) $expiresInSeconds,
+            'X-Amz-SignedHeaders' => 'host',
+        ];
+        ksort($queryParams);
+        $canonicalQueryString = http_build_query($queryParams, '', '&', PHP_QUERY_RFC3986);
+
+        $canonicalHeaders = "host:{$host}\n";
+        $canonicalRequest = "{$method}\n{$canonicalUri}\n{$canonicalQueryString}\n{$canonicalHeaders}\nhost\nUNSIGNED-PAYLOAD";
+
+        $stringToSign = "AWS4-HMAC-SHA256\n{$amzDate}\n{$credentialScope}\n" . hash('sha256', $canonicalRequest);
+
+        $kDate = hash_hmac('sha256', $dateStamp, 'AWS4' . $this->secretKey, true);
+        $kRegion = hash_hmac('sha256', $this->region, $kDate, true);
+        $kService = hash_hmac('sha256', 's3', $kRegion, true);
+        $signingKey = hash_hmac('sha256', 'aws4_request', $kService, true);
+        $signature = hash_hmac('sha256', $stringToSign, $signingKey);
+
+        return "{$scheme}://{$host}{$canonicalUri}?{$canonicalQueryString}&X-Amz-Signature={$signature}";
+    }
+
+    /**
      * Signs and sends a request to a single object using AWS Signature
      * Version 4. PUT/DELETE object both need no query string, which keeps
      * the canonical request simple.
