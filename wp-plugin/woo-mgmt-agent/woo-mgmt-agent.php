@@ -29,4 +29,25 @@ Wma_Rest::register();
 
 register_activation_hook(__FILE__, function () {
     Wma_Db::create_table();
+    if (!wp_next_scheduled('wma_tick_running_jobs')) {
+        wp_schedule_event(time(), 'hourly', 'wma_tick_running_jobs');
+    }
+});
+
+register_deactivation_hook(__FILE__, function () {
+    wp_clear_scheduled_hook('wma_tick_running_jobs');
+});
+
+add_action('wma_tick_running_jobs', function () {
+    global $wpdb;
+    $table = Wma_Db::table();
+    $ids = $wpdb->get_col("SELECT job_id FROM {$table} WHERE status = 'running'");
+    foreach ($ids as $jobId) {
+        $job = Wma_Db::get_job((int) $jobId);
+        if ($job === null) {
+            continue;
+        }
+        $job = $job['kind'] === 'backup' ? Wma_Backup_Job::tick($job) : Wma_Restore_Job::tick($job);
+        Wma_Db::save_job($job);
+    }
 });
