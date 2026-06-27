@@ -45,6 +45,38 @@ async function ensureSession() {
 }
 
 function bindEvents() {
+  document.getElementById('backup-before-changes-btn')?.addEventListener('click', async (e) => {
+    const status = document.getElementById('backup-before-changes-status');
+    e.target.disabled = true;
+    status.textContent = App.t('backup_in_progress');
+
+    try {
+      const res = await App.api('/api/site-backups.php?action=start', {
+        method: 'POST',
+        body: JSON.stringify({ scope: 'database' }),
+      });
+
+      const poll = async () => {
+        try {
+          const r = await App.api(`/api/site-backups.php?action=poll&id=${res.item.id}`);
+          if (r.item.status === 'running') {
+            setTimeout(poll, 3000);
+            return;
+          }
+          status.textContent = r.item.status === 'completed' ? App.t('backup_done') : App.t('backup_failed');
+        } catch (err) {
+          status.textContent = App.t('backup_failed');
+        } finally {
+          e.target.disabled = false;
+        }
+      };
+      poll();
+    } catch (err) {
+      status.textContent = App.t('backup_failed');
+      e.target.disabled = false;
+    }
+  });
+
   const signBtn = document.getElementById('price-sign');
   signBtn.addEventListener('click', () => {
     signBtn.textContent = signBtn.textContent === '+' ? '−' : '+';

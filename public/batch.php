@@ -41,6 +41,8 @@ $site = require_site_page($user);
     <div id="batch-content" class="hidden space-y-4">
       <div class="bg-white rounded-2xl border border-gray-100 p-4">
         <p class="text-sm text-gray-600"><span id="selection-count" class="font-semibold text-gray-900">0</span> <?php echo htmlspecialchars(t('products_selected')); ?></p>
+        <button id="backup-before-changes-btn" class="text-xs text-gray-600 underline mb-2"><?php echo htmlspecialchars(t('backup_before_changes')); ?></button>
+        <span id="backup-before-changes-status" class="text-xs text-gray-400 ml-2"></span>
       </div>
 
       <!-- Price adjustment (admin only) -->

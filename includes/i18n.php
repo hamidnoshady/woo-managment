@@ -242,6 +242,9 @@ const TRANSLATIONS = [
         'restore_started' => 'Restore started.',
         'restore_completed' => 'Restore completed.',
         'restore_failed' => 'Restore failed',
+        'backup_before_changes' => 'Backup site before continuing',
+        'backup_in_progress' => 'Backing up...',
+        'backup_done' => 'Backup complete',
 
         // Account settings (all users)
         'account_settings_title' => 'Settings · Product Manager',
@@ -582,6 +585,9 @@ const TRANSLATIONS = [
         'restore_started' => 'بازگردانی آغاز شد.',
         'restore_completed' => 'بازگردانی با موفقیت انجام شد.',
         'restore_failed' => 'بازگردانی ناموفق بود',
+        'backup_before_changes' => 'پشتیبان‌گیری از سایت قبل از ادامه',
+        'backup_in_progress' => 'در حال پشتیبان‌گیری...',
+        'backup_done' => 'پشتیبان‌گیری کامل شد',
 
         // Account settings (all users)
         'account_settings_title' => 'تنظیمات · مدیریت محصولات',
