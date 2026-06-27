@@ -16,10 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 verify_csrf_api();
 
-$wp = wordpress_client_for_site($site);
-if ($wp === null) {
-    json_response(['error' => t('wp_credentials_missing')], 422);
-}
+$client = site_agent_client_for_site($site);
 
 if (empty($_FILES['image']) || $_FILES['image']['error'] !== UPLOAD_ERR_OK) {
     json_response(['error' => 'No image uploaded.'], 422);
@@ -92,18 +89,14 @@ try {
 }
 
 try {
-    $result = $wp->uploadMedia($content, $filename, $mimeType);
+    $result = $client->uploadMedia($content, $filename, $mimeType);
 } catch (\Throwable $e) {
     json_response(['error' => 'Failed to upload the image: ' . $e->getMessage()], 500);
 }
 
-if ($result['status'] < 200 || $result['status'] >= 300) {
-    json_response(['error' => $result['data']['message'] ?? 'Failed to upload image'], $result['status'] ?: 502);
-}
-
 json_response([
     'item' => [
-        'id' => $result['data']['id'] ?? null,
-        'src' => $result['data']['source_url'] ?? '',
+        'id' => $result['id'] ?? null,
+        'src' => $result['src'] ?? '',
     ],
 ]);

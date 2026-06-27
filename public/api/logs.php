@@ -4,7 +4,6 @@ require_once __DIR__ . '/../../includes/helpers.php';
 install_json_fatal_handler();
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/ActivityLog.php';
-require_once __DIR__ . '/../../includes/WooCommerceClient.php';
 require_once __DIR__ . '/../../includes/Sites.php';
 
 $user = require_login_api();
@@ -48,34 +47,34 @@ if ($method === 'POST' && $action === 'undo') {
         json_response(['error' => 'This change can no longer be undone.'], 409);
     }
 
-    $client = woocommerce_client_for_site($site);
+    $client = site_agent_client_for_site($site);
 
-    switch ($undoData['type'] ?? '') {
-        case 'update_product':
-            $result = $client->updateProduct((int) $undoData['product_id'], $undoData['data']);
-            if ($result['status'] < 200 || $result['status'] >= 300) {
-                json_response(['error' => $result['data']['message'] ?? 'Failed to undo change'], $result['status'] ?: 502);
-            }
-            break;
-
-        case 'delete_product':
-            $result = $client->deleteProduct((int) $undoData['product_id'], true);
-            if ($result['status'] < 200 || $result['status'] >= 300) {
-                json_response(['error' => $result['data']['message'] ?? 'Failed to undo change'], $result['status'] ?: 502);
-            }
-            break;
-
-        case 'batch_update':
-            foreach (array_chunk($undoData['updates'], 100) as $chunk) {
-                $result = $client->batchProducts(['update' => $chunk]);
-                if ($result['status'] < 200 || $result['status'] >= 300) {
-                    json_response(['error' => $result['data']['message'] ?? 'Failed to undo change'], $result['status'] ?: 502);
+    try {
+        switch ($undoData['type'] ?? '') {
+            case 'update_product':
+                $result = $client->updateProduct((int) $undoData['product_id'], $undoData['data']);
+                if ($result === null) {
+                    json_response(['error' => 'Failed to undo change'], 404);
                 }
-            }
-            break;
+                break;
 
-        default:
-            json_response(['error' => 'This change can no longer be undone.'], 409);
+            case 'delete_product':
+                if (!$client->deleteProduct((int) $undoData['product_id'], true)) {
+                    json_response(['error' => 'Failed to undo change'], 502);
+                }
+                break;
+
+            case 'batch_update':
+                foreach (array_chunk($undoData['updates'], 100) as $chunk) {
+                    $client->batchProducts($chunk);
+                }
+                break;
+
+            default:
+                json_response(['error' => 'This change can no longer be undone.'], 409);
+        }
+    } catch (RuntimeException $e) {
+        json_response(['error' => $e->getMessage()], 502);
     }
 
     invalidate_products_cache((int) $site['id']);
