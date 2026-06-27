@@ -27,5 +27,5 @@ try {
     json_response(['error' => $e->getMessage()], 502);
 }
 
-cache_set($cacheKey, $items, 10);
+cache_set($cacheKey, $items, TAXONOMIES_CACHE_TTL_SECONDS);
 json_response(['items' => $items, 'reason' => empty($items) ? 'none_found' : null]);

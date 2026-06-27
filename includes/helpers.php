@@ -7,10 +7,11 @@ require_once __DIR__ . '/Database.php';
 // mislead whoever is acting on it.
 const PRODUCTS_CACHE_TTL_SECONDS = 10;
 
-// Custom (ACF) taxonomy definitions/terms change far less often than stock
-// or price, and fetching them is expensive (one WordPress REST request per
-// taxonomy) - cache them much longer than the product list.
-const TAXONOMIES_CACHE_TTL_SECONDS = 300;
+// Custom taxonomies are cached the same short duration as products and
+// invalidated by the same product-mutation hook (see
+// invalidate_products_cache()) - a long-lived cache here previously let a
+// single failed fetch hide a taxonomy from the UI for minutes.
+const TAXONOMIES_CACHE_TTL_SECONDS = 10;
 
 /**
  * Invalidates every cached products-list variant for a site. Call this
@@ -98,7 +99,7 @@ function cache_set(string $key, $value, int $ttlSeconds): void
 function cache_delete_prefix(string $prefix): void
 {
     $pdo = Database::get();
-    $stmt = $pdo->prepare("DELETE FROM kv_cache WHERE `key` LIKE ? ESCAPE '\\\\'");
+    $stmt = $pdo->prepare('DELETE FROM kv_cache WHERE `key` LIKE ? ESCAPE \'\\\'');
     $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $prefix);
     $stmt->execute([$escaped . '%']);
 }
