@@ -237,6 +237,11 @@ const TRANSLATIONS = [
         'backup_status_failed' => 'Failed',
         'cron_setup_heading' => 'Scheduled backups',
         'cron_setup_help' => 'Add these URLs as cPanel Cron Jobs (e.g. daily for database, weekly for full) so backups run automatically:',
+        'restore' => 'Restore',
+        'restore_confirm' => 'Restoring will replace the live site with this backup. A safety snapshot of the current state is taken automatically first. Continue?',
+        'restore_started' => 'Restore started.',
+        'restore_completed' => 'Restore completed.',
+        'restore_failed' => 'Restore failed',
 
         // Account settings (all users)
         'account_settings_title' => 'Settings · Product Manager',
@@ -338,6 +343,8 @@ const TRANSLATIONS = [
         'log_site_updated' => 'Updated site "%s"',
         'log_site_deleted' => 'Deleted site "%s"',
         'log_site_agent_token_generated' => 'Generated a new pairing token for site "%s"',
+        'log_site_backup_started' => 'Started a %s backup',
+        'log_site_restore_started' => 'Started a %s restore',
         'log_settings_updated' => 'Updated app settings',
     ],
 
@@ -570,6 +577,11 @@ const TRANSLATIONS = [
         'backup_status_failed' => 'ناموفق',
         'cron_setup_heading' => 'پشتیبان‌گیری زمان‌بندی‌شده',
         'cron_setup_help' => 'این آدرس‌ها را به‌عنوان Cron Job در cPanel ثبت کنید (مثلاً دیتابیس روزانه، کامل هفتگی) تا پشتیبان‌گیری به‌طور خودکار اجرا شود:',
+        'restore' => 'بازگردانی',
+        'restore_confirm' => 'بازگردانی، سایت فعلی را با این پشتیبان جایگزین می‌کند. ابتدا به‌طور خودکار از وضعیت فعلی یک نسخه ایمنی گرفته می‌شود. ادامه می‌دهید؟',
+        'restore_started' => 'بازگردانی آغاز شد.',
+        'restore_completed' => 'بازگردانی با موفقیت انجام شد.',
+        'restore_failed' => 'بازگردانی ناموفق بود',
 
         // Account settings (all users)
         'account_settings_title' => 'تنظیمات · مدیریت محصولات',
@@ -671,6 +683,8 @@ const TRANSLATIONS = [
         'log_site_updated' => 'فروشگاه "%s" به‌روزرسانی شد',
         'log_site_deleted' => 'فروشگاه "%s" حذف شد',
         'log_site_agent_token_generated' => 'یک توکن اتصال جدید برای فروشگاه "%s" ایجاد شد',
+        'log_site_backup_started' => 'پشتیبان‌گیری %s آغاز شد',
+        'log_site_restore_started' => 'بازگردانی %s آغاز شد',
         'log_settings_updated' => 'تنظیمات برنامه به‌روزرسانی شد',
     ],
 ];
