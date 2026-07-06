@@ -198,6 +198,76 @@ function format_wc_price(float $price): string
 }
 
 /**
+ * Maps the products-page filter shape (as sent by products.js's
+ * buildQuery()/state.filters) to the WP-plugin's list_products()/
+ * list_product_ids() query param names.
+ *
+ * ponytail: min_price/max_price are intentionally NOT mapped here - the
+ * products list applies that filter client-side in PHP after fetching
+ * full product data, which isn't compatible with an ids-only bulk query
+ * (matching would require hydrating every candidate first, defeating the
+ * point of an ids-only fetch for "select all"). Add real price-range
+ * support here only if it's actually needed, via a dedicated WC price
+ * meta-query - not by hydrating every match upfront.
+ */
+function build_batch_filter_params(array $filters): array
+{
+    $params = [];
+
+    if (!empty($filters['search'])) {
+        $params['search'] = trim((string) $filters['search']);
+    }
+    if (!empty($filters['category'])) {
+        $params['category'] = (string) $filters['category'];
+    }
+    if (!empty($filters['stock_status'])) {
+        $params['stock_status'] = (string) $filters['stock_status'];
+    }
+    if (!empty($filters['on_sale'])) {
+        $params['on_sale'] = 'true';
+    }
+    if (!empty($filters['taxonomies']) && is_array($filters['taxonomies'])) {
+        $taxFilters = [];
+        foreach ($filters['taxonomies'] as $restBase => $termId) {
+            if ($termId !== '' && $termId !== null) {
+                $taxFilters[(string) $restBase] = (int) $termId;
+            }
+        }
+        if (!empty($taxFilters)) {
+            $params['taxonomy_terms'] = $taxFilters;
+        }
+    }
+
+    return $params;
+}
+
+/**
+ * Resolves a batch request's target product ids: an explicit `ids` array
+ * takes precedence, otherwise `select_all` + `filters` resolves the full
+ * matching set server-side via a single ids-only WooCommerce query -
+ * the browser never holds or transmits a large id list for that path.
+ *
+ * @return array{ids: array<int>, total: int}
+ */
+function resolve_batch_target_ids(SiteAgentClient $client, array $body): array
+{
+    if (!empty($body['ids']) && is_array($body['ids'])) {
+        $ids = array_values(array_unique(array_map('intval', $body['ids'])));
+        $ids = array_values(array_filter($ids, fn($id) => $id > 0));
+        return ['ids' => $ids, 'total' => count($ids)];
+    }
+
+    if (!empty($body['select_all'])) {
+        $filters = is_array($body['filters'] ?? null) ? $body['filters'] : [];
+        $params = build_batch_filter_params($filters);
+        $ids = $client->listProductIds($params);
+        return ['ids' => $ids, 'total' => count($ids)];
+    }
+
+    return ['ids' => [], 'total' => 0];
+}
+
+/**
  * Maps a raw WooCommerce product to the compact shape used by product list
  * cards (and by single-product refreshes after an undo).
  */
