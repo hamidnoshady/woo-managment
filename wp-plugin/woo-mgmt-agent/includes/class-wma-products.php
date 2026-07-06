@@ -57,6 +57,68 @@ class Wma_Products
         return $product ? self::product_to_array($product) : null;
     }
 
+    public static function list_variations(int $parentId): array
+    {
+        $parent = wc_get_product($parentId);
+        if (!$parent || $parent->get_type() !== 'variable') {
+            return ['error' => 'Not a variable product'];
+        }
+
+        $items = array_map(
+            fn($childId) => self::variation_to_array(wc_get_product($childId), $parent),
+            $parent->get_children()
+        );
+
+        $options = array_map(
+            fn($attrName, $values) => ['name' => wc_attribute_label($attrName), 'options' => array_values($values)],
+            array_keys($parent->get_variation_attributes()),
+            $parent->get_variation_attributes()
+        );
+
+        return ['items' => array_values(array_filter($items)), 'options' => array_values($options)];
+    }
+
+    private static function variation_to_array(?WC_Product_Variation $variation, WC_Product $parent): ?array
+    {
+        if (!$variation) {
+            return null;
+        }
+
+        $imageId = $variation->get_image_id() ?: $parent->get_image_id();
+
+        return [
+            'id' => $variation->get_id(),
+            'sku' => $variation->get_sku(),
+            'regular_price' => $variation->get_regular_price(),
+            'sale_price' => $variation->get_sale_price(),
+            'price' => $variation->get_price(),
+            'stock_quantity' => $variation->get_stock_quantity(),
+            'manage_stock' => $variation->get_manage_stock(),
+            'stock_status' => $variation->get_stock_status(),
+            'image' => $imageId ? (wp_get_attachment_url($imageId) ?: null) : null,
+            'attributes' => self::readable_variation_attributes($variation),
+            'attribute_summary' => wc_get_formatted_variation($variation, true, false),
+        ];
+    }
+
+    /** @return array<string,string> attribute label => selected value */
+    private static function readable_variation_attributes(WC_Product_Variation $variation): array
+    {
+        $result = [];
+        foreach ($variation->get_variation_attributes() as $attrKey => $value) {
+            // $attrKey looks like "attribute_pa_color" or "attribute_size".
+            $taxonomy = str_replace('attribute_', '', $attrKey);
+            $label = wc_attribute_label($taxonomy);
+            if (str_starts_with($taxonomy, 'pa_') && $value !== '') {
+                $term = get_term_by('slug', $value, $taxonomy);
+                $result[$label] = $term ? $term->name : $value;
+            } else {
+                $result[$label] = $value;
+            }
+        }
+        return $result;
+    }
+
     public static function create_product(array $data): array
     {
         $product = new WC_Product_Simple();
@@ -239,6 +301,7 @@ class Wma_Products
 
         return [
             'id' => $product->get_id(),
+            'type' => $product->get_type(),
             'name' => $product->get_name(),
             'sku' => $product->get_sku(),
             'regular_price' => $product->get_regular_price(),
