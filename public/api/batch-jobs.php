@@ -45,20 +45,25 @@ if ($method === 'POST' && $action === 'start') {
     $pdo = Database::get();
     $pdo->beginTransaction();
 
-    $now = time();
-    $stmt = $pdo->prepare(
-        'INSERT INTO batch_jobs (site_id, user_id, action, params_json, status, total_items, started_at)
-         VALUES (?, ?, ?, ?, \'running\', ?, ?)'
-    );
-    $stmt->execute([(int) $site['id'], (int) $user['id'], $batchAction, json_encode($params), count($resolved['ids']), $now]);
-    $jobId = (int) $pdo->lastInsertId();
+    try {
+        $now = time();
+        $stmt = $pdo->prepare(
+            'INSERT INTO batch_jobs (site_id, user_id, action, params_json, status, total_items, started_at)
+             VALUES (?, ?, ?, ?, \'running\', ?, ?)'
+        );
+        $stmt->execute([(int) $site['id'], (int) $user['id'], $batchAction, json_encode($params), count($resolved['ids']), $now]);
+        $jobId = (int) $pdo->lastInsertId();
 
-    $itemStmt = $pdo->prepare('INSERT INTO batch_job_items (batch_job_id, product_id, status) VALUES (?, ?, \'pending\')');
-    foreach ($resolved['ids'] as $id) {
-        $itemStmt->execute([$jobId, $id]);
+        $itemStmt = $pdo->prepare('INSERT INTO batch_job_items (batch_job_id, product_id, status) VALUES (?, ?, \'pending\')');
+        foreach ($resolved['ids'] as $id) {
+            $itemStmt->execute([$jobId, $id]);
+        }
+
+        $pdo->commit();
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        json_response(['error' => 'Failed to create batch job'], 500);
     }
-
-    $pdo->commit();
 
     json_response(['id' => $jobId, 'total_items' => count($resolved['ids'])], 201);
 }
