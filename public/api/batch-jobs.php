@@ -241,6 +241,20 @@ function complete_batch_job(array $job, array $user): void
 {
     $pdo = Database::get();
 
+    // Guard: only the caller that actually flips status running -> completed
+    // proceeds to log the activity / invalidate the cache. Two concurrent
+    // poll requests can both see status = 'running' and both reach this
+    // function; this conditional UPDATE ensures only one of them gets
+    // rowCount() === 1, closing the race without an explicit lock/transaction.
+    $completeStmt = $pdo->prepare(
+        'UPDATE batch_jobs SET status = \'completed\', completed_at = ? WHERE id = ? AND status = \'running\''
+    );
+    $completeStmt->execute([time(), $job['id']]);
+    if ($completeStmt->rowCount() !== 1) {
+        // Another concurrent tick already completed this job.
+        return;
+    }
+
     $itemsStmt = $pdo->prepare('SELECT * FROM batch_job_items WHERE batch_job_id = ? AND status = \'success\'');
     $itemsStmt->execute([$job['id']]);
     $succeeded = $itemsStmt->fetchAll();
@@ -279,10 +293,10 @@ function complete_batch_job(array $job, array $user): void
             ],
             (int) $job['id']
         );
-    }
 
-    $pdo->prepare('UPDATE batch_jobs SET status = \'completed\', completed_at = ?, log_id = ? WHERE id = ?')
-        ->execute([time(), $logId, $job['id']]);
+        $pdo->prepare('UPDATE batch_jobs SET log_id = ? WHERE id = ?')
+            ->execute([$logId, $job['id']]);
+    }
 
     invalidate_products_cache((int) $job['site_id']);
 }
