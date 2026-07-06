@@ -208,6 +208,13 @@ input[type=number] {
   100% { background-color: transparent; }
 }
 
+/* Nested variation rows under an expanded variable-product card, indented
+   to read as "inside" the parent without a full second card's padding. */
+.variations-list {
+  padding-inline-start: 0.5rem;
+  border-inline-start: 2px solid #e5e7eb;
+}
+
 /* ----------------------------------------------------------------------
    Desktop layout (>=1024px): a fixed sidebar replaces the bottom tab bar,
    and pages get extra inline padding to make room for it.

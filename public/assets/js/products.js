@@ -21,6 +21,8 @@ const state = {
   },
 };
 
+const variationsCache = new Map();
+
 const listEl = document.getElementById('product-list');
 const tableEl = document.getElementById('product-table');
 const tableBody = document.getElementById('product-table-body');
@@ -308,6 +310,7 @@ function renderProductCard(product) {
         <div class="text-xs text-gray-400 mt-0.5">${escapeHtml(product.sku || '')}</div>
       </a>
       <div class="mt-1 flex items-center gap-2 price-row"></div>
+      ${product.type === 'variable' ? '<button type="button" class="variations-toggle text-xs text-gray-500 underline mt-1">' + escapeHtml(t('show_variations')) + '</button><div class="variations-list mt-2 space-y-2 hidden"></div>' : ''}
     </div>
     <div class="stock-control flex flex-col items-center justify-center gap-1 flex-shrink-0">
       <button class="stock-btn rounded-lg border border-gray-300 w-7 h-7 text-sm leading-none" data-delta="1">+</button>
@@ -318,6 +321,9 @@ function renderProductCard(product) {
 
   renderPriceRow(card, product);
   wireProductElement(card, product);
+  if (product.type === 'variable') {
+    wireVariationsToggle(card, product);
+  }
   return card;
 }
 
@@ -355,7 +361,26 @@ function renderProductRow(product) {
 
   renderPriceRow(row, product);
   wireProductElement(row, product);
-  return row;
+
+  if (product.type !== 'variable') {
+    return row;
+  }
+
+  const toggleRow = document.createElement('tr');
+  toggleRow.className = 'variations-toggle-row';
+  toggleRow.innerHTML = `
+    <td></td>
+    <td colspan="4" class="px-3 pb-2">
+      <button type="button" class="variations-toggle text-xs text-gray-500 underline">${escapeHtml(t('show_variations'))}</button>
+      <div class="variations-list mt-2 space-y-2 hidden"></div>
+    </td>
+  `;
+  wireVariationsToggle(toggleRow, product);
+
+  const fragment = document.createDocumentFragment();
+  fragment.appendChild(row);
+  fragment.appendChild(toggleRow);
+  return fragment;
 }
 
 /**
@@ -431,6 +456,217 @@ function wireProductElement(el, product) {
   if (state.selectionMode) {
     el.querySelector('.checkbox-wrap').classList.remove('hidden');
   }
+}
+
+function wireVariationsToggle(container, product) {
+  const toggleBtn = container.querySelector('.variations-toggle');
+  const listEl = container.querySelector('.variations-list');
+
+  toggleBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const expanded = !listEl.classList.contains('hidden');
+    if (expanded) {
+      listEl.classList.add('hidden');
+      toggleBtn.textContent = t('show_variations');
+      return;
+    }
+
+    listEl.classList.remove('hidden');
+    toggleBtn.textContent = t('hide_variations');
+
+    if (variationsCache.has(product.id)) {
+      renderVariationsList(listEl, product, variationsCache.get(product.id));
+      return;
+    }
+
+    listEl.innerHTML = `<div class="text-xs text-gray-400">${escapeHtml(t('loading'))}</div>`;
+    try {
+      const data = await App.api(`/api/product-variations.php?product_id=${product.id}`);
+      variationsCache.set(product.id, data);
+      renderVariationsList(listEl, product, data);
+    } catch (err) {
+      listEl.innerHTML = `
+        <div class="text-xs text-red-600">${escapeHtml(t('variations_load_error'))}
+          <button type="button" class="variations-retry underline ml-1">${escapeHtml(t('retry'))}</button>
+        </div>`;
+      listEl.querySelector('.variations-retry').addEventListener('click', (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        toggleBtn.textContent = t('show_variations');
+        listEl.classList.add('hidden');
+        toggleBtn.click();
+      });
+    }
+  });
+}
+
+function renderVariationsList(listEl, product, data) {
+  listEl.innerHTML = '';
+  (data.items || []).forEach((variation) => {
+    listEl.appendChild(renderVariationRow(variation));
+  });
+  listEl.appendChild(renderAddVariationRow(listEl, product, data.options || []));
+}
+
+/**
+ * Renders one variation as a compact row reusing the same price-click-edit
+ * and stock +/- markup/handlers as a top-level product card - both
+ * wireProductElement() and renderPriceRow() only ever look at `.id`,
+ * `.regular_price`, `.stock_quantity`, etc. on the object they're given,
+ * so a variation object (same field names) works unmodified.
+ */
+function renderVariationRow(variation) {
+  const row = document.createElement('div');
+  row.className = 'variation-row bg-gray-50 rounded-xl border border-gray-100 p-2 flex gap-2 relative';
+  row.dataset.id = variation.id;
+
+  const image = variation.image
+    ? `<img src="${escapeHtml(variation.image)}" alt="" class="h-10 w-10 rounded-lg object-cover flex-shrink-0 bg-gray-100">`
+    : `<div class="h-10 w-10 rounded-lg bg-gray-100 flex-shrink-0"></div>`;
+
+  row.innerHTML = `
+    <div class="checkbox-wrap hidden flex items-center pr-1">
+      <input type="checkbox" class="select-checkbox h-4 w-4 rounded border-gray-300">
+    </div>
+    ${image}
+    <div class="flex-1 min-w-0">
+      <div class="text-xs font-medium text-gray-800">${escapeHtml(variation.attribute_summary || '')}</div>
+      <div class="text-[10px] text-gray-400">${escapeHtml(variation.sku || '')}</div>
+      <div class="mt-1 flex items-center gap-2 price-row"></div>
+    </div>
+    <div class="stock-control flex flex-col items-center justify-center gap-1 flex-shrink-0">
+      <button class="stock-btn rounded-lg border border-gray-300 w-6 h-6 text-xs leading-none" data-delta="1">+</button>
+      <span class="stock-qty text-[10px] font-medium text-gray-700">${variation.stock_quantity ?? '-'}</span>
+      <button class="stock-btn rounded-lg border border-gray-300 w-6 h-6 text-xs leading-none" data-delta="-1">-</button>
+    </div>
+  `;
+
+  renderPriceRow(row, variation);
+  wireProductElement(row, variation);
+  return row;
+}
+
+function renderAddVariationRow(listEl, product, options) {
+  const wrap = document.createElement('div');
+  wrap.className = 'add-variation-wrap';
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'add-variation-btn text-xs text-gray-500 underline';
+  btn.textContent = t('add_variation');
+  wrap.appendChild(btn);
+
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    wrap.innerHTML = '';
+    wrap.appendChild(buildAddVariationForm(listEl, product, options, wrap));
+  });
+
+  return wrap;
+}
+
+function buildAddVariationForm(listEl, product, options, wrap) {
+  const form = document.createElement('div');
+  form.className = 'bg-white rounded-xl border border-gray-200 p-2 space-y-1.5';
+
+  const selects = options.map((opt) => {
+    const selectId = `variation-attr-${product.id}-${opt.name}`.replace(/\s+/g, '-');
+    const optionsHtml = opt.options.map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+    return `
+      <div>
+        <label class="block text-[10px] text-gray-400 mb-0.5">${escapeHtml(opt.name)}</label>
+        <select id="${selectId}" data-attr-name="${escapeHtml(opt.name)}" class="variation-attr-select w-full rounded-lg border border-gray-300 px-2 py-1 text-xs">
+          ${optionsHtml}
+        </select>
+      </div>`;
+  }).join('');
+
+  form.innerHTML = `
+    ${selects}
+    <div>
+      <label class="block text-[10px] text-gray-400 mb-0.5">${escapeHtml(t('regular_price'))}</label>
+      <input type="number" inputmode="decimal" min="0" step="any" class="new-variation-price w-full rounded-lg border border-gray-300 px-2 py-1 text-xs">
+    </div>
+    <div>
+      <label class="block text-[10px] text-gray-400 mb-0.5">${escapeHtml(t('sale_price_optional'))}</label>
+      <input type="number" inputmode="decimal" min="0" step="any" class="new-variation-sale-price w-full rounded-lg border border-gray-300 px-2 py-1 text-xs">
+    </div>
+    <div>
+      <label class="block text-[10px] text-gray-400 mb-0.5">${escapeHtml(t('sku'))}</label>
+      <input type="text" class="new-variation-sku w-full rounded-lg border border-gray-300 px-2 py-1 text-xs">
+    </div>
+    <div class="new-variation-error hidden text-[10px] text-red-600"></div>
+    <div class="flex gap-1.5">
+      <button type="button" class="new-variation-save flex-1 rounded-lg bg-gray-900 text-white text-xs font-medium py-1">${escapeHtml(t('save'))}</button>
+      <button type="button" class="new-variation-cancel flex-1 rounded-lg border border-gray-300 text-gray-700 text-xs font-medium py-1">${escapeHtml(t('cancel'))}</button>
+    </div>
+  `;
+
+  const errorEl = form.querySelector('.new-variation-error');
+  const showError = (msg) => { errorEl.textContent = msg; errorEl.classList.remove('hidden'); };
+
+  form.querySelector('.new-variation-cancel').addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    wrap.innerHTML = '';
+    wrap.appendChild(renderAddVariationRow(listEl, product, options));
+  });
+
+  form.querySelector('.new-variation-save').addEventListener('click', async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    errorEl.classList.add('hidden');
+
+    const attributes = {};
+    form.querySelectorAll('.variation-attr-select').forEach((sel) => {
+      attributes[sel.dataset.attrName] = sel.value;
+    });
+    if (options.length === 0 || Object.values(attributes).some((v) => !v)) {
+      showError(t('variation_attribute_required'));
+      return;
+    }
+
+    const regularPrice = form.querySelector('.new-variation-price').value.trim();
+    const salePrice = form.querySelector('.new-variation-sale-price').value.trim();
+    const sku = form.querySelector('.new-variation-sku').value.trim();
+
+    const saveBtn = form.querySelector('.new-variation-save');
+    saveBtn.disabled = true;
+    saveBtn.textContent = t('saving_variation');
+
+    try {
+      const payload = { product_id: product.id, attributes };
+      if (regularPrice !== '') payload.regular_price = regularPrice;
+      if (salePrice !== '') payload.sale_price = salePrice;
+      if (sku !== '') payload.sku = sku;
+
+      const data = await App.api('/api/product-variations.php', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+
+      const cached = variationsCache.get(product.id) || { items: [], options };
+      cached.items = [...cached.items, data.item];
+      variationsCache.set(product.id, cached);
+
+      wrap.insertAdjacentElement('beforebegin', renderVariationRow(data.item));
+      wrap.innerHTML = '';
+      wrap.appendChild(renderAddVariationRow(listEl, product, options));
+
+      if (data.item.log_id) {
+        App.notify(data.item.message, { logId: data.item.log_id });
+      }
+    } catch (err) {
+      showError(err.message);
+      saveBtn.disabled = false;
+      saveBtn.textContent = t('save');
+    }
+  });
+
+  return form;
 }
 
 /**
