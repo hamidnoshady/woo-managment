@@ -151,10 +151,10 @@ function previewPrice() {
   runPreview(pendingRequest, (change) => {
     const parts = [];
     if (change.regular_price) {
-      parts.push(`${t('regular_price')}: ${App.formatToman(change.regular_price.old)} → ${App.formatToman(change.regular_price.new)}`);
+      parts.push(`${t('regular_price')}: <bdi dir="ltr">${escapeHtml(App.formatToman(change.regular_price.old))} → ${escapeHtml(App.formatToman(change.regular_price.new))}</bdi>`);
     }
     if (change.sale_price) {
-      parts.push(`${t('sale_price')}: ${App.formatToman(change.sale_price.old)} → ${App.formatToman(change.sale_price.new)}`);
+      parts.push(`${t('sale_price')}: <bdi dir="ltr">${escapeHtml(App.formatToman(change.sale_price.old))} → ${escapeHtml(App.formatToman(change.sale_price.new))}</bdi>`);
     }
     return parts.join(' · ');
   });
@@ -196,7 +196,7 @@ async function runPreview(request, describeChange) {
         row.className = 'flex items-center justify-between text-sm border-b border-gray-100 pb-2 last:border-0 last:pb-0';
         row.innerHTML = `
           <span class="text-gray-700 truncate pr-2">${escapeHtml(change.name)}</span>
-          <span class="text-gray-500 text-xs whitespace-nowrap">${escapeHtml(describeChange(change))}</span>
+          <span class="text-gray-500 text-xs whitespace-nowrap">${describeChange(change)}</span>
         `;
         previewList.appendChild(row);
       });
