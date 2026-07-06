@@ -180,12 +180,47 @@ class Database
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
         );
 
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS batch_jobs (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                site_id INT NOT NULL,
+                user_id INT NOT NULL,
+                action VARCHAR(20) NOT NULL,
+                params_json TEXT NOT NULL,
+                status VARCHAR(20) NOT NULL DEFAULT \'running\',
+                total_items INT NOT NULL DEFAULT 0,
+                processed_items INT NOT NULL DEFAULT 0,
+                succeeded_items INT NOT NULL DEFAULT 0,
+                failed_items INT NOT NULL DEFAULT 0,
+                log_id INT NULL,
+                started_at INT NOT NULL,
+                completed_at INT NULL,
+                KEY idx_batch_jobs_site (site_id, id),
+                CONSTRAINT fk_batch_jobs_site FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
+        );
+
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS batch_job_items (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                batch_job_id INT NOT NULL,
+                product_id INT NOT NULL,
+                product_name VARCHAR(255) NOT NULL DEFAULT \'\',
+                status VARCHAR(20) NOT NULL DEFAULT \'pending\',
+                change_json TEXT NULL,
+                error TEXT NULL,
+                KEY idx_batch_job_items_job (batch_job_id, status),
+                CONSTRAINT fk_batch_job_items_job FOREIGN KEY (batch_job_id) REFERENCES batch_jobs(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
+        );
+
         self::addColumnIfMissing($pdo, 'sites', 'agent_token', "VARCHAR(64) NOT NULL DEFAULT ''");
         self::addColumnIfMissing($pdo, 'sites', 'agent_paired_at', 'INT NULL');
         self::addColumnIfMissing($pdo, 'sites', 'agent_last_seen_at', 'INT NULL');
         self::addColumnIfMissing($pdo, 'sites', 'backup_enabled', 'TINYINT NOT NULL DEFAULT 0');
         self::addColumnIfMissing($pdo, 'sites', 'backup_schedule', "VARCHAR(20) NOT NULL DEFAULT 'off'");
         self::addColumnIfMissing($pdo, 'sites', 'backup_retention_days', 'INT NOT NULL DEFAULT 30');
+        self::addColumnIfMissing($pdo, 'activity_logs', 'batch_job_id', 'INT NULL');
 
         self::dropColumnIfPresent($pdo, 'sites', 'consumer_key');
         self::dropColumnIfPresent($pdo, 'sites', 'consumer_secret');

@@ -15,13 +15,13 @@ const ACTIVITY_UNDO_WINDOW_SECONDS = 10;
  * Records an activity log entry. $undoData (if provided) is stored as JSON
  * and can be replayed by undo_activity_log() within the undo window.
  */
-function log_activity(array $user, ?int $siteId, string $category, string $action, string $messageKey, array $messageParams = [], ?array $undoData = null): int
+function log_activity(array $user, ?int $siteId, string $category, string $action, string $messageKey, array $messageParams = [], ?array $undoData = null, ?int $batchJobId = null): int
 {
     $pdo = Database::get();
     $stmt = $pdo->prepare(
         'INSERT INTO activity_logs
-            (user_id, user_name, user_phone, site_id, category, action, message_key, message_params, undo_data, undone, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)'
+            (user_id, user_name, user_phone, site_id, category, action, message_key, message_params, undo_data, undone, created_at, batch_job_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)'
     );
     $stmt->execute([
         (int) $user['id'],
@@ -34,6 +34,7 @@ function log_activity(array $user, ?int $siteId, string $category, string $actio
         json_encode($messageParams, JSON_UNESCAPED_UNICODE),
         $undoData !== null ? json_encode($undoData, JSON_UNESCAPED_UNICODE) : null,
         time(),
+        $batchJobId,
     ]);
 
     return (int) $pdo->lastInsertId();
@@ -173,5 +174,6 @@ function format_activity_log(array $row, array $user): array
         'undone' => (bool) $row['undone'],
         'can_undo' => can_undo_activity_log($row, $user),
         'created_at' => (int) $row['created_at'],
+        'batch_job_id' => isset($row['batch_job_id']) && $row['batch_job_id'] !== null ? (int) $row['batch_job_id'] : null,
     ];
 }
