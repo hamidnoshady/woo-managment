@@ -51,6 +51,41 @@ class Wma_Products
         ];
     }
 
+    /**
+     * Returns every matching product's id, with no pagination limit and no
+     * per-product hydration - used for "select all matching filters" in
+     * batch editing, where a full list_products() page-by-page fetch would
+     * be far too slow for a store with thousands of products.
+     */
+    public static function list_product_ids(array $params): array
+    {
+        $args = ['return' => 'ids', 'limit' => -1];
+
+        if (!empty($params['search'])) {
+            $args['s'] = (string) $params['search'];
+        }
+        if (!empty($params['category'])) {
+            $args['category'] = [(string) $params['category']];
+        }
+        if (!empty($params['stock_status'])) {
+            $args['stock_status'] = (string) $params['stock_status'];
+        }
+        if (!empty($params['taxonomy_terms']) && is_array($params['taxonomy_terms'])) {
+            $args['tax_query'] = self::build_tax_query($params['taxonomy_terms']);
+        }
+
+        $ids = wc_get_products($args);
+
+        if (!empty($params['on_sale'])) {
+            $ids = array_values(array_filter($ids, function ($id) {
+                $product = wc_get_product($id);
+                return $product && $product->is_on_sale();
+            }));
+        }
+
+        return array_map('intval', $ids);
+    }
+
     public static function get_product(int $id): ?array
     {
         $product = wc_get_product($id);

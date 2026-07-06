@@ -23,6 +23,11 @@ class Wma_Rest
                 ['methods' => 'GET', 'callback' => [self::class, 'list_products'], 'permission_callback' => [Wma_Auth::class, 'check']],
                 ['methods' => 'POST', 'callback' => [self::class, 'create_product'], 'permission_callback' => [Wma_Auth::class, 'check']],
             ]);
+            register_rest_route('wma/v1', '/products/ids', [
+                'methods' => 'GET',
+                'callback' => [self::class, 'list_product_ids'],
+                'permission_callback' => [Wma_Auth::class, 'check'],
+            ]);
             register_rest_route('wma/v1', '/products/batch', [
                 'methods' => 'POST',
                 'callback' => [self::class, 'batch_products'],
@@ -107,6 +112,18 @@ class Wma_Rest
         }
         try {
             return new WP_REST_Response(Wma_Products::list_products($request->get_params()), 200);
+        } catch (Throwable $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public static function list_product_ids(WP_REST_Request $request): WP_REST_Response
+    {
+        if ($err = self::require_woocommerce()) {
+            return $err;
+        }
+        try {
+            return new WP_REST_Response(['ids' => Wma_Products::list_product_ids($request->get_params())], 200);
         } catch (Throwable $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 500);
         }

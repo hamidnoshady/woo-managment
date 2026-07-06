@@ -23,6 +23,12 @@ class SiteAgentClient
         return $this->decodeOrThrow($response);
     }
 
+    public function listProductIds(array $params): array
+    {
+        $response = $this->request('GET', '/wp-json/wma/v1/products/ids?' . http_build_query($params));
+        return $this->decodeOrThrow($response)['ids'];
+    }
+
     public function getProduct(int $id): ?array
     {
         $response = $this->request('GET', "/wp-json/wma/v1/products/{$id}");
