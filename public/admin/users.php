@@ -29,13 +29,13 @@ $user = require_superadmin_page();
         <button id="add-btn" class="text-sm font-medium text-gray-600 active:text-gray-900"><?php echo htmlspecialchars(t('add_btn')); ?></button>
       </div>
     </div>
-    <div class="px-4 pb-3 flex gap-2 text-sm">
-      <a href="/admin/users.php" class="flex-1 text-center rounded-xl bg-gray-900 text-white py-2 font-medium"><?php echo htmlspecialchars(t('users')); ?></a>
-      <a href="/admin/sites.php" class="flex-1 text-center rounded-xl border border-gray-300 text-gray-700 py-2 font-medium"><?php echo htmlspecialchars(t("sites")); ?></a>
-      <a href="/admin/settings.php" class="flex-1 text-center rounded-xl border border-gray-300 text-gray-700 py-2 font-medium"><?php echo htmlspecialchars(t('settings')); ?></a>
-      <a href="/admin/backups.php" class="flex-1 text-center rounded-xl border border-gray-300 text-gray-700 py-2 font-medium"><?php echo htmlspecialchars(t('backups')); ?></a>
-      <a href="/admin/site-backups.php" class="flex-1 text-center rounded-xl border border-gray-300 text-gray-700 py-2 font-medium"><?php echo htmlspecialchars(t('site_backups_heading')); ?></a>
-      <a href="/settings.php" class="flex-1 text-center rounded-xl border border-gray-300 text-gray-700 py-2 font-medium"><?php echo htmlspecialchars(t('account_section')); ?></a>
+    <div class="px-4 pb-3 flex gap-2 text-sm overflow-x-auto no-scrollbar">
+      <a href="/admin/users.php" class="flex-shrink-0 whitespace-nowrap text-center rounded-xl px-4 bg-gray-900 text-white py-2 font-medium"><?php echo htmlspecialchars(t('users')); ?></a>
+      <a href="/admin/sites.php" class="flex-shrink-0 whitespace-nowrap text-center rounded-xl px-4 border border-gray-300 text-gray-700 py-2 font-medium"><?php echo htmlspecialchars(t("sites")); ?></a>
+      <a href="/admin/settings.php" class="flex-shrink-0 whitespace-nowrap text-center rounded-xl px-4 border border-gray-300 text-gray-700 py-2 font-medium"><?php echo htmlspecialchars(t('settings')); ?></a>
+      <a href="/admin/backups.php" class="flex-shrink-0 whitespace-nowrap text-center rounded-xl px-4 border border-gray-300 text-gray-700 py-2 font-medium"><?php echo htmlspecialchars(t('backups')); ?></a>
+      <a href="/admin/site-backups.php" class="flex-shrink-0 whitespace-nowrap text-center rounded-xl px-4 border border-gray-300 text-gray-700 py-2 font-medium"><?php echo htmlspecialchars(t('site_backups_heading')); ?></a>
+      <a href="/settings.php" class="flex-shrink-0 whitespace-nowrap text-center rounded-xl px-4 border border-gray-300 text-gray-700 py-2 font-medium"><?php echo htmlspecialchars(t('account_section')); ?></a>
     </div>
   </header>
 

@@ -133,13 +133,52 @@ class Wma_Products
             $product->set_category_ids(array_map('intval', (array) $data['categories']));
         }
         if (array_key_exists('images', $data) && !empty($data['images'])) {
-            $imageIds = array_map('intval', (array) $data['images']);
-            $product->set_image_id($imageIds[0]);
-            $product->set_gallery_image_ids(array_slice($imageIds, 1));
+            $imageIds = [];
+            foreach ((array) $data['images'] as $img) {
+                $id = self::resolve_image_id(is_array($img) ? $img : ['src' => $img]);
+                if ($id > 0) {
+                    $imageIds[] = $id;
+                }
+            }
+            if (!empty($imageIds)) {
+                $product->set_image_id($imageIds[0]);
+                $product->set_gallery_image_ids(array_slice($imageIds, 1));
+            }
         }
         if (array_key_exists('taxonomies', $data) && is_array($data['taxonomies'])) {
             self::apply_taxonomies($product, $data['taxonomies']);
         }
+    }
+
+    /**
+     * Resolves an image entry (as sent by the admin app) to a WP attachment
+     * ID. Prefers an explicit 'id' (set when the image came through our own
+     * /media upload endpoint). Falls back to matching a same-site attachment
+     * URL, then to sideloading the URL as a new attachment - covers images
+     * pasted in by URL rather than uploaded.
+     */
+    private static function resolve_image_id(array $img): int
+    {
+        $id = (int) ($img['id'] ?? 0);
+        if ($id > 0) {
+            return $id;
+        }
+
+        $src = trim((string) ($img['src'] ?? ''));
+        if ($src === '') {
+            return 0;
+        }
+
+        $existing = attachment_url_to_postid($src);
+        if ($existing > 0) {
+            return $existing;
+        }
+
+        require_once ABSPATH . 'wp-admin/includes/media.php';
+        require_once ABSPATH . 'wp-admin/includes/file.php';
+        require_once ABSPATH . 'wp-admin/includes/image.php';
+        $sideloaded = media_sideload_image($src, 0, null, 'id');
+        return is_wp_error($sideloaded) ? 0 : (int) $sideloaded;
     }
 
     /** @param array<string, array<int>> $taxonomyFields rest_base => term ids */
@@ -171,11 +210,23 @@ class Wma_Products
         return $clauses;
     }
 
+    // Built-in WooCommerce/plugin system taxonomies that aren't real
+    // merchandising attributes - never worth showing as a filter checkbox
+    // list in the admin app.
+    private const SYSTEM_TAXONOMIES = ['product_cat', 'product_tag', 'product_type', 'pa_color'];
+
     /** @return array<\WP_Taxonomy> */
     public static function custom_product_taxonomies(): array
     {
         $taxonomies = get_object_taxonomies('product', 'objects');
-        return array_values(array_filter($taxonomies, fn($t) => !in_array($t->name, ['product_cat', 'product_tag'], true)));
+        return array_values(array_filter($taxonomies, function ($t) {
+            if (in_array($t->name, self::SYSTEM_TAXONOMIES, true)) {
+                return false;
+            }
+            // Covers WooCommerce's own product_visibility and any
+            // POS-plugin visibility/shipping-class taxonomy variants.
+            return !str_contains($t->name, 'visibility') && !str_contains($t->name, 'shipping_class');
+        }));
     }
 
     private static function product_to_array(WC_Product $product): array

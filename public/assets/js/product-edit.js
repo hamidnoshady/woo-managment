@@ -13,14 +13,10 @@ const els = {
   stockStatus: document.getElementById('stock_status'),
   categoriesList: document.getElementById('categories-list'),
   customTaxonomies: document.getElementById('custom-taxonomies'),
-  imagesList: document.getElementById('images-list'),
+  imagesGrid: document.getElementById('images-grid'),
   addImage: document.getElementById('add-image'),
   imageUpload: document.getElementById('image-upload'),
   uploadStatus: document.getElementById('upload-status'),
-  editWhiteBg: document.getElementById('edit-white-bg'),
-  editEnhance: document.getElementById('edit-enhance'),
-  editResize: document.getElementById('edit-resize'),
-  editAi: document.getElementById('edit-ai'),
   shortDescription: document.getElementById('short_description'),
   description: document.getElementById('description'),
   aiGenerateShort: document.getElementById('ai-generate-short'),
@@ -28,7 +24,15 @@ const els = {
   status: document.getElementById('status'),
   saveBtn: document.getElementById('save-btn'),
   deleteBtn: document.getElementById('delete-btn'),
+  viewLink: document.getElementById('view-product-link'),
 };
+
+const imageGallery = App.createImageGallery({
+  grid: els.imagesGrid,
+  fileInput: els.imageUpload,
+  uploadStatus: els.uploadStatus,
+  addUrlBtn: els.addImage,
+});
 
 init();
 
@@ -44,7 +48,7 @@ async function init() {
         els.deleteBtn.classList.remove('hidden');
       }
     } else {
-      addImageRow('');
+      updateSaveLabel();
     }
 
     bindEvents();
@@ -88,44 +92,7 @@ async function loadCustomTaxonomies() {
 }
 
 function renderCustomTaxonomies(taxonomies, reason) {
-  els.customTaxonomies.innerHTML = '';
-
-  if (!taxonomies.length) {
-    if (reason) {
-      const notice = document.createElement('p');
-      notice.className = 'text-xs text-gray-400 bg-white rounded-2xl border border-gray-100 p-4';
-      notice.textContent = reason === 'no_credentials' ? t('wp_credentials_missing') : t('no_custom_taxonomies');
-      els.customTaxonomies.appendChild(notice);
-      els.customTaxonomies.classList.remove('hidden');
-    }
-    return;
-  }
-
-  taxonomies.forEach((tax) => {
-    const section = document.createElement('div');
-    section.className = 'bg-white rounded-2xl border border-gray-100 p-4 space-y-3';
-    section.dataset.restBase = tax.rest_base;
-
-    const heading = document.createElement('h2');
-    heading.className = 'text-sm font-semibold text-gray-900';
-    heading.textContent = tax.name;
-    section.appendChild(heading);
-
-    const list = document.createElement('div');
-    list.className = 'space-y-2 max-h-48 overflow-y-auto custom-taxonomy-terms';
-
-    (tax.terms || []).forEach((term) => {
-      const label = document.createElement('label');
-      label.className = 'flex items-center gap-2 text-sm text-gray-700';
-      label.innerHTML = `<input type="checkbox" value="${term.id}" class="custom-term-checkbox h-4 w-4 rounded border-gray-300"> ${escapeHtml(term.name)}`;
-      list.appendChild(label);
-    });
-
-    section.appendChild(list);
-    els.customTaxonomies.appendChild(section);
-  });
-
-  els.customTaxonomies.classList.remove('hidden');
+  App.renderTaxonomySections(els.customTaxonomies, taxonomies, reason);
 }
 
 async function loadProduct(id) {
@@ -142,6 +109,12 @@ async function loadProduct(id) {
     els.shortDescription.value = stripHtml(item.short_description || '');
     els.description.value = stripHtml(item.description || '');
     els.status.value = item.status || 'publish';
+    updateSaveLabel();
+
+    if (item.permalink && els.viewLink) {
+      els.viewLink.href = item.permalink;
+      els.viewLink.classList.remove('hidden');
+    }
 
     const selectedCategoryIds = new Set((item.categories || []).map((c) => String(c.id)));
     els.categoriesList.querySelectorAll('.category-checkbox').forEach((cb) => {
@@ -157,64 +130,29 @@ async function loadProduct(id) {
       });
     });
 
-    const images = item.images || [];
-    if (images.length === 0) {
-      addImageRow('');
-    } else {
-      images.forEach((img) => addImageRow(img.src));
-    }
+    imageGallery.setImages(item.images || []);
   } catch (e) {
     App.toast(e.message, 'error');
   }
 }
 
-function addImageRow(value) {
-  const row = document.createElement('div');
-  row.className = 'flex gap-2';
-  row.innerHTML = `
-    <input type="url" value="${escapeAttr(value)}" placeholder="https://example.com/image.jpg"
-           class="image-url flex-1 rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none">
-    <button type="button" class="remove-image rounded-xl border border-gray-300 px-3 text-gray-500">&times;</button>
-  `;
-  row.querySelector('.remove-image').addEventListener('click', () => row.remove());
-  els.imagesList.appendChild(row);
+function updateSaveLabel() {
+  const statusText = els.status.options[els.status.selectedIndex].text;
+  els.saveBtn.dataset.label = statusText;
+  els.saveBtn.textContent = statusText;
 }
 
 function bindEvents() {
-  els.addImage.addEventListener('click', () => addImageRow(''));
-
-  els.imageUpload.addEventListener('change', async () => {
-    const file = els.imageUpload.files[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append('image', file);
-    formData.append('white_bg', els.editWhiteBg.checked ? '1' : '0');
-    formData.append('enhance', els.editEnhance.checked ? '1' : '0');
-    formData.append('resize_frame', els.editResize.checked ? '1' : '0');
-    formData.append('ai_edit', els.editAi.checked ? '1' : '0');
-
-    els.imageUpload.disabled = true;
-    els.uploadStatus.textContent = t('uploading');
-    els.uploadStatus.classList.remove('hidden');
-    try {
-      const data = await App.api('/api/media.php', { method: 'POST', body: formData });
-      addImageRow(data.item.src);
-    } catch (err) {
-      App.toast(err.message, 'error');
-    } finally {
-      els.imageUpload.disabled = false;
-      els.imageUpload.value = '';
-      els.uploadStatus.classList.add('hidden');
-    }
-  });
+  els.status.addEventListener('change', updateSaveLabel);
 
   els.aiGenerateShort.addEventListener('click', () => generateDescription('short', els.aiGenerateShort, els.shortDescription));
   els.aiGenerateLong.addEventListener('click', () => generateDescription('long', els.aiGenerateLong, els.description));
 
+  let submitting = false;
   els.form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const originalSaveLabel = els.saveBtn.textContent;
+    if (submitting) return;
+    submitting = true;
     els.saveBtn.disabled = true;
     els.saveBtn.textContent = t('saving');
 
@@ -229,9 +167,7 @@ function bindEvents() {
       description: els.description.value,
       status: els.status.value,
       categories: Array.from(els.categoriesList.querySelectorAll('.category-checkbox:checked')).map((cb) => cb.value),
-      images: Array.from(els.imagesList.querySelectorAll('.image-url'))
-        .map((input) => input.value.trim())
-        .filter((v) => v !== ''),
+      images: imageGallery.getImages(),
       taxonomies: collectCustomTaxonomies(),
     };
 
@@ -251,9 +187,9 @@ function bindEvents() {
       window.location.href = `/product-edit.php?id=${data.item.id}`;
     } catch (err) {
       App.toast(err.message, 'error');
-    } finally {
+      submitting = false;
       els.saveBtn.disabled = false;
-      els.saveBtn.textContent = originalSaveLabel;
+      els.saveBtn.textContent = els.saveBtn.dataset.label || t('save');
     }
   });
 
@@ -319,14 +255,4 @@ function stripHtml(html) {
   const div = document.createElement('div');
   div.innerHTML = html;
   return div.textContent || '';
-}
-
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str ?? '';
-  return div.innerHTML;
-}
-
-function escapeAttr(str) {
-  return (str ?? '').replace(/"/g, '&quot;');
 }

@@ -99,7 +99,7 @@ function cache_set(string $key, $value, int $ttlSeconds): void
 function cache_delete_prefix(string $prefix): void
 {
     $pdo = Database::get();
-    $stmt = $pdo->prepare('DELETE FROM kv_cache WHERE `key` LIKE ? ESCAPE \'\\\'');
+    $stmt = $pdo->prepare("DELETE FROM kv_cache WHERE `key` LIKE ? ESCAPE '\\\\'");
     $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $prefix);
     $stmt->execute([$escaped . '%']);
 }
@@ -205,15 +205,15 @@ function map_product_summary(array $product): array
 {
     return [
         'id' => $product['id'],
-        'name' => $product['name'],
-        'sku' => $product['sku'],
-        'price' => $product['price'],
-        'regular_price' => $product['regular_price'],
-        'sale_price' => $product['sale_price'],
-        'on_sale' => $product['on_sale'],
-        'stock_quantity' => $product['stock_quantity'],
-        'stock_status' => $product['stock_status'],
-        'manage_stock' => $product['manage_stock'],
+        'name' => $product['name'] ?? '',
+        'sku' => $product['sku'] ?? '',
+        'price' => $product['price'] ?? '',
+        'regular_price' => $product['regular_price'] ?? '',
+        'sale_price' => $product['sale_price'] ?? '',
+        'on_sale' => $product['on_sale'] ?? false,
+        'stock_quantity' => $product['stock_quantity'] ?? null,
+        'stock_status' => $product['stock_status'] ?? 'instock',
+        'manage_stock' => $product['manage_stock'] ?? false,
         'image' => $product['images'][0]['src'] ?? null,
         'categories' => array_map(fn($c) => ['id' => $c['id'], 'name' => $c['name']], $product['categories'] ?? []),
         'permalink' => $product['permalink'] ?? null,

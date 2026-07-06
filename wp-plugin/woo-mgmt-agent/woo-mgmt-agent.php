@@ -27,6 +27,21 @@ require_once WMA_DIR . '/includes/class-wma-rest.php';
 Wma_Settings::register();
 Wma_Rest::register();
 
+// wc_get_products() uses WC_Product_Query whose data-store layer only
+// passes a whitelist of known args to the underlying WP_Query. Custom
+// tax_query clauses (used for ACF/CPT-based product taxonomies) are NOT
+// on that whitelist and get silently dropped. This filter bridges the gap
+// so that Wma_Products::build_tax_query() actually reaches WP_Query.
+add_filter('woocommerce_product_data_store_cpt_get_products_query', function ($wp_query_args, $query_vars) {
+    if (!empty($query_vars['tax_query'])) {
+        // Merge rather than overwrite: WooCommerce may have already added
+        // its own tax_query clauses (e.g. for product_visibility).
+        $existing = $wp_query_args['tax_query'] ?? [];
+        $wp_query_args['tax_query'] = array_merge($existing, $query_vars['tax_query']);
+    }
+    return $wp_query_args;
+}, 10, 2);
+
 register_activation_hook(__FILE__, function () {
     Wma_Db::create_table();
     if (!wp_next_scheduled('wma_tick_running_jobs')) {

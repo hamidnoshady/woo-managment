@@ -82,6 +82,12 @@ Persian renders RTL. RTL layout bugs (sidebar overlap, chevron direction,
 etc.) have been a recurring source of fixes — when touching layout/CSS,
 check both `en` (LTR) and `fa` (RTL) before considering a change done.
 
+Client-side JS uses a **separate, hand-maintained mirror**:
+[public/assets/js/i18n.js](public/assets/js/i18n.js), same `en`/`fa`
+structure. Adding a key to `includes/i18n.php` does not make it available
+to JS — any key read via a JS `t(...)` call must be added to both files
+(and kept symmetric between `en`/`fa` in each).
+
 ## Content-Security-Policy
 
 `public/.htaccess` sets a strict CSP: scripts/styles are only allowed from
@@ -91,6 +97,10 @@ update the CSP header there if a new CDN is needed.
 
 ## Gotchas
 
+- `app.js`'s global `App` object has **no `.t()` method** — translation
+  lookups in JS use the bare global `t(...)` function (defined in
+  `i18n.js`, loaded before `app.js`). `App.t(...)` is a plausible-looking
+  but nonexistent call; it will throw at runtime, not lint-time.
 - The GD PHP extension isn't guaranteed to be present (confirmed missing in
   this local dev environment) — any code calling GD functions
   ([includes/ImageProcessor.php](includes/ImageProcessor.php)) must guard with
@@ -100,6 +110,11 @@ update the CSP header there if a new CDN is needed.
   if also added to `settings_group_key()`'s map in
   [public/api/settings.php](public/api/settings.php) — otherwise the raw
   English group name silently leaks through regardless of language.
+- The admin sub-nav tab row (Users/Sites/Settings/Backups/...) is **not**
+  centralized in [includes/nav.php](includes/nav.php) — it's duplicated
+  inline near the top of every `public/admin/*.php` page. Adding a new
+  admin page means manually adding its tab link to every other admin
+  page's row, not just `nav.php`.
 
 ## Verification
 

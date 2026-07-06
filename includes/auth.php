@@ -5,6 +5,8 @@ require_once __DIR__ . '/Database.php';
 require_once __DIR__ . '/Settings.php';
 require_once __DIR__ . '/Users.php';
 
+const REMEMBER_ME_SECONDS = 7 * 24 * 60 * 60;
+
 /**
  * Starts (or resumes) the PHP session using the configured session name/lifetime.
  */
@@ -21,7 +23,9 @@ function start_app_session(): void
     // session data (PHP's default gc_maxlifetime is only 1440 seconds), which
     // silently logs the user out the moment the session data is garbage
     // collected — often noticeable as "logged out after a single refresh".
-    ini_set('session.gc_maxlifetime', (string) $lifetime);
+    // Floored at REMEMBER_ME_SECONDS so "remember me" logins (which extend
+    // just the cookie, below) don't get their session data GC'd early.
+    ini_set('session.gc_maxlifetime', (string) max($lifetime, REMEMBER_ME_SECONDS));
 
     session_name((string) get_setting('session_name'));
     session_set_cookie_params([
@@ -188,7 +192,7 @@ function request_otp(string $phone): array
 /**
  * Verifies an OTP code for a phone number and, if valid, logs the user in.
  */
-function verify_otp(string $phone, string $code): array
+function verify_otp(string $phone, string $code, bool $remember = false): array
 {
     $user = bootstrap_user_by_phone($phone);
     if ($user === null) {
@@ -229,6 +233,19 @@ function verify_otp(string $phone, string $code): array
     session_regenerate_id(true);
     $_SESSION['user_id'] = (int) $user['id'];
     unset($_SESSION['site_id']);
+
+    if ($remember) {
+        // session_set_cookie_params() only takes effect on the next
+        // session_start(), so push the longer expiry out via a direct
+        // setcookie() call to extend *this* login's cookie immediately.
+        setcookie(session_name(), session_id(), [
+            'expires'  => time() + REMEMBER_ME_SECONDS,
+            'path'     => '/',
+            'secure'   => !empty($_SERVER['HTTPS']),
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
+    }
 
     return ['ok' => true, 'role' => $user['role']];
 }

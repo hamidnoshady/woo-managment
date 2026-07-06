@@ -40,7 +40,7 @@ $site = require_site_page($user);
     </div>
   </div>
 
-  <main class="px-4 py-4">
+  <main class="px-4 py-4 lg:max-w-2xl lg:mx-auto">
     <div id="loading" class="text-center py-16 text-gray-400 text-sm"><?php echo htmlspecialchars(t('loading')); ?></div>
 
     <form id="wizard-form" class="hidden space-y-4">
@@ -94,65 +94,50 @@ $site = require_site_page($user);
 
       <!-- Step 4: Categories & custom taxonomies -->
       <section class="wizard-step space-y-4" data-step="3">
-        <div class="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
-          <h2 class="text-sm font-semibold text-gray-900"><?php echo htmlspecialchars(t('wizard_step_categories')); ?></h2>
-          <div id="categories-list" class="space-y-2 max-h-48 overflow-y-auto"></div>
-        </div>
+        <details class="bg-white rounded-2xl border border-gray-100 p-4" open>
+          <summary class="text-sm font-semibold text-gray-900 cursor-pointer"><?php echo htmlspecialchars(t('wizard_step_categories')); ?></summary>
+          <div id="categories-list" class="space-y-2 max-h-48 overflow-y-auto mt-3"></div>
+        </details>
         <div id="custom-taxonomies" class="hidden space-y-3"></div>
       </section>
 
       <!-- Step 5: Images -->
-      <section class="wizard-step bg-white rounded-2xl border border-gray-100 p-4 space-y-3" data-step="4">
-        <h2 class="text-sm font-semibold text-gray-900"><?php echo htmlspecialchars(t('wizard_step_images')); ?></h2>
-        <div id="images-list" class="space-y-2"></div>
-        <div class="flex flex-wrap gap-2">
-          <button type="button" id="add-image" class="rounded-xl border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"><?php echo htmlspecialchars(t('add_image_url')); ?></button>
-          <label class="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 cursor-pointer">
-            <?php echo htmlspecialchars(t('upload_image')); ?>
-            <input type="file" id="image-upload" accept="image/*" class="hidden">
-          </label>
-        </div>
-        <p id="upload-status" class="hidden text-xs text-blue-600"></p>
-        <div class="space-y-1 pt-1">
-          <p class="text-xs font-medium text-gray-500"><?php echo htmlspecialchars(t('image_edit_options')); ?></p>
-          <label class="flex items-center gap-2 text-sm text-gray-700">
-            <input id="edit-white-bg" type="checkbox" class="h-4 w-4 rounded border-gray-300">
-            <?php echo htmlspecialchars(t('image_edit_white_bg')); ?>
-          </label>
-          <label class="flex items-center gap-2 text-sm text-gray-700">
-            <input id="edit-enhance" type="checkbox" class="h-4 w-4 rounded border-gray-300">
-            <?php echo htmlspecialchars(t('image_edit_enhance')); ?>
-          </label>
-          <label class="flex items-center gap-2 text-sm text-gray-700">
-            <input id="edit-resize" type="checkbox" class="h-4 w-4 rounded border-gray-300">
-            <?php echo htmlspecialchars(t('image_edit_resize')); ?>
-          </label>
-          <label class="flex items-center gap-2 text-sm text-purple-700">
-            <input id="edit-ai" type="checkbox" class="h-4 w-4 rounded border-gray-300">
-            <?php echo htmlspecialchars(t('image_edit_ai')); ?>
-          </label>
-        </div>
+      <section class="wizard-step space-y-4" data-step="4">
+        <details class="bg-white rounded-2xl border border-gray-100 p-4" open>
+          <summary class="text-sm font-semibold text-gray-900 cursor-pointer"><?php echo htmlspecialchars(t('wizard_step_images')); ?></summary>
+          <div class="space-y-3 mt-3">
+            <div id="images-grid" class="flex flex-wrap gap-3"></div>
+            <input type="file" id="image-upload" accept="image/*" multiple class="hidden">
+            <button type="button" id="add-image" class="text-xs font-medium text-blue-600"><?php echo htmlspecialchars(t('add_image_url')); ?></button>
+            <p id="upload-status" class="hidden text-xs text-blue-600"></p>
+            <p class="text-xs text-gray-400"><?php echo htmlspecialchars(t('wizard_images_gallery_hint')); ?></p>
+          </div>
+        </details>
       </section>
 
       <!-- Step 6: Description -->
-      <section class="wizard-step bg-white rounded-2xl border border-gray-100 p-4 space-y-4" data-step="5">
-        <h2 class="text-sm font-semibold text-gray-900"><?php echo htmlspecialchars(t('wizard_step_description')); ?></h2>
-        <div>
-          <div class="flex items-center justify-between mb-1">
-            <label class="block text-sm font-medium text-gray-700"><?php echo htmlspecialchars(t('short_description')); ?></label>
-            <button type="button" id="ai-generate-short" class="text-xs font-medium text-blue-600"><?php echo htmlspecialchars(t('generate_with_ai')); ?></button>
+      <section class="wizard-step space-y-4" data-step="5">
+        <details class="bg-white rounded-2xl border border-gray-100 p-4">
+          <summary class="text-sm font-semibold text-gray-900 cursor-pointer"><?php echo htmlspecialchars(t('wizard_step_description')); ?></summary>
+          <div class="space-y-4 mt-3">
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-sm font-medium text-gray-700"><?php echo htmlspecialchars(t('short_description')); ?></label>
+                <button type="button" id="ai-generate-short" class="text-xs font-medium text-blue-600"><?php echo htmlspecialchars(t('generate_with_ai')); ?></button>
+              </div>
+              <textarea id="short_description" rows="3" class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none"></textarea>
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-sm font-medium text-gray-700"><?php echo htmlspecialchars(t('long_description')); ?></label>
+                <button type="button" id="ai-generate-long" class="text-xs font-medium text-blue-600"><?php echo htmlspecialchars(t('generate_with_ai')); ?></button>
+              </div>
+              <textarea id="description" rows="6" class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none"></textarea>
+            </div>
           </div>
-          <textarea id="short_description" rows="3" class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none"></textarea>
-        </div>
-        <div>
-          <div class="flex items-center justify-between mb-1">
-            <label class="block text-sm font-medium text-gray-700"><?php echo htmlspecialchars(t('long_description')); ?></label>
-            <button type="button" id="ai-generate-long" class="text-xs font-medium text-blue-600"><?php echo htmlspecialchars(t('generate_with_ai')); ?></button>
-          </div>
-          <textarea id="description" rows="6" class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none"></textarea>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo htmlspecialchars(t('status')); ?></label>
+        </details>
+        <div class="bg-white rounded-2xl border border-gray-100 p-4 space-y-2">
+          <label class="block text-sm font-medium text-gray-700"><?php echo htmlspecialchars(t('status')); ?></label>
           <select id="status" class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm">
             <option value="publish"><?php echo htmlspecialchars(t('status_publish')); ?></option>
             <option value="draft"><?php echo htmlspecialchars(t('status_draft')); ?></option>

@@ -199,6 +199,40 @@ class SiteBackupManager
         return $stmt->fetch() ?: null;
     }
 
+    /**
+     * Ticks every running site_backups/site_restores row across all sites,
+     * looping until nothing advances or the time budget runs out. Without
+     * this, jobs only progress while a browser tab is open polling
+     * pollBackup()/pollRestore() directly — closing the tab orphans them at
+     * whatever percent they last reached. Called from public/cron/site-backups.php.
+     */
+    public static function tickAllRunning(int $budgetSeconds = 20): void
+    {
+        $deadline = time() + $budgetSeconds;
+        do {
+            $progressed = false;
+            foreach (self::runningJobs('site_backups') as $row) {
+                $site = get_site((int) $row['site_id']);
+                if ($site !== null) {
+                    self::pollBackup($site, (int) $row['id']);
+                    $progressed = true;
+                }
+            }
+            foreach (self::runningJobs('site_restores') as $row) {
+                $site = get_site((int) $row['site_id']);
+                if ($site !== null) {
+                    self::pollRestore($site, (int) $row['id']);
+                    $progressed = true;
+                }
+            }
+        } while ($progressed && time() < $deadline);
+    }
+
+    private static function runningJobs(string $table): array
+    {
+        return Database::get()->query("SELECT id, site_id FROM {$table} WHERE status = 'running'")->fetchAll();
+    }
+
     private static function failIfStalled(string $table, int $jobId): void
     {
         $pdo = Database::get();

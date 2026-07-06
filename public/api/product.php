@@ -65,13 +65,20 @@ if ($method === 'POST' || $method === 'PUT') {
 
     if ($id > 0) {
         // Capture the previous values of the fields we're about to change, for undo.
-        try {
-            $before = $client->getProduct($id);
-        } catch (RuntimeException $e) {
-            json_response(['error' => $e->getMessage()], 502);
-        }
-        if ($before === null) {
-            json_response(['error' => 'Product not found'], 404);
+        // If the caller already has accurate current values for exactly those
+        // fields (e.g. the product list's inline price editor), it can pass
+        // them as "before" to skip a redundant getProduct round-trip.
+        if (isset($body['before']) && is_array($body['before'])) {
+            $before = $body['before'];
+        } else {
+            try {
+                $before = $client->getProduct($id);
+            } catch (RuntimeException $e) {
+                json_response(['error' => $e->getMessage()], 502);
+            }
+            if ($before === null) {
+                json_response(['error' => 'Product not found'], 404);
+            }
         }
         $previous = build_undo_data($before, $data);
 
@@ -89,20 +96,30 @@ if ($method === 'POST' || $method === 'PUT') {
         $messageKey = $changeSummary !== '' ? 'log_product_updated_detail' : 'log_product_updated';
         $messageParams = $changeSummary !== '' ? [$product['name'] ?? '', $changeSummary] : [$product['name'] ?? ''];
 
-        $logId = log_activity(
-            $user,
-            (int) $site['id'],
-            'site',
-            'product_update',
-            $messageKey,
-            $messageParams,
-            [
-                'type' => 'update_product',
-                'site_id' => (int) $site['id'],
-                'product_id' => $id,
-                'data' => $previous,
-            ]
-        );
+        // The product update above already succeeded on the remote site by
+        // this point. A failure logging it locally (e.g. a DB hiccup) must
+        // not turn a successful save into a client-visible error - that's
+        // what was causing "internal server error" on every publish with the
+        // product actually saved, inviting duplicate retries.
+        $logId = null;
+        try {
+            $logId = log_activity(
+                $user,
+                (int) $site['id'],
+                'site',
+                'product_update',
+                $messageKey,
+                $messageParams,
+                [
+                    'type' => 'update_product',
+                    'site_id' => (int) $site['id'],
+                    'product_id' => $id,
+                    'data' => $previous,
+                ]
+            );
+        } catch (Throwable $e) {
+            error_log('log_activity failed after product update: ' . $e->getMessage());
+        }
     } else {
         try {
             $product = $client->createProduct($data);
@@ -111,19 +128,24 @@ if ($method === 'POST' || $method === 'PUT') {
         }
         invalidate_products_cache((int) $site['id']);
 
-        $logId = log_activity(
-            $user,
-            (int) $site['id'],
-            'site',
-            'product_create',
-            'log_product_created',
-            [$product['name'] ?? ''],
-            [
-                'type' => 'delete_product',
-                'site_id' => (int) $site['id'],
-                'product_id' => (int) ($product['id'] ?? 0),
-            ]
-        );
+        $logId = null;
+        try {
+            $logId = log_activity(
+                $user,
+                (int) $site['id'],
+                'site',
+                'product_create',
+                'log_product_created',
+                [$product['name'] ?? ''],
+                [
+                    'type' => 'delete_product',
+                    'site_id' => (int) $site['id'],
+                    'product_id' => (int) ($product['id'] ?? 0),
+                ]
+            );
+        } catch (Throwable $e) {
+            error_log('log_activity failed after product create: ' . $e->getMessage());
+        }
     }
 
     $item = map_product_detail($product);
@@ -155,15 +177,20 @@ if ($method === 'DELETE') {
     }
     invalidate_products_cache((int) $site['id']);
 
-    $logId = log_activity(
-        $user,
-        (int) $site['id'],
-        'site',
-        'product_delete',
-        'log_product_deleted',
-        [$productName],
-        null
-    );
+    $logId = null;
+    try {
+        $logId = log_activity(
+            $user,
+            (int) $site['id'],
+            'site',
+            'product_delete',
+            'log_product_deleted',
+            [$productName],
+            null
+        );
+    } catch (Throwable $e) {
+        error_log('log_activity failed after product delete: ' . $e->getMessage());
+    }
 
     json_response(['ok' => true, 'log_id' => $logId, 'message' => t('log_product_deleted', $productName)]);
 }
@@ -179,7 +206,7 @@ function map_product_detail(array $product): array
         'regular_price' => $product['regular_price'] ?? '',
         'sale_price' => $product['sale_price'] ?? '',
         'price' => $product['price'] ?? '',
-        'stock_quantity' => $product['stock_quantity'],
+        'stock_quantity' => $product['stock_quantity'] ?? null,
         'manage_stock' => $product['manage_stock'] ?? false,
         'stock_status' => $product['stock_status'] ?? 'instock',
         'short_description' => $product['short_description'] ?? '',
@@ -244,11 +271,16 @@ function build_product_payload(array $body): array
     if (isset($body['images']) && is_array($body['images'])) {
         $images = [];
         foreach ($body['images'] as $img) {
-            $src = is_array($img) ? ($img['src'] ?? '') : (string) $img;
-            $src = trim($src);
-            if ($src !== '') {
-                $images[] = ['src' => $src];
+            $src = is_array($img) ? trim((string) ($img['src'] ?? '')) : trim((string) $img);
+            $id = is_array($img) ? (int) ($img['id'] ?? 0) : 0;
+            if ($src === '' && $id <= 0) {
+                continue;
             }
+            $entry = ['src' => $src];
+            if ($id > 0) {
+                $entry['id'] = $id;
+            }
+            $images[] = $entry;
         }
         $data['images'] = $images;
     }

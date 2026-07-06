@@ -300,6 +300,192 @@ const App = {
   },
 
   /**
+   * Renders a taxonomy list into `container` as a set of collapsible
+   * (native <details>) sections, one per taxonomy, each collapsed by
+   * default so a site with many custom taxonomies doesn't turn the page
+   * into one long scroll. Each <details> keeps a `data-rest-base` so
+   * existing selection-reading code (querySelectorAll('[data-rest-base]'))
+   * keeps working unchanged.
+   */
+  renderTaxonomySections(container, taxonomies, reason) {
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (!taxonomies.length) {
+      if (reason) {
+        const notice = document.createElement('p');
+        notice.className = 'text-xs text-gray-400 bg-white rounded-2xl border border-gray-100 p-4';
+        notice.textContent = reason === 'no_credentials' ? t('wp_credentials_missing') : t('no_custom_taxonomies');
+        container.appendChild(notice);
+        container.classList.remove('hidden');
+      }
+      return;
+    }
+
+    taxonomies.forEach((tax) => {
+      const details = document.createElement('details');
+      details.className = 'bg-white rounded-2xl border border-gray-100 p-4';
+      details.dataset.restBase = tax.rest_base;
+
+      const summary = document.createElement('summary');
+      summary.className = 'text-sm font-semibold text-gray-900 cursor-pointer';
+      summary.textContent = tax.name;
+      details.appendChild(summary);
+
+      const list = document.createElement('div');
+      list.className = 'space-y-2 max-h-64 overflow-y-auto custom-taxonomy-terms mt-3';
+      (tax.terms || []).forEach((term) => list.appendChild(this._taxonomyTermLabel(term)));
+      details.appendChild(list);
+
+      container.appendChild(details);
+    });
+
+    container.classList.remove('hidden');
+  },
+
+  _taxonomyTermLabel(term) {
+    const label = document.createElement('label');
+    label.className = 'flex items-center gap-2 text-sm text-gray-700';
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = term.id;
+    checkbox.className = 'custom-term-checkbox h-4 w-4 rounded border-gray-300';
+    label.appendChild(checkbox);
+    const span = document.createElement('span');
+    span.textContent = term.name;
+    label.appendChild(span);
+    return label;
+  },
+
+  /**
+   * Builds a thumbnail-grid image manager (featured image + gallery) shared
+   * by the add-product wizard and the edit page. Each thumbnail shows the
+   * actual uploaded image with remove / replace / set-as-featured controls,
+   * instead of a bare URL text field - so an upload is immediately visible
+   * and every image can be removed or swapped without retyping a URL.
+   *
+   * @param {{grid: Element, fileInput: Element, uploadStatus?: Element, addUrlBtn?: Element}} opts
+   * @returns {{getImages: () => Array<{id:number, src:string}>, setImages: (list: Array) => void}}
+   */
+  createImageGallery({ grid, fileInput, uploadStatus, addUrlBtn }) {
+    let images = [];
+    let replaceIndex = -1;
+
+    const iconBtn = (className, label, symbol) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `absolute h-5 w-5 rounded-full bg-black/60 text-white text-xs leading-none flex items-center justify-center ${className}`;
+      btn.setAttribute('aria-label', label);
+      btn.title = label;
+      btn.textContent = symbol;
+      return btn;
+    };
+
+    function render() {
+      grid.innerHTML = '';
+
+      images.forEach((img, idx) => {
+        const card = document.createElement('div');
+        card.className = 'relative w-24 h-24 flex-shrink-0 rounded-xl overflow-hidden border border-gray-200 bg-gray-50';
+
+        const thumb = document.createElement('img');
+        thumb.src = img.src;
+        thumb.alt = '';
+        thumb.loading = 'lazy';
+        thumb.className = 'w-full h-full object-cover';
+        card.appendChild(thumb);
+
+        if (idx === 0) {
+          const badge = document.createElement('span');
+          badge.className = 'absolute bottom-0 inset-x-0 bg-gray-900/70 text-white text-[10px] text-center py-0.5';
+          badge.textContent = t('featured_image');
+          card.appendChild(badge);
+        } else {
+          const starBtn = iconBtn('top-1 left-1', t('set_as_featured'), '★');
+          starBtn.addEventListener('click', () => {
+            const [moved] = images.splice(idx, 1);
+            images.unshift(moved);
+            render();
+          });
+          card.appendChild(starBtn);
+        }
+
+        const removeBtn = iconBtn('top-1 right-1', t('remove_image'), '×');
+        removeBtn.addEventListener('click', () => { images.splice(idx, 1); render(); });
+        card.appendChild(removeBtn);
+
+        const replaceBtn = iconBtn('bottom-1 right-1', t('replace_image'), '⟳');
+        replaceBtn.addEventListener('click', () => { replaceIndex = idx; fileInput.click(); });
+        card.appendChild(replaceBtn);
+
+        grid.appendChild(card);
+      });
+
+      const addTile = document.createElement('label');
+      addTile.className = 'w-24 h-24 flex-shrink-0 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 text-2xl cursor-pointer hover:bg-gray-50';
+      addTile.textContent = '+';
+      if (fileInput.id) addTile.htmlFor = fileInput.id;
+      grid.appendChild(addTile);
+    }
+
+    fileInput.addEventListener('change', async () => {
+      const files = Array.from(fileInput.files);
+      if (!files.length) {
+        replaceIndex = -1;
+        return;
+      }
+
+      fileInput.disabled = true;
+      if (uploadStatus) {
+        uploadStatus.textContent = t('uploading');
+        uploadStatus.classList.remove('hidden');
+      }
+      try {
+        for (const file of files) {
+          const formData = new FormData();
+          formData.append('image', file);
+          const data = await this.api('/api/media.php', { method: 'POST', body: formData });
+          const entry = { id: data.item.id || 0, src: data.item.src || '' };
+          if (replaceIndex >= 0 && replaceIndex < images.length) {
+            images[replaceIndex] = entry;
+          } else {
+            images.push(entry);
+          }
+          replaceIndex = -1;
+        }
+        render();
+      } catch (err) {
+        this.toast(err.message, 'error');
+      } finally {
+        replaceIndex = -1;
+        fileInput.disabled = false;
+        fileInput.value = '';
+        if (uploadStatus) uploadStatus.classList.add('hidden');
+      }
+    });
+
+    if (addUrlBtn) {
+      addUrlBtn.addEventListener('click', () => {
+        const url = prompt(t('image_url_prompt'));
+        if (url && url.trim()) {
+          images.push({ id: 0, src: url.trim() });
+          render();
+        }
+      });
+    }
+
+    render();
+
+    return {
+      getImages: () => images.filter((img) => img.src.trim() !== ''),
+      setImages: (list) => {
+        images = (list || []).map((img) => ({ id: img.id || 0, src: img.src || '' }));
+        render();
+      },
+    };
+  },
+
+  /**
    * Expands every collapsed ancestor of any currently-checked checkbox
    * inside `container` (call after setting .checked on pre-selected
    * categories, e.g. when loading an existing product for edit).

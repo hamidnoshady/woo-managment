@@ -92,7 +92,12 @@ class SiteAgentClient
 
     public function pollTick(int $jobId): array
     {
-        $response = $this->request('GET', "/wp-json/wma/v1/jobs/{$jobId}?tick=1");
+        // A tick is one bounded batch (e.g. 200 DB rows or 50 files) and
+        // should always finish in a couple of seconds. A short timeout here
+        // means an abnormally slow tick fails fast and gets retried on the
+        // next 3s poll, instead of hanging until the host's own gateway
+        // timeout kills the request with a 502/504 (seen in production).
+        $response = $this->request('GET', "/wp-json/wma/v1/jobs/{$jobId}?tick=1", null, null, [], 12);
         if ($response['status'] !== 200) {
             return ['ok' => false, 'status' => '', 'step' => '', 'parts' => [], 'error' => $this->errorFrom($response)];
         }
@@ -109,7 +114,7 @@ class SiteAgentClient
     /**
      * @return array{status: int, body: string, error: string}
      */
-    private function request(string $method, string $path, ?array $jsonBody = null, ?string $rawBody = null, array $extraHeaders = []): array
+    private function request(string $method, string $path, ?array $jsonBody = null, ?string $rawBody = null, array $extraHeaders = [], int $timeoutSeconds = 30): array
     {
         $url = rtrim($this->site['store_url'], '/') . $path;
         $headers = array_merge(['Authorization: Bearer ' . $this->site['agent_token']], $extraHeaders);
@@ -128,7 +133,7 @@ class SiteAgentClient
             CURLOPT_CUSTOMREQUEST => $method,
             CURLOPT_HTTPHEADER => $headers,
             CURLOPT_SSL_VERIFYPEER => (bool) ($this->site['verify_ssl'] ?? true),
-            CURLOPT_TIMEOUT => 30,
+            CURLOPT_TIMEOUT => $timeoutSeconds,
         ]);
         if ($payload !== null) {
             curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);

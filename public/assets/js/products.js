@@ -22,20 +22,85 @@ const state = {
 };
 
 const listEl = document.getElementById('product-list');
+const tableEl = document.getElementById('product-table');
+const tableBody = document.getElementById('product-table-body');
 const loadMoreWrap = document.getElementById('load-more-wrap');
 const loadMoreBtn = document.getElementById('load-more');
 const emptyState = document.getElementById('empty-state');
 
+const viewPrefs = {
+  view: localStorage.getItem('products_view') === 'table' ? 'table' : 'grid',
+  columns: [1, 2, 3].includes(parseInt(localStorage.getItem('products_columns'), 10))
+    ? parseInt(localStorage.getItem('products_columns'), 10)
+    : 2,
+};
+
 init();
 
 async function init() {
+  // Bind click handlers first: none of them need categories/taxonomies to
+  // already be loaded, and gating them behind three sequential network
+  // round-trips left the toolbar buttons unresponsive to any click that
+  // happened before those requests finished.
+  bindEvents();
+  applyViewPrefs();
   await ensureSession();
   await loadCategories();
   await loadCustomTaxonomyFilters();
-  bindEvents();
   await loadProducts(true);
 
   App.onUndo = (logId, productId) => refreshSingleProduct(productId);
+}
+
+/**
+ * Returns the list/table container currently visible, used both to render
+ * newly-fetched products and to look up an existing row/card to patch.
+ */
+function activeContainer() {
+  return viewPrefs.view === 'table' ? tableBody : listEl;
+}
+
+function renderProductElement(product) {
+  return viewPrefs.view === 'table' ? renderProductRow(product) : renderProductCard(product);
+}
+
+function setView(view) {
+  if (viewPrefs.view === view) return;
+  viewPrefs.view = view;
+  localStorage.setItem('products_view', view);
+  applyViewPrefs();
+  loadProducts(true);
+}
+
+/**
+ * Applies the saved view (grid/table) and column count to the DOM and
+ * highlights the matching toolbar buttons.
+ */
+function applyViewPrefs() {
+  const isTable = viewPrefs.view === 'table';
+  listEl.classList.toggle('hidden', isTable);
+  tableEl.classList.toggle('hidden', !isTable);
+  // ponytail: Tailwind's `hidden` loses to `lg:grid` at the lg breakpoint
+  // (responsive utilities sit later in the stylesheet, same specificity),
+  // so toggling the class alone leaves the grid visible on desktop too.
+  // Force the hidden side off with an !important inline override, and
+  // clear it on the visible side so its own responsive classes apply.
+  listEl.style.setProperty('display', isTable ? 'none' : '', isTable ? 'important' : '');
+  tableEl.style.setProperty('display', isTable ? '' : 'none', isTable ? '' : 'important');
+  document.getElementById('column-choice').classList.toggle('hidden', isTable);
+
+  listEl.classList.remove('lg:grid-cols-1', 'lg:grid-cols-2', 'lg:grid-cols-3');
+  listEl.classList.add(`lg:grid-cols-${viewPrefs.columns}`);
+
+  document.querySelectorAll('.view-choice-btn').forEach((btn) => {
+    btn.classList.toggle('bg-gray-900', (btn.id === 'view-table-btn') === isTable);
+    btn.classList.toggle('text-white', (btn.id === 'view-table-btn') === isTable);
+  });
+  document.querySelectorAll('.col-choice-btn').forEach((btn) => {
+    const active = parseInt(btn.dataset.cols, 10) === viewPrefs.columns;
+    btn.classList.toggle('bg-gray-900', active);
+    btn.classList.toggle('text-white', active);
+  });
 }
 
 /**
@@ -45,14 +110,14 @@ async function init() {
  */
 async function refreshSingleProduct(productId) {
   if (!productId) return;
-  const card = listEl.querySelector(`[data-id="${productId}"]`);
-  if (!card) return;
+  const el = activeContainer().querySelector(`[data-id="${productId}"]`);
+  if (!el) return;
 
   try {
     const data = await App.api(`/api/product.php?id=${productId}&summary=1`);
     const updated = data.item;
-    const fresh = renderProductCard(updated);
-    card.replaceWith(fresh);
+    const fresh = renderProductElement(updated);
+    el.replaceWith(fresh);
     fresh.scrollIntoView({ behavior: 'smooth', block: 'center' });
     fresh.classList.add('highlight-flash');
     setTimeout(() => fresh.classList.remove('highlight-flash'), 1500);
@@ -174,16 +239,18 @@ async function loadProducts(reset) {
   if (state.loading) return;
   state.loading = true;
 
+  const container = activeContainer();
+
   if (reset) {
     state.page = 1;
-    listEl.innerHTML = '';
-    showSkeletons();
+    container.innerHTML = '';
+    showSkeletons(container);
   }
 
   try {
     const data = await App.api(`/api/products.php?${buildQuery(state.page)}`);
     if (reset) {
-      listEl.innerHTML = '';
+      container.innerHTML = '';
     }
 
     state.totalPages = data.total_pages;
@@ -192,7 +259,7 @@ async function loadProducts(reset) {
       emptyState.classList.remove('hidden');
     } else {
       emptyState.classList.add('hidden');
-      data.items.forEach((product) => listEl.appendChild(renderProductCard(product)));
+      data.items.forEach((product) => container.appendChild(renderProductElement(product)));
     }
 
     loadMoreWrap.classList.toggle('hidden', state.page >= state.totalPages);
@@ -203,7 +270,8 @@ async function loadProducts(reset) {
   }
 }
 
-function showSkeletons() {
+function showSkeletons(container) {
+  if (viewPrefs.view === 'table') return;
   for (let i = 0; i < 4; i++) {
     const card = document.createElement('div');
     card.className = 'bg-white rounded-2xl border border-gray-100 p-3 flex gap-3';
@@ -214,7 +282,7 @@ function showSkeletons() {
         <div class="skeleton h-3 w-1/2 rounded"></div>
         <div class="skeleton h-3 w-1/3 rounded"></div>
       </div>`;
-    listEl.appendChild(card);
+    container.appendChild(card);
   }
 }
 
@@ -249,22 +317,79 @@ function renderProductCard(product) {
   `;
 
   renderPriceRow(card, product);
+  wireProductElement(card, product);
+  return card;
+}
 
-  // Quick stock adjust
-  card.querySelectorAll('.stock-btn').forEach((btn) => {
+/**
+ * Renders a product as a <tr> for table view. Reuses the same price-row,
+ * stock-button, and checkbox markup/classes as the card view so
+ * wireProductElement() and renderPriceRow() work unchanged on either.
+ */
+function renderProductRow(product) {
+  const row = document.createElement('tr');
+  row.dataset.id = product.id;
+
+  const image = product.image
+    ? `<img src="${escapeHtml(product.image)}" alt="" class="h-10 w-10 rounded-lg object-cover flex-shrink-0 bg-gray-100">`
+    : `<div class="h-10 w-10 rounded-lg bg-gray-100 flex-shrink-0"></div>`;
+
+  row.innerHTML = `
+    <td class="checkbox-wrap hidden px-3 py-2"><input type="checkbox" class="select-checkbox h-4 w-4 rounded border-gray-300"></td>
+    <td class="px-3 py-2"><a href="/product-edit.php?id=${product.id}" class="card-link">${image}</a></td>
+    <td class="px-3 py-2 min-w-0">
+      <a href="/product-edit.php?id=${product.id}" class="card-link block">
+        <div class="text-sm font-medium text-gray-900 line-clamp-1">${escapeHtml(product.name)}</div>
+        <div class="text-xs text-gray-400">${escapeHtml(product.sku || '')}</div>
+      </a>
+    </td>
+    <td class="px-3 py-2"><div class="price-row flex items-center gap-2"></div></td>
+    <td class="px-3 py-2">
+      <div class="stock-control flex items-center gap-1">
+        <button class="stock-btn rounded-lg border border-gray-300 w-7 h-7 text-sm leading-none" data-delta="-1">-</button>
+        <span class="stock-qty text-xs font-medium text-gray-700 w-6 text-center">${product.stock_quantity ?? '-'}</span>
+        <button class="stock-btn rounded-lg border border-gray-300 w-7 h-7 text-sm leading-none" data-delta="1">+</button>
+      </div>
+    </td>
+  `;
+
+  renderPriceRow(row, product);
+  wireProductElement(row, product);
+  return row;
+}
+
+/**
+ * Wires up the interactive bits shared by both the grid card and table row:
+ * quick stock +/-, the selection checkbox, and click-to-select on the
+ * card/title links.
+ */
+function wireProductElement(el, product) {
+  el.querySelectorAll('.stock-btn').forEach((btn) => {
     btn.addEventListener('click', async (e) => {
       e.preventDefault();
       e.stopPropagation();
       const delta = parseInt(btn.dataset.delta, 10);
+      const otherBtn = [...el.querySelectorAll('.stock-btn')].find((b) => b !== btn);
+      const qtyEl = el.querySelector('.stock-qty');
+      const qtyOriginal = qtyEl.textContent;
       btn.disabled = true;
+      if (otherBtn) otherBtn.disabled = true;
+      qtyEl.classList.add('opacity-50');
       try {
         const result = await App.api('/api/stock.php', {
           method: 'POST',
-          body: JSON.stringify({ id: product.id, delta }),
+          body: JSON.stringify({
+            id: product.id,
+            delta,
+            current_quantity: product.stock_quantity,
+            current_status: product.stock_status,
+            name: product.name,
+          }),
         });
-        card.querySelector('.stock-qty').textContent = result.stock_quantity;
+        qtyEl.textContent = result.stock_quantity;
         product.stock_quantity = result.stock_quantity;
-        const badgeWrap = card.querySelector('.stock-badge-wrap');
+        product.stock_status = result.stock_status;
+        const badgeWrap = el.querySelector('.stock-badge-wrap');
         if (badgeWrap) {
           badgeWrap.outerHTML = stockStatusBadge(result.stock_status);
         }
@@ -272,15 +397,18 @@ function renderProductCard(product) {
           App.notify(result.message, { logId: result.log_id, productId: product.id });
         }
       } catch (err) {
+        qtyEl.textContent = qtyOriginal;
         App.toast(err.message, 'error');
       } finally {
         btn.disabled = false;
+        if (otherBtn) otherBtn.disabled = false;
+        qtyEl.classList.remove('opacity-50');
       }
     });
   });
 
   // Selection mode handling
-  const checkbox = card.querySelector('.select-checkbox');
+  const checkbox = el.querySelector('.select-checkbox');
   checkbox.addEventListener('change', () => {
     if (checkbox.checked) {
       state.selected.add(product.id);
@@ -290,7 +418,7 @@ function renderProductCard(product) {
     updateSelectionBar();
   });
 
-  card.querySelectorAll('.card-link').forEach((link) => {
+  el.querySelectorAll('.card-link').forEach((link) => {
     link.addEventListener('click', (e) => {
       if (state.selectionMode) {
         e.preventDefault();
@@ -301,10 +429,8 @@ function renderProductCard(product) {
   });
 
   if (state.selectionMode) {
-    card.querySelector('.checkbox-wrap').classList.remove('hidden');
+    el.querySelector('.checkbox-wrap').classList.remove('hidden');
   }
-
-  return card;
 }
 
 /**
@@ -415,12 +541,20 @@ function showPriceEditor(card, row, product) {
       return;
     }
 
-    const payload = { id: product.id, regular_price: regularValue, sale_price: saleValue === '' ? '' : saleValue };
+    const payload = {
+      id: product.id,
+      regular_price: regularValue,
+      sale_price: saleValue === '' ? '' : saleValue,
+      before: { regular_price: product.regular_price ?? '', sale_price: product.on_sale ? (product.sale_price ?? '') : '' },
+    };
 
     resolved = true;
     regularInput.disabled = true;
     saleInput.disabled = true;
-    row.querySelector('.price-save').disabled = true;
+    const saveBtn = row.querySelector('.price-save');
+    const saveBtnOriginalText = saveBtn.textContent;
+    saveBtn.disabled = true;
+    saveBtn.textContent = t('saving');
     row.querySelector('.price-cancel').disabled = true;
 
     try {
@@ -444,7 +578,8 @@ function showPriceEditor(card, row, product) {
       App.toast(err.message, 'error');
       regularInput.disabled = false;
       saleInput.disabled = false;
-      row.querySelector('.price-save').disabled = false;
+      saveBtn.disabled = false;
+      saveBtn.textContent = saveBtnOriginalText;
       row.querySelector('.price-cancel').disabled = false;
       showError(err.message);
     }
@@ -560,31 +695,49 @@ function bindEvents() {
     loadProducts(true);
   });
 
-  // Selection mode
-  document.getElementById('select-toggle').addEventListener('click', () => {
-    state.selectionMode = !state.selectionMode;
-    state.selected.clear();
-    updateSelectionBar();
+  // Selection mode: one top checkbox both enters/exits selection mode and
+  // selects/deselects everything currently loaded.
+  const selectAllCheckbox = document.getElementById('select-all-checkbox');
+  selectAllCheckbox.addEventListener('change', () => {
+    state.selectionMode = selectAllCheckbox.checked;
+    if (!state.selectionMode) state.selected.clear();
 
-    document.getElementById('select-toggle').textContent = state.selectionMode ? t('cancel') : t('select');
     document.getElementById('add-fab').classList.toggle('hidden', state.selectionMode);
+    document.querySelector('.checkbox-col-header').classList.toggle('hidden', !state.selectionMode);
 
-    document.querySelectorAll('#product-list > div').forEach((card) => {
-      const wrap = card.querySelector('.checkbox-wrap');
-      const checkbox = card.querySelector('.select-checkbox');
+    activeContainer().querySelectorAll('[data-id]').forEach((el) => {
+      const wrap = el.querySelector('.checkbox-wrap');
+      const checkbox = el.querySelector('.select-checkbox');
       if (wrap) wrap.classList.toggle('hidden', !state.selectionMode);
-      if (checkbox) checkbox.checked = false;
+      if (checkbox) {
+        checkbox.checked = state.selectionMode;
+        if (state.selectionMode) state.selected.add(parseInt(el.dataset.id, 10));
+      }
     });
+
+    updateSelectionBar();
   });
 
   document.getElementById('selection-cancel').addEventListener('click', () => {
-    document.getElementById('select-toggle').click();
+    selectAllCheckbox.checked = false;
+    selectAllCheckbox.dispatchEvent(new Event('change'));
   });
 
   document.getElementById('selection-batch').addEventListener('click', () => {
     if (state.selected.size === 0) return;
     sessionStorage.setItem('batch_ids', JSON.stringify(Array.from(state.selected)));
     window.location.href = '/batch.php';
+  });
+
+  // View (grid/table) and column count toggles
+  document.getElementById('view-grid-btn').addEventListener('click', () => setView('grid'));
+  document.getElementById('view-table-btn').addEventListener('click', () => setView('table'));
+  document.querySelectorAll('.col-choice-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      viewPrefs.columns = parseInt(btn.dataset.cols, 10);
+      localStorage.setItem('products_columns', viewPrefs.columns);
+      applyViewPrefs();
+    });
   });
 
   // Logout
@@ -609,6 +762,11 @@ function updateSelectionBar() {
   } else {
     bar.classList.add('hidden');
   }
+
+  const total = activeContainer().querySelectorAll('[data-id]').length;
+  const selectAllCheckbox = document.getElementById('select-all-checkbox');
+  selectAllCheckbox.checked = state.selectionMode && total > 0 && state.selected.size === total;
+  selectAllCheckbox.indeterminate = state.selectionMode && state.selected.size > 0 && state.selected.size < total;
 }
 
 function updateFilterBadge() {

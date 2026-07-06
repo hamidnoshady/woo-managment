@@ -13,6 +13,7 @@ $cronToken = BackupManager::ensureCronToken();
 $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
 $cronUrlDb = $scheme . $_SERVER['HTTP_HOST'] . '/cron/backup.php?type=database&token=' . $cronToken;
 $cronUrlFull = $scheme . $_SERVER['HTTP_HOST'] . '/cron/backup.php?type=full&token=' . $cronToken;
+$cronUrlSites = $scheme . $_SERVER['HTTP_HOST'] . '/cron/site-backups.php?token=' . $cronToken;
 ?>
 <!DOCTYPE html>
 <html <?php echo html_attrs(); ?>>
@@ -32,12 +33,12 @@ $cronUrlFull = $scheme . $_SERVER['HTTP_HOST'] . '/cron/backup.php?type=full&tok
     <div class="px-4 pt-4 pb-3 flex items-center justify-between">
       <h1 class="text-lg font-semibold text-gray-900"><?php echo htmlspecialchars(t('backups')); ?></h1>
     </div>
-    <div class="px-4 pb-3 flex gap-2 text-sm">
-      <a href="/admin/users.php" class="flex-1 text-center rounded-xl border border-gray-300 text-gray-700 py-2 font-medium"><?php echo htmlspecialchars(t('users')); ?></a>
-      <a href="/admin/sites.php" class="flex-1 text-center rounded-xl border border-gray-300 text-gray-700 py-2 font-medium"><?php echo htmlspecialchars(t("sites")); ?></a>
-      <a href="/admin/settings.php" class="flex-1 text-center rounded-xl border border-gray-300 text-gray-700 py-2 font-medium"><?php echo htmlspecialchars(t('settings')); ?></a>
-      <a href="/admin/backups.php" class="flex-1 text-center rounded-xl bg-gray-900 text-white py-2 font-medium"><?php echo htmlspecialchars(t('backups')); ?></a>
-      <a href="/admin/site-backups.php" class="flex-1 text-center rounded-xl border border-gray-300 text-gray-700 py-2 font-medium"><?php echo htmlspecialchars(t('site_backups_heading')); ?></a>
+    <div class="px-4 pb-3 flex gap-2 text-sm overflow-x-auto no-scrollbar">
+      <a href="/admin/users.php" class="flex-shrink-0 whitespace-nowrap text-center rounded-xl px-4 border border-gray-300 text-gray-700 py-2 font-medium"><?php echo htmlspecialchars(t('users')); ?></a>
+      <a href="/admin/sites.php" class="flex-shrink-0 whitespace-nowrap text-center rounded-xl px-4 border border-gray-300 text-gray-700 py-2 font-medium"><?php echo htmlspecialchars(t("sites")); ?></a>
+      <a href="/admin/settings.php" class="flex-shrink-0 whitespace-nowrap text-center rounded-xl px-4 border border-gray-300 text-gray-700 py-2 font-medium"><?php echo htmlspecialchars(t('settings')); ?></a>
+      <a href="/admin/backups.php" class="flex-shrink-0 whitespace-nowrap text-center rounded-xl px-4 bg-gray-900 text-white py-2 font-medium"><?php echo htmlspecialchars(t('backups')); ?></a>
+      <a href="/admin/site-backups.php" class="flex-shrink-0 whitespace-nowrap text-center rounded-xl px-4 border border-gray-300 text-gray-700 py-2 font-medium"><?php echo htmlspecialchars(t('site_backups_heading')); ?></a>
     </div>
   </header>
 
@@ -54,6 +55,8 @@ $cronUrlFull = $scheme . $_SERVER['HTTP_HOST'] . '/cron/backup.php?type=full&tok
       <p class="text-xs text-gray-400"><?php echo htmlspecialchars(t('cron_setup_help')); ?></p>
       <p class="text-xs font-mono bg-gray-50 rounded-lg p-2 break-all" dir="ltr"><?php echo htmlspecialchars($cronUrlDb); ?></p>
       <p class="text-xs font-mono bg-gray-50 rounded-lg p-2 break-all" dir="ltr"><?php echo htmlspecialchars($cronUrlFull); ?></p>
+      <p class="text-xs text-gray-400 pt-2"><?php echo htmlspecialchars(t('cron_setup_help_sites')); ?></p>
+      <p class="text-xs font-mono bg-gray-50 rounded-lg p-2 break-all" dir="ltr"><?php echo htmlspecialchars($cronUrlSites); ?></p>
     </section>
 
     <section>

@@ -29,7 +29,15 @@ $site = require_site_page($user);
     <div class="px-4 pt-4 pb-3 flex items-center justify-between">
       <h1 class="text-lg font-semibold text-gray-900"><?php echo htmlspecialchars(t('products_heading')); ?></h1>
       <div class="flex items-center gap-2">
-        <button id="select-toggle" class="text-sm font-medium text-gray-600 active:text-gray-900"><?php echo htmlspecialchars(t('select')); ?></button>
+        <div id="column-choice" class="hidden lg:flex items-center rounded-lg border border-gray-300 overflow-hidden">
+          <button type="button" data-cols="1" class="col-choice-btn px-2 py-1 text-xs font-medium text-gray-600">1</button>
+          <button type="button" data-cols="2" class="col-choice-btn px-2 py-1 text-xs font-medium text-gray-600 border-s border-gray-300">2</button>
+          <button type="button" data-cols="3" class="col-choice-btn px-2 py-1 text-xs font-medium text-gray-600 border-s border-gray-300">3</button>
+        </div>
+        <div class="flex items-center rounded-lg border border-gray-300 overflow-hidden">
+          <button type="button" id="view-grid-btn" title="<?php echo htmlspecialchars(t('grid_view')); ?>" class="view-choice-btn px-2 py-1.5 text-xs font-medium text-gray-600">⊞</button>
+          <button type="button" id="view-table-btn" title="<?php echo htmlspecialchars(t('table_view')); ?>" class="view-choice-btn px-2 py-1.5 text-xs font-medium text-gray-600 border-s border-gray-300">☰</button>
+        </div>
       </div>
     </div>
     <div class="px-4 pb-3 flex gap-2">
@@ -49,7 +57,23 @@ $site = require_site_page($user);
 
     <!-- Product grid -->
     <main class="lg:order-1 lg:flex-1 lg:min-w-0">
-      <div id="product-list" class="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-4"></div>
+      <label class="flex items-center gap-2 px-1 pb-2 text-sm text-gray-600">
+        <input type="checkbox" id="select-all-checkbox" class="h-4 w-4 rounded border-gray-300">
+        <?php echo htmlspecialchars(t('select')); ?>
+      </label>
+      <div id="product-list" class="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-4"></div>
+      <table id="product-table" class="hidden w-full text-sm bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <thead class="bg-gray-50 text-gray-500 text-xs">
+          <tr>
+            <th class="checkbox-col-header hidden px-3 py-2 w-8"></th>
+            <th class="px-3 py-2 w-16"></th>
+            <th class="px-3 py-2 text-start"><?php echo htmlspecialchars(t('name')); ?></th>
+            <th class="px-3 py-2 text-start"><?php echo htmlspecialchars(t('price')); ?></th>
+            <th class="px-3 py-2 text-start"><?php echo htmlspecialchars(t('stock')); ?></th>
+          </tr>
+        </thead>
+        <tbody id="product-table-body" class="divide-y divide-gray-100"></tbody>
+      </table>
       <div id="load-more-wrap" class="hidden py-4 text-center">
         <button id="load-more" class="rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700"><?php echo htmlspecialchars(t('load_more')); ?></button>
       </div>

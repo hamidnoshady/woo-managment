@@ -37,6 +37,10 @@ if (current_user() !== null) {
                placeholder="•••••" maxlength="8" dir="ltr"
                class="w-full text-center tracking-widest text-lg rounded-xl border border-gray-300 px-4 py-3 focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none">
       </div>
+      <label class="flex items-center gap-2 text-sm text-gray-700">
+        <input id="remember-me" type="checkbox" class="h-4 w-4 rounded border-gray-300">
+        <?php echo htmlspecialchars(t('remember_me')); ?>
+      </label>
       <button type="submit" id="submit-btn"
               class="w-full rounded-xl bg-gray-900 text-white font-medium py-3 text-base active:scale-[0.99] transition disabled:opacity-50">
         <?php echo htmlspecialchars(t('verify_and_sign_in')); ?>
@@ -63,6 +67,7 @@ if (current_user() !== null) {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const code = document.getElementById('code').value.trim();
+      const remember = document.getElementById('remember-me').checked;
 
       submitBtn.disabled = true;
       submitBtn.textContent = t('verifying');
@@ -70,7 +75,7 @@ if (current_user() !== null) {
       try {
         const result = await App.api('/api/auth.php?action=verify-otp', {
           method: 'POST',
-          body: JSON.stringify({ phone, code }),
+          body: JSON.stringify({ phone, code, remember }),
         });
         App.setCsrfToken(result.csrf_token);
         sessionStorage.removeItem('login_phone');

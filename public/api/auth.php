@@ -28,12 +28,13 @@ switch ($action) {
     case 'verify-otp':
         $phone = normalize_phone($body['phone'] ?? ($_SESSION['otp_phone'] ?? ''));
         $code = trim((string) ($body['code'] ?? ''));
+        $remember = !empty($body['remember']);
 
         if ($phone === '' || $code === '') {
             json_response(['error' => 'Phone number and code are required.'], 422);
         }
 
-        $result = verify_otp($phone, $code);
+        $result = verify_otp($phone, $code, $remember);
         if (!$result['ok']) {
             json_response(['error' => $result['error']], 422);
         }

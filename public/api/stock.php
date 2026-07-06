@@ -24,19 +24,27 @@ if ($id <= 0) {
 
 $client = site_agent_client_for_site($site);
 
-// Fetch the current product so we can build the undo payload and the log message.
-try {
-    $current = $client->getProduct($id);
-} catch (RuntimeException $e) {
-    json_response(['error' => $e->getMessage()], 502);
+// The product list already holds the current quantity/status/name client-side
+// (it just rendered them), so the client sends them along to skip a redundant
+// getProduct round-trip. Fall back to fetching if they're missing (e.g. an
+// absolute "quantity" set from a context that doesn't have them cached).
+if (isset($body['current_quantity'], $body['current_status'], $body['name'])) {
+    $currentQty = (int) $body['current_quantity'];
+    $currentStatus = (string) $body['current_status'];
+    $productName = (string) $body['name'];
+} else {
+    try {
+        $current = $client->getProduct($id);
+    } catch (RuntimeException $e) {
+        json_response(['error' => $e->getMessage()], 502);
+    }
+    if ($current === null) {
+        json_response(['error' => 'Product not found'], 404);
+    }
+    $currentQty = (int) ($current['stock_quantity'] ?? 0);
+    $currentStatus = (string) ($current['stock_status'] ?? 'instock');
+    $productName = (string) ($current['name'] ?? '');
 }
-if ($current === null) {
-    json_response(['error' => 'Product not found'], 404);
-}
-
-$currentQty = (int) ($current['stock_quantity'] ?? 0);
-$currentStatus = (string) ($current['stock_status'] ?? 'instock');
-$productName = (string) ($current['name'] ?? '');
 
 if (isset($body['delta'])) {
     $newQty = max(0, $currentQty + (int) $body['delta']);

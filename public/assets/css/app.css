@@ -39,6 +39,17 @@ html, body {
   padding-left: 0.5rem;
 }
 
+/* Horizontally-scrolling tab row (admin sub-nav) - the tab labels don't fit
+   equal-width flex-1 columns on a phone screen, so scroll them instead. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* Leave room for the fixed bottom navigation, including iOS safe area. */
 .has-bottom-nav {
   padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
