@@ -4,7 +4,7 @@
 /**
  * Plugin Name: Woo Management Agent
  * Description: Sole connection method for the woo-managment app: products, categories, custom taxonomies, media, and S3 backup/restore, all over one paired secure channel.
- * Version: 1.0.0
+ * Version: 1.1.0
  */
 
 defined('ABSPATH') || exit;

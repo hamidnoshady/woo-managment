@@ -33,6 +33,10 @@ class Wma_Rest
                 ['methods' => 'PUT', 'callback' => [self::class, 'update_product'], 'permission_callback' => [Wma_Auth::class, 'check']],
                 ['methods' => 'DELETE', 'callback' => [self::class, 'delete_product'], 'permission_callback' => [Wma_Auth::class, 'check']],
             ]);
+            register_rest_route('wma/v1', '/products/(?P<id>\d+)/variations', [
+                ['methods' => 'GET', 'callback' => [self::class, 'list_variations'], 'permission_callback' => [Wma_Auth::class, 'check']],
+                ['methods' => 'POST', 'callback' => [self::class, 'create_variation'], 'permission_callback' => [Wma_Auth::class, 'check']],
+            ]);
 
             register_rest_route('wma/v1', '/categories', [
                 'methods' => 'GET',
@@ -159,6 +163,36 @@ class Wma_Rest
             $force = (bool) $request->get_param('force');
             $ok = Wma_Products::delete_product((int) $request->get_param('id'), $force);
             return $ok ? new WP_REST_Response(['ok' => true], 200) : new WP_REST_Response(['error' => 'Product not found'], 404);
+        } catch (Throwable $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public static function list_variations(WP_REST_Request $request): WP_REST_Response
+    {
+        if ($err = self::require_woocommerce()) {
+            return $err;
+        }
+        try {
+            $result = Wma_Products::list_variations((int) $request->get_param('id'));
+            return isset($result['error'])
+                ? new WP_REST_Response(['error' => $result['error']], 422)
+                : new WP_REST_Response($result, 200);
+        } catch (Throwable $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public static function create_variation(WP_REST_Request $request): WP_REST_Response
+    {
+        if ($err = self::require_woocommerce()) {
+            return $err;
+        }
+        try {
+            $result = Wma_Products::create_variation((int) $request->get_param('id'), $request->get_json_params());
+            return isset($result['error'])
+                ? new WP_REST_Response(['error' => $result['error']], 422)
+                : new WP_REST_Response(['item' => $result], 201);
         } catch (Throwable $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 500);
         }
