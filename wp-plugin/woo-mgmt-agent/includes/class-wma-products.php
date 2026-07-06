@@ -119,6 +119,85 @@ class Wma_Products
         return $result;
     }
 
+    public static function create_variation(int $parentId, array $data): array
+    {
+        $parent = wc_get_product($parentId);
+        if (!$parent || $parent->get_type() !== 'variable') {
+            return ['error' => 'Not a variable product'];
+        }
+
+        $requested = (array) ($data['attributes'] ?? []);
+        $resolved = self::resolve_variation_attributes($parent, $requested);
+        if (isset($resolved['error'])) {
+            return $resolved;
+        }
+        $attributes = $resolved['attributes'];
+
+        // get_matching_variation() expects attribute_<name> => value keys.
+        $matchArgs = [];
+        foreach ($attributes as $key => $value) {
+            $matchArgs["attribute_{$key}"] = $value;
+        }
+        $existingId = $parent->get_matching_variation($matchArgs);
+        if ($existingId) {
+            return ['error' => 'A variation with this attribute combination already exists'];
+        }
+
+        $variation = new WC_Product_Variation();
+        $variation->set_parent_id($parentId);
+        $variation->set_attributes($attributes);
+        self::apply_fields($variation, $data);
+        $variation->save();
+
+        return self::variation_to_array($variation, $parent);
+    }
+
+    /**
+     * Maps human-readable attribute labels/values (as sent by the admin
+     * app, taken from get_variation_attributes()'s own output) back to the
+     * taxonomy-or-custom-attribute keys/values WC_Product_Variation::
+     * set_attributes() expects, rejecting anything not already configured
+     * on the parent - this endpoint picks existing options, it does not
+     * define new ones.
+     *
+     * @return array{attributes: array<string,string>}|array{error: string}
+     */
+    private static function resolve_variation_attributes(WC_Product $parent, array $requested): array
+    {
+        $available = $parent->get_variation_attributes(); // attrName (taxonomy or slugified custom) => values[]
+        $labelToKey = [];
+        foreach (array_keys($available) as $attrName) {
+            $labelToKey[wc_attribute_label($attrName)] = $attrName;
+        }
+
+        $attributes = [];
+        foreach ($requested as $label => $value) {
+            $key = $labelToKey[$label] ?? null;
+            if ($key === null) {
+                return ['error' => "Unknown attribute: {$label}"];
+            }
+
+            if (str_starts_with($key, 'pa_')) {
+                $term = get_term_by('name', $value, $key) ?: get_term_by('slug', $value, $key);
+                if (!$term || !in_array($term->slug, $available[$key], true)) {
+                    return ['error' => "Invalid value for {$label}: {$value}"];
+                }
+                $attributes[$key] = $term->slug;
+            } else {
+                if (!in_array($value, $available[$key], true)) {
+                    return ['error' => "Invalid value for {$label}: {$value}"];
+                }
+                $attributes[$key] = $value;
+            }
+        }
+
+        if (count($attributes) !== count($available)) {
+            return ['error' => 'All variation attributes must be specified'];
+        }
+
+        return ['attributes' => $attributes];
+    }
+
     public static function create_product(array $data): array
     {
         $product = new WC_Product_Simple();
