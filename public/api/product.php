@@ -201,6 +201,7 @@ function map_product_detail(array $product): array
 {
     return [
         'id' => $product['id'] ?? null,
+        'type' => $product['type'] ?? 'simple',
         'name' => $product['name'] ?? '',
         'sku' => $product['sku'] ?? '',
         'regular_price' => $product['regular_price'] ?? '',

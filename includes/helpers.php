@@ -205,6 +205,7 @@ function map_product_summary(array $product): array
 {
     return [
         'id' => $product['id'],
+        'type' => $product['type'] ?? 'simple',
         'name' => $product['name'] ?? '',
         'sku' => $product['sku'] ?? '',
         'price' => $product['price'] ?? '',

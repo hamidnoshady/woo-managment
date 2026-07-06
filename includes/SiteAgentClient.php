@@ -53,6 +53,18 @@ class SiteAgentClient
         return $response['status'] === 200;
     }
 
+    public function listVariations(int $productId): array
+    {
+        $response = $this->request('GET', "/wp-json/wma/v1/products/{$productId}/variations");
+        return $this->decodeOrThrow($response);
+    }
+
+    public function createVariation(int $productId, array $data): array
+    {
+        $response = $this->request('POST', "/wp-json/wma/v1/products/{$productId}/variations", $data);
+        return $this->decodeOrThrow($response)['item'];
+    }
+
     public function batchProducts(array $items): array
     {
         $response = $this->request('POST', '/wp-json/wma/v1/products/batch', ['update' => $items]);
