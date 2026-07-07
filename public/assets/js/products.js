@@ -9,6 +9,8 @@ const state = {
   loading: false,
   selectionMode: false,
   selected: new Set(),
+  selectAllMatchingFilters: false,
+  lastTotal: 0,
   filters: {
     search: '',
     category: '',
@@ -256,6 +258,8 @@ async function loadProducts(reset) {
     }
 
     state.totalPages = data.total_pages;
+    state.lastTotal = data.total;
+    updateSelectAllMatchingFiltersLink();
 
     if (data.items.length === 0 && state.page === 1) {
       emptyState.classList.remove('hidden');
@@ -936,6 +940,7 @@ function bindEvents() {
   const selectAllCheckbox = document.getElementById('select-all-checkbox');
   selectAllCheckbox.addEventListener('change', () => {
     state.selectionMode = selectAllCheckbox.checked;
+    state.selectAllMatchingFilters = false;
     if (!state.selectionMode) state.selected.clear();
 
     document.getElementById('add-fab').classList.toggle('hidden', state.selectionMode);
@@ -954,14 +959,27 @@ function bindEvents() {
     updateSelectionBar();
   });
 
+  document.getElementById('select-all-matching-filters').addEventListener('click', () => {
+    state.selectAllMatchingFilters = !state.selectAllMatchingFilters;
+    if (state.selectAllMatchingFilters) {
+      state.selected.clear();
+    }
+    updateSelectionBar();
+    updateSelectAllMatchingFiltersLink();
+  });
+
   document.getElementById('selection-cancel').addEventListener('click', () => {
     selectAllCheckbox.checked = false;
     selectAllCheckbox.dispatchEvent(new Event('change'));
   });
 
   document.getElementById('selection-batch').addEventListener('click', () => {
-    if (state.selected.size === 0) return;
-    sessionStorage.setItem('batch_ids', JSON.stringify(Array.from(state.selected)));
+    if (state.selectAllMatchingFilters) {
+      sessionStorage.setItem('batch_selection', JSON.stringify({ selectAll: true, filters: state.filters, total: state.lastTotal }));
+    } else {
+      if (state.selected.size === 0) return;
+      sessionStorage.setItem('batch_selection', JSON.stringify({ ids: Array.from(state.selected) }));
+    }
     window.location.href = '/batch.php';
   });
 
@@ -992,17 +1010,36 @@ function bindEvents() {
 function updateSelectionBar() {
   const bar = document.getElementById('selection-bar');
   const count = document.getElementById('selection-count');
-  if (state.selectionMode && state.selected.size > 0) {
+  const selectedCount = state.selectAllMatchingFilters ? state.lastTotal : state.selected.size;
+
+  if (state.selectionMode && selectedCount > 0) {
     bar.classList.remove('hidden');
-    count.textContent = `${state.selected.size} ${t('selected_count')}`;
+    count.textContent = `${selectedCount} ${t('selected_count')}`;
   } else {
     bar.classList.add('hidden');
   }
 
   const total = activeContainer().querySelectorAll('[data-id]').length;
   const selectAllCheckbox = document.getElementById('select-all-checkbox');
-  selectAllCheckbox.checked = state.selectionMode && total > 0 && state.selected.size === total;
-  selectAllCheckbox.indeterminate = state.selectionMode && state.selected.size > 0 && state.selected.size < total;
+  selectAllCheckbox.checked = state.selectionMode && !state.selectAllMatchingFilters && total > 0 && state.selected.size === total;
+  selectAllCheckbox.indeterminate = state.selectionMode && !state.selectAllMatchingFilters && state.selected.size > 0 && state.selected.size < total;
+
+  updateSelectAllMatchingFiltersLink();
+}
+
+function updateSelectAllMatchingFiltersLink() {
+  const link = document.getElementById('select-all-matching-filters');
+  const loadedCount = activeContainer().querySelectorAll('[data-id]').length;
+
+  if (!state.selectionMode || state.lastTotal <= loadedCount) {
+    link.classList.add('hidden');
+    return;
+  }
+
+  link.classList.remove('hidden');
+  link.textContent = state.selectAllMatchingFilters
+    ? t('selected_count') + ': ' + state.lastTotal
+    : t('select_all_matching_filters', state.lastTotal);
 }
 
 function updateFilterBadge() {

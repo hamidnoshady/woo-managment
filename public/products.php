@@ -151,12 +151,15 @@ $site = require_site_page($user);
   </a>
 
   <!-- Selection action bar -->
-  <div id="selection-bar" class="selection-bar-desktop hidden fixed bottom-16 left-0 right-0 z-30 bg-gray-900 text-white px-4 py-3 flex items-center justify-between">
-    <span id="selection-count" class="text-sm">0 <?php echo htmlspecialchars(t('selected_count')); ?></span>
-    <div class="flex gap-2">
-      <button id="selection-cancel" class="rounded-lg border border-white/30 px-3 py-2 text-sm"><?php echo htmlspecialchars(t('cancel')); ?></button>
-      <button id="selection-batch" class="rounded-lg bg-white text-gray-900 px-3 py-2 text-sm font-medium"><?php echo htmlspecialchars(t('batch_actions')); ?></button>
+  <div id="selection-bar" class="selection-bar-desktop hidden fixed bottom-16 left-0 right-0 z-30 bg-gray-900 text-white px-4 py-3 flex flex-col gap-2">
+    <div class="flex items-center justify-between">
+      <span id="selection-count" class="text-sm">0 <?php echo htmlspecialchars(t('selected_count')); ?></span>
+      <div class="flex gap-2">
+        <button id="selection-cancel" class="rounded-lg border border-white/30 px-3 py-2 text-sm"><?php echo htmlspecialchars(t('cancel')); ?></button>
+        <button id="selection-batch" class="rounded-lg bg-white text-gray-900 px-3 py-2 text-sm font-medium"><?php echo htmlspecialchars(t('batch_actions')); ?></button>
+      </div>
     </div>
+    <button id="select-all-matching-filters" class="hidden text-xs text-white/80 underline text-left"></button>
   </div>
 
   <!-- Bottom navigation (mobile only; see desktop sidebar above) -->
