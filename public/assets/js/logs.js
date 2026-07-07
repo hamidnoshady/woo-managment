@@ -59,6 +59,10 @@ function bindEvents() {
   });
 
   document.getElementById('logout-btn').addEventListener('click', () => App.logout());
+
+  document.getElementById('batch-report-close').addEventListener('click', () => {
+    document.getElementById('batch-report-modal').classList.add('hidden');
+  });
 }
 
 async function loadLogs(reset) {
@@ -144,6 +148,14 @@ function renderLogItem(log) {
     item.querySelector('.flex-1').appendChild(btn);
   }
 
+  if (log.batch_job_id) {
+    const link = document.createElement('button');
+    link.className = 'mt-2 ml-3 text-xs font-medium text-gray-600 underline';
+    link.textContent = t('view_batch_report');
+    link.addEventListener('click', () => openBatchReport(log.id));
+    item.querySelector('.flex-1').appendChild(link);
+  }
+
   return item;
 }
 
@@ -157,4 +169,41 @@ function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str ?? '';
   return div.innerHTML;
+}
+
+async function openBatchReport(logId) {
+  const modal = document.getElementById('batch-report-modal');
+  const list = document.getElementById('batch-report-list');
+  list.innerHTML = `<p class="text-sm text-gray-400">${escapeHtml(t('loading'))}</p>`;
+  modal.classList.remove('hidden');
+
+  try {
+    const data = await App.api(`/api/batch-jobs.php?action=detail&log_id=${logId}`);
+    list.innerHTML = '';
+
+    const summary = document.createElement('p');
+    summary.className = 'text-sm font-medium text-gray-900 pb-2 border-b border-gray-100';
+    summary.textContent = `${t('batch_succeeded_count', data.job.succeeded_items)} · ${t('batch_failed_count', data.job.failed_items)}`;
+    list.appendChild(summary);
+
+    data.items.forEach((item) => list.appendChild(renderBatchReportRow(item)));
+  } catch (err) {
+    list.innerHTML = `<p class="text-sm text-red-600">${escapeHtml(err.message)}</p>`;
+  }
+}
+
+function renderBatchReportRow(item) {
+  const row = document.createElement('div');
+  const ok = item.status === 'success';
+  row.className = `flex items-center justify-between text-sm border-b border-gray-100 pb-2 last:border-0 last:pb-0 ${ok ? 'text-gray-700' : 'text-red-600'}`;
+
+  const detail = ok
+    ? Object.entries(item.change || {}).map(([field, v]) => `${field}: ${v.old} → ${v.new}`).join(' · ')
+    : t('batch_item_failed_reason', item.error || '');
+
+  row.innerHTML = `
+    <span class="truncate pr-2">${escapeHtml(item.product_name || ('#' + item.product_id))}</span>
+    <span class="text-xs whitespace-nowrap">${escapeHtml(detail)}</span>
+  `;
+  return row;
 }

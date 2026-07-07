@@ -53,5 +53,15 @@ $user = require_login_page();
   <script src="/assets/js/app.js"></script>
   <script src="/assets/js/logs.js"></script>
   <?php render_pwa_register_script(); ?>
+
+  <div id="batch-report-modal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full max-h-[80vh] flex flex-col">
+      <div class="flex items-center justify-between p-4 border-b border-gray-100">
+        <h2 class="text-sm font-semibold text-gray-900"><?php echo htmlspecialchars(t('batch_report_title')); ?></h2>
+        <button id="batch-report-close" class="text-gray-400 text-xl leading-none">&times;</button>
+      </div>
+      <div id="batch-report-list" class="p-4 space-y-2 overflow-y-auto"></div>
+    </div>
+  </div>
 </body>
 </html>
