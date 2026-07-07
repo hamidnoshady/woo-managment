@@ -2,7 +2,7 @@
  * Batch price / stock adjustment page.
  */
 
-let selectedIds = [];
+let selection = null; // {ids: [...]} or {selectAll: true, filters: {...}, total: N}
 let pendingRequest = null;
 
 init();
@@ -11,19 +11,21 @@ async function init() {
   await ensureSession();
 
   try {
-    selectedIds = JSON.parse(sessionStorage.getItem('batch_ids') || '[]');
+    selection = JSON.parse(sessionStorage.getItem('batch_selection') || 'null');
   } catch (e) {
-    selectedIds = [];
+    selection = null;
   }
 
-  if (!Array.isArray(selectedIds) || selectedIds.length === 0) {
+  const count = selection && selection.ids ? selection.ids.length : (selection && selection.selectAll ? selection.total : 0);
+
+  if (!selection || count === 0) {
     document.getElementById('no-selection').classList.remove('hidden');
     document.getElementById('logout-btn').addEventListener('click', () => App.logout());
     return;
   }
 
   document.getElementById('batch-content').classList.remove('hidden');
-  document.getElementById('selection-count').textContent = selectedIds.length;
+  document.getElementById('selection-count').textContent = count;
 
   if (window.CURRENT_USER.role === 'admin' || window.CURRENT_USER.role === 'superadmin') {
     document.getElementById('price-section').classList.remove('hidden');
@@ -139,14 +141,13 @@ function previewPrice() {
     return;
   }
 
-  pendingRequest = {
-    ids: selectedIds,
+  pendingRequest = Object.assign({
     action: 'price',
     percent,
     mode,
     step_or_ending: stepOrEnding,
     apply_to: applyTo,
-  };
+  }, selection);
 
   runPreview(pendingRequest, (change) => {
     const parts = [];
@@ -164,12 +165,11 @@ function previewStock() {
   const stockAction = document.getElementById('stock-action').value;
   const value = parseInt(document.getElementById('stock-value').value || '0', 10);
 
-  pendingRequest = {
-    ids: selectedIds,
+  pendingRequest = Object.assign({
     action: 'stock',
     stock_action: stockAction,
     value,
-  };
+  }, selection);
 
   runPreview(pendingRequest, (change) => {
     return `${t('stock_quantity')}: ${change.stock_quantity.old} → ${change.stock_quantity.new}`;
@@ -202,6 +202,13 @@ async function runPreview(request, describeChange) {
       });
     }
 
+    if (data.truncated) {
+      const note = document.createElement('p');
+      note.className = 'text-xs text-gray-400 pt-1';
+      note.textContent = t('and_n_more', data.total_matched - data.changes.length);
+      previewList.appendChild(note);
+    }
+
     previewSection.classList.remove('hidden');
     previewSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch (err) {
@@ -217,27 +224,85 @@ async function confirmApply() {
   confirmBtn.textContent = t('applying');
 
   try {
-    const data = await App.api('/api/batch.php', {
+    const startBody = Object.assign({}, pendingRequest);
+    delete startBody.preview;
+
+    const started = await App.api('/api/batch-jobs.php?action=start', {
       method: 'POST',
-      body: JSON.stringify(Object.assign({ preview: false }, pendingRequest)),
+      body: JSON.stringify(startBody),
     });
 
-    App.toast(t('batch_update_applied'), 'success');
-    if (data.log_id) {
-      App.notifyOnNextPage(data.message, { logId: data.log_id });
-    }
-    sessionStorage.removeItem('batch_ids');
     document.getElementById('preview-section').classList.add('hidden');
     pendingRequest = null;
-    setTimeout(() => {
-      window.location.href = '/products.php';
-    }, 800);
+    sessionStorage.removeItem('batch_selection');
+
+    showProgress(started.id, started.total_items);
   } catch (err) {
     App.toast(err.message, 'error');
-  } finally {
     confirmBtn.disabled = false;
     confirmBtn.textContent = t('apply_changes');
   }
+}
+
+function showProgress(jobId, totalItems) {
+  const section = document.getElementById('progress-section');
+  const bar = document.getElementById('progress-bar');
+  const label = document.getElementById('progress-label');
+  const reportList = document.getElementById('progress-report-list');
+
+  section.classList.remove('hidden');
+  section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  label.textContent = t('batch_progress', 0, totalItems);
+  bar.style.width = '0%';
+
+  const poll = async () => {
+    try {
+      const data = await App.api(`/api/batch-jobs.php?action=poll&id=${jobId}`);
+      const job = data.job;
+
+      const percent = job.total_items > 0 ? Math.round((job.processed_items / job.total_items) * 100) : 100;
+      bar.style.width = `${percent}%`;
+      label.textContent = t('batch_progress', job.processed_items, job.total_items);
+
+      data.items.forEach((item) => reportList.appendChild(renderReportRow(item)));
+
+      if (job.status === 'completed') {
+        const summaryText = `${t('batch_succeeded_count', job.succeeded_items)} · ${t('batch_failed_count', job.failed_items)}`;
+        const summary = document.createElement('p');
+        summary.className = 'text-sm font-medium text-gray-900 pt-2';
+        summary.textContent = summaryText;
+        reportList.parentElement.insertBefore(summary, reportList);
+
+        if (job.log_id) {
+          App.notifyOnNextPage(summaryText, { logId: job.log_id });
+        }
+        return;
+      }
+
+      setTimeout(poll, 1500);
+    } catch (err) {
+      App.toast(err.message, 'error');
+      setTimeout(poll, 1500);
+    }
+  };
+
+  poll();
+}
+
+function renderReportRow(item) {
+  const row = document.createElement('div');
+  const ok = item.status === 'success';
+  row.className = `flex items-center justify-between text-sm border-b border-gray-100 pb-2 last:border-0 last:pb-0 ${ok ? 'text-gray-700' : 'text-red-600'}`;
+
+  const detail = ok
+    ? Object.entries(item.change || {}).map(([field, v]) => `${field}: ${v.old} → ${v.new}`).join(' · ')
+    : t('batch_item_failed_reason', item.error || '');
+
+  row.innerHTML = `
+    <span class="truncate pr-2">${escapeHtml(item.product_name || ('#' + item.product_id))}</span>
+    <span class="text-xs whitespace-nowrap">${escapeHtml(detail)}</span>
+  `;
+  return row;
 }
 
 function escapeHtml(str) {

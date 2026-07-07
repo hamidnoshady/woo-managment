@@ -127,6 +127,16 @@ $site = require_site_page($user);
           <button type="button" id="preview-confirm" class="flex-1 rounded-xl bg-gray-900 text-white py-3 text-sm font-medium"><?php echo htmlspecialchars(t('apply_changes')); ?></button>
         </div>
       </div>
+
+      <!-- Live progress / report (shown once "Apply changes" starts a job) -->
+      <div id="progress-section" class="hidden bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
+        <h2 class="text-sm font-semibold text-gray-900"><?php echo htmlspecialchars(t('batch_report_title')); ?></h2>
+        <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+          <div id="progress-bar" class="bg-gray-900 h-2 rounded-full transition-all" style="width: 0%"></div>
+        </div>
+        <p id="progress-label" class="text-xs text-gray-500"></p>
+        <div id="progress-report-list" class="space-y-2 max-h-96 overflow-y-auto"></div>
+      </div>
     </div>
   </main>
 
