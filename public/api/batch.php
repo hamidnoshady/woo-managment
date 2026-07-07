@@ -37,6 +37,7 @@ if (empty($resolved['ids'])) {
 // preview only ever needs to show a bounded sample.
 $previewIds = array_slice($resolved['ids'], 0, BATCH_PREVIEW_MAX_ITEMS);
 $truncated = $resolved['total'] > count($previewIds);
+$hiddenCount = $resolved['total'] - count($previewIds);
 
 if ($action === 'price') {
     require_role_api(['admin', 'superadmin']);
@@ -74,7 +75,7 @@ if ($action === 'price') {
         }
     }
 
-    json_response(['preview' => true, 'changes' => $changes, 'total_matched' => $resolved['total'], 'truncated' => $truncated]);
+    json_response(['preview' => true, 'changes' => $changes, 'total_matched' => $resolved['total'], 'truncated' => $truncated, 'hidden_count' => $hiddenCount]);
 }
 
 if ($action === 'stock') {
@@ -95,7 +96,7 @@ if ($action === 'stock') {
         ];
     }
 
-    json_response(['preview' => true, 'changes' => $changes, 'total_matched' => $resolved['total'], 'truncated' => $truncated]);
+    json_response(['preview' => true, 'changes' => $changes, 'total_matched' => $resolved['total'], 'truncated' => $truncated, 'hidden_count' => $hiddenCount]);
 }
 
 json_response(['error' => 'Unknown batch action'], 400);

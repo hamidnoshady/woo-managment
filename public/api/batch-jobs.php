@@ -15,6 +15,8 @@ $action = $_GET['action'] ?? '';
 const BATCH_TICK_SIZE = 25;
 
 if ($method === 'GET' && $action === 'poll') {
+    verify_csrf_api();
+
     $jobId = (int) ($_GET['id'] ?? 0);
     $job = fetch_batch_job($jobId, (int) $site['id']);
     if ($job === null) {
@@ -271,8 +273,10 @@ function complete_batch_job(array $job, array $user): void
             $undo['sale_price'] = $change['sale_price']['old'];
         }
         if (isset($change['stock_quantity'])) {
+            $oldQty = (int) $change['stock_quantity']['old'];
             $undo['manage_stock'] = true;
-            $undo['stock_quantity'] = $change['stock_quantity']['old'];
+            $undo['stock_quantity'] = $oldQty;
+            $undo['stock_status'] = $oldQty > 0 ? 'instock' : 'outofstock';
         }
         $undoUpdates[] = $undo;
     }

@@ -205,7 +205,7 @@ async function runPreview(request, describeChange) {
     if (data.truncated) {
       const note = document.createElement('p');
       note.className = 'text-xs text-gray-400 pt-1';
-      note.textContent = t('and_n_more', data.total_matched - data.changes.length);
+      note.textContent = t('and_n_more', data.hidden_count);
       previewList.appendChild(note);
     }
 

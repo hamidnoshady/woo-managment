@@ -25,10 +25,9 @@ const App = {
       opts.headers['Content-Type'] = 'application/json';
     }
 
-    const method = (opts.method || 'GET').toUpperCase();
-    if (method !== 'GET') {
-      opts.headers['X-CSRF-Token'] = this.csrfToken();
-    }
+    // ponytail: always attach the CSRF token, even on GET - some GET
+    // endpoints (e.g. batch-jobs.php?action=poll) mutate state and need it.
+    opts.headers['X-CSRF-Token'] = this.csrfToken();
 
     opts.credentials = 'same-origin';
 

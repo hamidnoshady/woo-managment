@@ -1031,7 +1031,9 @@ function updateSelectAllMatchingFiltersLink() {
   const link = document.getElementById('select-all-matching-filters');
   const loadedCount = activeContainer().querySelectorAll('[data-id]').length;
 
-  if (!state.selectionMode || state.lastTotal <= loadedCount) {
+  // ponytail: hide rather than show a misleading count - resolving "select
+  // all matching filters" server-side doesn't honor min_price/max_price.
+  if (!state.selectionMode || state.lastTotal <= loadedCount || state.filters.min_price || state.filters.max_price) {
     link.classList.add('hidden');
     return;
   }
