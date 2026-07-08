@@ -11,6 +11,7 @@ init();
 async function init() {
   await ensureSession();
   document.getElementById('logout-btn').addEventListener('click', () => App.logout());
+  document.getElementById('sync-da-btn').addEventListener('click', syncDirectAdmin);
   bindEvents();
   await loadSites();
 }
@@ -49,11 +50,15 @@ function renderSites(sites) {
   }
 
   sites.forEach((site) => {
+    const daLabel = site.da_username
+      ? `<span class="text-xs text-green-600">${escapeHtml(t('da_linked', site.da_username))}</span>`
+      : '';
     const card = document.createElement('button');
     card.className = 'w-full text-left bg-white rounded-2xl border border-gray-100 p-4';
     card.innerHTML = `
       <div class="text-sm font-semibold text-gray-900">${escapeHtml(site.name)}</div>
       <div class="text-xs text-gray-400 mt-0.5">${escapeHtml(site.store_url)}</div>
+      ${daLabel}
     `;
     card.addEventListener('click', () => openSheet(site.id));
     list.appendChild(card);
@@ -172,6 +177,24 @@ async function saveSite() {
     App.toast(err.message, 'error');
   } finally {
     saveBtn.disabled = false;
+  }
+}
+
+async function syncDirectAdmin() {
+  const btn = document.getElementById('sync-da-btn');
+  btn.disabled = true;
+  const originalText = btn.textContent;
+  btn.textContent = t('syncing');
+
+  try {
+    const result = await App.api('/api/da-sync.php', { method: 'POST', body: JSON.stringify({}) });
+    App.toast(t('sync_result', result.linked, result.created), 'success');
+    await loadSites();
+  } catch (err) {
+    App.toast(err.message || t('sync_failed'), 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
   }
 }
 

@@ -12,7 +12,7 @@ require_once __DIR__ . '/SiteAgentClient.php';
 function list_all_sites(): array
 {
     $pdo = Database::get();
-    return $pdo->query('SELECT id, name, store_url, verify_ssl, created_at FROM sites ORDER BY name ASC')->fetchAll();
+    return $pdo->query('SELECT id, name, store_url, verify_ssl, da_username, created_at FROM sites ORDER BY name ASC')->fetchAll();
 }
 
 /**
@@ -26,7 +26,7 @@ function list_sites_for_user(array $user): array
 
     $pdo = Database::get();
     $stmt = $pdo->prepare(
-        'SELECT s.id, s.name, s.store_url, s.verify_ssl, s.created_at
+        'SELECT s.id, s.name, s.store_url, s.verify_ssl, s.da_username, s.created_at
          FROM sites s
          INNER JOIN user_sites us ON us.site_id = s.id
          WHERE us.user_id = ?

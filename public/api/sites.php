@@ -109,6 +109,7 @@ function map_site_summary(array $site): array
         'id' => (int) $site['id'],
         'name' => $site['name'],
         'store_url' => $site['store_url'],
+        'da_username' => $site['da_username'],
     ];
 }
 
@@ -118,6 +119,7 @@ function map_site_detail(array $site): array
         'id' => (int) $site['id'],
         'name' => $site['name'],
         'store_url' => $site['store_url'],
+        'da_username' => $site['da_username'],
         'verify_ssl' => (bool) $site['verify_ssl'],
         'agent_paired' => !empty($site['agent_token']),
         'agent_paired_at' => $site['agent_paired_at'] !== null ? (int) $site['agent_paired_at'] : null,
