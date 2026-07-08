@@ -177,3 +177,79 @@ function format_activity_log(array $row, array $user): array
         'batch_job_id' => isset($row['batch_job_id']) && $row['batch_job_id'] !== null ? (int) $row['batch_job_id'] : null,
     ];
 }
+
+/**
+ * Buckets recent product mutations into highlight categories for the
+ * products list UI: for each of $productIds, returns the most recent
+ * qualifying change (if any) within the last $sinceTimestamp seconds,
+ * excluding undone changes. Categories: 'price', 'stock', 'batch_price',
+ * 'batch_stock', 'new_product', 'new_variation'.
+ *
+ * @return array<int, array{category: string, changed_at: int}>
+ */
+function get_recent_product_changes(int $siteId, array $productIds, int $sinceTimestamp): array
+{
+    if (empty($productIds)) {
+        return [];
+    }
+
+    $pdo = Database::get();
+    $stmt = $pdo->prepare(
+        "SELECT * FROM activity_logs
+         WHERE site_id = ? AND category = 'site' AND undone = 0 AND created_at > ?
+           AND action IN ('product_update', 'stock_update', 'batch_price', 'batch_stock', 'product_create', 'variation_create')
+         ORDER BY created_at ASC"
+    );
+    $stmt->execute([$siteId, $sinceTimestamp]);
+    $rows = $stmt->fetchAll();
+
+    // Iterating oldest-to-newest and simply overwriting each product's map
+    // entry means the last write for a given id is always its most recent
+    // change - "most recent wins" falls out of the loop order for free.
+    $map = [];
+
+    foreach ($rows as $row) {
+        $undoData = json_decode((string) $row['undo_data'], true);
+        if (!is_array($undoData)) {
+            continue;
+        }
+        $createdAt = (int) $row['created_at'];
+
+        switch ($row['action']) {
+            case 'stock_update':
+                $map[(int) ($undoData['product_id'] ?? 0)] = ['category' => 'stock', 'changed_at' => $createdAt];
+                break;
+
+            case 'product_update':
+                $changedFields = is_array($undoData['data'] ?? null) ? array_keys($undoData['data']) : [];
+                if (array_intersect($changedFields, ['regular_price', 'sale_price'])) {
+                    $map[(int) ($undoData['product_id'] ?? 0)] = ['category' => 'price', 'changed_at' => $createdAt];
+                }
+                break;
+
+            case 'product_create':
+                $map[(int) ($undoData['product_id'] ?? 0)] = ['category' => 'new_product', 'changed_at' => $createdAt];
+                break;
+
+            case 'variation_create':
+                if (isset($undoData['parent_id'])) {
+                    $map[(int) $undoData['parent_id']] = ['category' => 'new_variation', 'changed_at' => $createdAt];
+                }
+                break;
+
+            case 'batch_price':
+            case 'batch_stock':
+                foreach ((array) ($undoData['updates'] ?? []) as $update) {
+                    if (isset($update['id'])) {
+                        $map[(int) $update['id']] = ['category' => $row['action'], 'changed_at' => $createdAt];
+                    }
+                }
+                break;
+        }
+    }
+
+    unset($map[0]);
+
+    $wantedIds = array_flip(array_map('intval', $productIds));
+    return array_intersect_key($map, $wantedIds);
+}

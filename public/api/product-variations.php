@@ -88,6 +88,7 @@ if ($method === 'POST') {
                 'type' => 'delete_product',
                 'site_id' => (int) $site['id'],
                 'product_id' => (int) ($variation['id'] ?? 0),
+                'parent_id' => $productId,
             ]
         );
     } catch (Throwable $e) {
