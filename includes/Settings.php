@@ -29,6 +29,10 @@ const SETTINGS_DEFAULTS = [
     's3_access_key'        => '',
     's3_secret_key'        => '',
     'backup_retention_days' => 30,
+    'da_api_url'           => '',
+    'da_admin_username'    => '',
+    'da_login_key'         => '',
+    'da_self_username'     => '',
 ];
 
 /**
@@ -155,6 +159,30 @@ const SETTINGS_FIELDS = [
         'type' => 'number',
         'group' => 'Backups (S3)',
         'help' => 'Backups older than this are deleted from S3 automatically after each run.',
+    ],
+    'da_api_url' => [
+        'label' => 'DirectAdmin API URL',
+        'type' => 'text',
+        'group' => 'DirectAdmin / JetBackup',
+        'help' => 'Base URL of this server\'s DirectAdmin panel, e.g. https://server.example.com:2222.',
+    ],
+    'da_admin_username' => [
+        'label' => 'DirectAdmin admin/reseller username',
+        'type' => 'text',
+        'group' => 'DirectAdmin / JetBackup',
+        'help' => 'A DirectAdmin account (admin or reseller level) used to list hosting accounts and trigger JetBackup jobs via its Login Key.',
+    ],
+    'da_login_key' => [
+        'label' => 'DirectAdmin Login Key',
+        'type' => 'password',
+        'group' => 'DirectAdmin / JetBackup',
+        'help' => 'A Login Key generated under DirectAdmin -> Login Keys for the account above.',
+    ],
+    'da_self_username' => [
+        'label' => 'This app\'s own DirectAdmin username',
+        'type' => 'text',
+        'group' => 'DirectAdmin / JetBackup',
+        'help' => 'The DirectAdmin account woo-managment itself runs under, used only for its own "Run backup now" button on Admin -> Backups.',
     ],
 ];
 

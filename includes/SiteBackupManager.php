@@ -5,6 +5,7 @@ require_once __DIR__ . '/Database.php';
 require_once __DIR__ . '/Settings.php';
 require_once __DIR__ . '/S3Client.php';
 require_once __DIR__ . '/Sites.php';
+require_once __DIR__ . '/JetBackupSiteManager.php';
 
 /**
  * Owns the canonical site_backups/site_restores rows. Each "poll" call
@@ -31,6 +32,10 @@ class SiteBackupManager
 
     public static function startBackup(array $site, string $scope): array
     {
+        if ($site['da_username'] !== '') {
+            return JetBackupSiteManager::startBackup($site);
+        }
+
         $pdo = Database::get();
         $now = time();
         $stmt = $pdo->prepare(
@@ -76,8 +81,12 @@ class SiteBackupManager
         return self::getRestore($jobId);
     }
 
-    public static function pollBackup(array $site, int $jobId): array
+    public static function pollBackup(array $site, int $jobId): ?array
     {
+        if ($site['da_username'] !== '') {
+            return JetBackupSiteManager::pollBackup($site, $jobId);
+        }
+
         $client = site_agent_client_for_site($site);
         $tick = $client->pollTick(self::agentJobId('backup', $jobId));
         mark_agent_seen((int) $site['id']);
@@ -222,6 +231,13 @@ class SiteBackupManager
                 $site = get_site((int) $row['site_id']);
                 if ($site !== null) {
                     self::pollRestore($site, (int) $row['id']);
+                    $progressed = true;
+                }
+            }
+            foreach (self::runningJobs('site_jetbackup_backups') as $row) {
+                $site = get_site((int) $row['site_id']);
+                if ($site !== null) {
+                    JetBackupSiteManager::pollBackup($site, (int) $row['id']);
                     $progressed = true;
                 }
             }

@@ -12,7 +12,7 @@ require_once __DIR__ . '/SiteAgentClient.php';
 function list_all_sites(): array
 {
     $pdo = Database::get();
-    return $pdo->query('SELECT id, name, store_url, verify_ssl, created_at FROM sites ORDER BY name ASC')->fetchAll();
+    return $pdo->query('SELECT id, name, store_url, verify_ssl, da_username, created_at FROM sites ORDER BY name ASC')->fetchAll();
 }
 
 /**
@@ -26,7 +26,7 @@ function list_sites_for_user(array $user): array
 
     $pdo = Database::get();
     $stmt = $pdo->prepare(
-        'SELECT s.id, s.name, s.store_url, s.verify_ssl, s.created_at
+        'SELECT s.id, s.name, s.store_url, s.verify_ssl, s.da_username, s.created_at
          FROM sites s
          INNER JOIN user_sites us ON us.site_id = s.id
          WHERE us.user_id = ?
@@ -66,11 +66,13 @@ function user_can_access_site(array $user, int $siteId): bool
 function create_site(array $data): array
 {
     $pdo = Database::get();
-    $stmt = $pdo->prepare('INSERT INTO sites (name, store_url, verify_ssl, created_at) VALUES (?, ?, ?, ?)');
+    $stmt = $pdo->prepare('INSERT INTO sites (name, store_url, verify_ssl, da_username, backup_enabled, created_at) VALUES (?, ?, ?, ?, ?, ?)');
     $stmt->execute([
         $data['name'],
         rtrim($data['store_url'], '/'),
         !empty($data['verify_ssl']) ? 1 : 0,
+        $data['da_username'] ?? '',
+        !empty($data['backup_enabled']) ? 1 : 0,
         time(),
     ]);
 
@@ -82,7 +84,7 @@ function update_site(int $id, array $data): array
     $fields = [];
     $params = [];
 
-    $map = ['name' => 'name', 'store_url' => 'store_url', 'backup_schedule' => 'backup_schedule'];
+    $map = ['name' => 'name', 'store_url' => 'store_url', 'backup_schedule' => 'backup_schedule', 'da_username' => 'da_username'];
     foreach ($map as $key => $column) {
         if (array_key_exists($key, $data) && $data[$key] !== '') {
             $value = $key === 'store_url' ? rtrim($data[$key], '/') : $data[$key];

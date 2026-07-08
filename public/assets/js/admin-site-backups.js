@@ -3,10 +3,12 @@
 const listEl = document.getElementById('backup-list');
 const loadingEl = document.getElementById('loading');
 const pollingJobs = new Set();
+let backupSource = 'legacy';
 
 async function loadBackups() {
   try {
     const res = await App.api('/api/site-backups.php');
+    backupSource = res.source || 'legacy';
     renderList(res.items);
   } catch (e) {
     App.toast(e.message, 'error');
@@ -23,13 +25,17 @@ function renderList(items) {
 
 function renderRow(item) {
   const statusClass = item.status === 'completed' ? 'text-green-600' : item.status === 'failed' ? 'text-red-600' : 'text-gray-500';
+  // JetBackup rows are always full-account: no scope selector, no `type`/`started_at`/`percent` fields.
+  const isJetBackup = backupSource === 'jetbackup';
+  const label = isJetBackup ? t('site_backups_heading') : escapeHtml(item.type);
+  const timestamp = isJetBackup ? item.created_at : item.started_at;
   const restoreBtn = item.status === 'completed'
-    ? `<button class="restore-btn text-xs text-gray-700 underline" data-id="${item.id}" data-type="${item.type}">${t('restore')}</button>`
+    ? `<button class="restore-btn text-xs text-gray-700 underline" data-id="${item.id}"${isJetBackup ? '' : ` data-type="${item.type}"`}>${t('restore')}</button>`
     : '';
   return `<div class="bg-white rounded-2xl border border-gray-100 p-3 flex items-center justify-between" data-job-id="${item.id}">
     <div>
-      <div class="text-sm font-medium text-gray-900">${escapeHtml(item.type)} &middot; ${new Date(item.started_at * 1000).toLocaleString()}</div>
-      <div class="text-xs ${statusClass}">${escapeHtml(item.status)}${item.status === 'running' ? ' (' + item.percent + '%)' : ''}${item.error ? ' — ' + escapeHtml(item.error) : ''}</div>
+      <div class="text-sm font-medium text-gray-900">${label} &middot; ${new Date(timestamp * 1000).toLocaleString()}</div>
+      <div class="text-xs ${statusClass}">${escapeHtml(item.status)}${item.status === 'running' && !isJetBackup ? ' (' + item.percent + '%)' : ''}${item.error ? ' — ' + escapeHtml(item.error) : ''}</div>
     </div>
     ${restoreBtn}
   </div>`;
@@ -76,6 +82,19 @@ listEl.addEventListener('click', async (e) => {
   const btn = e.target.closest('.restore-btn');
   if (!btn) return;
   if (!confirm(t('restore_confirm'))) return;
+
+  if (backupSource === 'jetbackup') {
+    try {
+      await App.api('/api/site-backups.php?action=restore', {
+        method: 'POST',
+        body: JSON.stringify({ source_id: Number(btn.dataset.id) }),
+      });
+      App.toast(t('restore_started'));
+    } catch (err) {
+      App.toast(err.message, 'error');
+    }
+    return;
+  }
 
   try {
     const res = await App.api('/api/site-restores.php?action=start', {

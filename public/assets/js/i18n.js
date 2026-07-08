@@ -183,6 +183,11 @@ const I18N = {
         "current_value_leave_blank": "Current: %s. Leave blank to keep.",
         "manage_sites_title": "Manage sites · Product Manager",
         "sites": "Sites",
+        "sync_directadmin": "Sync from DirectAdmin",
+        "syncing": "Syncing…",
+        "sync_failed": "Sync failed.",
+        "sync_result": "%s linked, %s new sites created.",
+        "da_linked": "DA: %s",
         "wp_api_heading": "WordPress REST API (optional)",
         "wp_api_help": "Needed for uploading images and for custom (ACF) taxonomies. Create an Application Password for a WordPress admin user under Users → Profile → Application Passwords.",
         "wp_username": "WordPress username",
@@ -278,6 +283,7 @@ const I18N = {
         "log_site_updated": "Updated site \"%s\"",
         "log_site_deleted": "Deleted site \"%s\"",
         "log_settings_updated": "Updated app settings",
+        "site_backups_heading": "Site backups",
         "restore": "Restore",
         "restore_confirm": "Restoring will replace the live site with this backup. A safety snapshot of the current state is taken automatically first. Continue?",
         "restore_started": "Restore started.",
@@ -289,7 +295,9 @@ const I18N = {
         "pairing_token_generated_help": "Copy this token into the plugin's settings screen on the site. It will not be shown again.",
         "backup_in_progress": "Backing up...",
         "backup_done": "Backup complete",
-        "backup_failed": "Backup failed"
+        "backup_failed": "Backup failed",
+        "backup_source_jetbackup": "JetBackup",
+        "backup_source_legacy": "S3"
     },
     "fa": {
         "nav_products": "محصولات",
@@ -475,6 +483,11 @@ const I18N = {
         "current_value_leave_blank": "مقدار فعلی: %s. برای حفظ مقدار، خالی بگذارید.",
         "manage_sites_title": "مدیریت فروشگاه‌ها · مدیریت محصولات",
         "sites": "فروشگاه‌ها",
+        "sync_directadmin": "همگام‌سازی از DirectAdmin",
+        "syncing": "در حال همگام‌سازی…",
+        "sync_failed": "همگام‌سازی ناموفق بود.",
+        "sync_result": "%s پیوند، %s فروشگاه جدید ایجاد شد.",
+        "da_linked": "DA: %s",
         "wp_api_heading": "API وردپرس (اختیاری)",
         "wp_api_help": "برای آپلود تصاویر و ویژگی‌های سفارشی (ACF) لازم است. از مسیر کاربران ← پروفایل ← رمزهای عبور برنامه، یک رمز عبور برنامه برای یک کاربر مدیر وردپرس بسازید.",
         "wp_username": "نام کاربری وردپرس",
@@ -570,6 +583,7 @@ const I18N = {
         "log_site_updated": "فروشگاه \"%s\" به‌روزرسانی شد",
         "log_site_deleted": "فروشگاه \"%s\" حذف شد",
         "log_settings_updated": "تنظیمات برنامه به‌روزرسانی شد",
+        "site_backups_heading": "پشتیبان‌گیری سایت",
         "restore": "بازگردانی",
         "restore_confirm": "بازگردانی، سایت فعلی را با این پشتیبان جایگزین می‌کند. ابتدا به‌طور خودکار از وضعیت فعلی یک نسخه ایمنی گرفته می‌شود. ادامه می‌دهید؟",
         "restore_started": "بازگردانی آغاز شد.",
@@ -581,7 +595,9 @@ const I18N = {
         "pairing_token_generated_help": "این توکن را در صفحه تنظیمات افزونه روی سایت وارد کنید. دوباره نمایش داده نمی‌شود.",
         "backup_in_progress": "در حال پشتیبان‌گیری...",
         "backup_done": "پشتیبان‌گیری کامل شد",
-        "backup_failed": "پشتیبان‌گیری ناموفق بود"
+        "backup_failed": "پشتیبان‌گیری ناموفق بود",
+        "backup_source_jetbackup": "جت‌بکاپ",
+        "backup_source_legacy": "اس‌تری"
     }
 };
 
