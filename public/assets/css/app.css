@@ -215,6 +215,40 @@ input[type=number] {
   border-inline-start: 2px solid #e5e7eb;
 }
 
+/* Recent-changes highlight (last 24h): a colored border on the card/row's
+   name area, plus a small dot on its image with a tooltip. border-inline-
+   start and inset-inline-start are logical properties, so both mirror
+   automatically for RTL. */
+.recent-change {
+  border-inline-start-width: 4px !important;
+  border-inline-start-style: solid !important;
+}
+.recent-change-price { border-inline-start-color: #60a5fa !important; }
+.recent-change-stock { border-inline-start-color: #4ade80 !important; }
+.recent-change-batch_price { border-inline-start-color: #c084fc !important; }
+.recent-change-batch_stock { border-inline-start-color: #fbbf24 !important; }
+.recent-change-new_product { border-inline-start-color: #f472b6 !important; }
+.recent-change-new_variation { border-inline-start-color: #22d3ee !important; }
+
+.recent-change-dot-host {
+  position: relative;
+}
+.recent-change-dot {
+  position: absolute;
+  top: -2px;
+  inset-inline-start: -2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  border: 2px solid #fff;
+}
+.recent-change-dot-price { background-color: #60a5fa; }
+.recent-change-dot-stock { background-color: #4ade80; }
+.recent-change-dot-batch_price { background-color: #c084fc; }
+.recent-change-dot-batch_stock { background-color: #fbbf24; }
+.recent-change-dot-new_product { background-color: #f472b6; }
+.recent-change-dot-new_variation { background-color: #22d3ee; }
+
 /* ----------------------------------------------------------------------
    Desktop layout (>=1024px): a fixed sidebar replaces the bottom tab bar,
    and pages get extra inline padding to make room for it.

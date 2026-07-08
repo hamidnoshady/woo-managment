@@ -266,6 +266,7 @@ async function loadProducts(reset) {
     } else {
       emptyState.classList.add('hidden');
       data.items.forEach((product) => container.appendChild(renderProductElement(product)));
+      applyRecentChangeHighlights(data.items);
     }
 
     loadMoreWrap.classList.toggle('hidden', state.page >= state.totalPages);
@@ -274,6 +275,52 @@ async function loadProducts(reset) {
   } finally {
     state.loading = false;
   }
+}
+
+/**
+ * Fetches recent-change info for the given products (fire-and-forget - a
+ * failure here just means no highlights render, never a user-facing
+ * error, since this is a non-essential decoration) and applies a colored
+ * border + tooltip dot to each matching card/row already in the DOM.
+ */
+async function applyRecentChangeHighlights(products) {
+  if (products.length === 0) return;
+
+  const ids = products.map((p) => p.id).join(',');
+  try {
+    const data = await App.api(`/api/recent-changes.php?ids=${ids}`);
+    products.forEach((product) => {
+      const info = data.items[String(product.id)];
+      if (!info) return;
+      const el = activeContainer().querySelector(`[data-id="${product.id}"]`);
+      if (el) applyRecentChangeHighlight(el, info.category, info.changed_at);
+    });
+  } catch (e) {
+    // Non-essential decoration; ignore failures.
+  }
+}
+
+function applyRecentChangeHighlight(el, category, changedAt) {
+  const isRow = el.tagName === 'TR';
+  const borderHost = isRow ? el.querySelector('td:nth-child(3)') : el;
+  const dotHost = isRow ? el.querySelector('td:nth-child(2)') : el;
+  if (!borderHost || !dotHost) return;
+
+  borderHost.classList.add('recent-change', `recent-change-${category}`);
+  dotHost.classList.add('recent-change-dot-host');
+
+  const dot = document.createElement('span');
+  dot.className = `recent-change-dot recent-change-dot-${category}`;
+  dot.title = `${t(`recent_change_${category}`)} · ${formatRelativeTime(changedAt)}`;
+  dotHost.appendChild(dot);
+}
+
+function formatRelativeTime(timestamp) {
+  const locale = document.documentElement.lang === 'fa' ? 'fa-IR' : 'en-US';
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+  const diffMinutes = Math.round((timestamp - Date.now() / 1000) / 60);
+  if (Math.abs(diffMinutes) < 60) return rtf.format(diffMinutes, 'minute');
+  return rtf.format(Math.round(diffMinutes / 60), 'hour');
 }
 
 function showSkeletons(container) {
