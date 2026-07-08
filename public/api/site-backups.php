@@ -33,6 +33,12 @@ verify_csrf_api();
 $body = json_body();
 
 if ($method === 'POST' && $action === 'start') {
+    if ($site['da_username'] !== '') {
+        $job = JetBackupSiteManager::startBackup($site);
+        log_activity($user, (int) $site['id'], 'site', 'site_backup_start', 'log_site_backup_started', ['full']);
+        json_response(['item' => map_jetbackup_row($job)], 201);
+    }
+
     if (empty($site['agent_token'])) {
         json_response(['error' => 'This site has no paired agent. Generate a pairing token in Admin -> Sites first.'], 409);
     }
