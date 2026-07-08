@@ -40,7 +40,11 @@ class AppJetBackupManager
             return self::recordFailure('', $e->getMessage());
         }
 
-        $status = self::waitForCompletion($client, $backupId);
+        try {
+            $status = self::waitForCompletion($client, $backupId);
+        } catch (Throwable $e) {
+            return self::recordFailure($backupId, $e->getMessage());
+        }
         if ($status['status'] !== 'completed') {
             return self::recordFailure($backupId, $status['error'] !== '' ? $status['error'] : 'JetBackup snapshot did not complete in time.', $status['size_bytes']);
         }
