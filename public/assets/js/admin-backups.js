@@ -50,13 +50,14 @@ function renderBackups(items) {
     row.className = 'bg-white rounded-2xl border border-gray-100 p-3 flex items-center justify-between text-sm';
     const typeLabel = item.type === 'full' ? t('backup_type_full') : t('backup_type_database');
     const statusLabel = item.status === 'success' ? t('backup_status_success') : t('backup_status_failed');
+    const sourceLabel = item.external_ref ? t('backup_source_jetbackup') : t('backup_source_legacy');
     const statusClass = item.status === 'success' ? 'text-green-600' : 'text-red-600';
     const sizeKb = (item.size_bytes / 1024).toFixed(1);
     const date = new Date(item.created_at * 1000).toLocaleString();
 
     row.innerHTML = `
       <div>
-        <div class="font-medium text-gray-900">${escapeHtml(typeLabel)} &middot; <span class="${statusClass}">${escapeHtml(statusLabel)}</span></div>
+        <div class="font-medium text-gray-900">${escapeHtml(typeLabel)} &middot; <span class="${statusClass}">${escapeHtml(statusLabel)}</span> &middot; ${escapeHtml(sourceLabel)}</div>
         <div class="text-xs text-gray-400 mt-0.5">${escapeHtml(date)} &middot; ${sizeKb} KB</div>
         ${item.error ? `<div class="text-xs text-red-500 mt-0.5">${escapeHtml(item.error)}</div>` : ''}
       </div>

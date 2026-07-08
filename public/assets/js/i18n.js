@@ -295,7 +295,9 @@ const I18N = {
         "pairing_token_generated_help": "Copy this token into the plugin's settings screen on the site. It will not be shown again.",
         "backup_in_progress": "Backing up...",
         "backup_done": "Backup complete",
-        "backup_failed": "Backup failed"
+        "backup_failed": "Backup failed",
+        "backup_source_jetbackup": "JetBackup",
+        "backup_source_legacy": "S3"
     },
     "fa": {
         "nav_products": "محصولات",
@@ -593,7 +595,9 @@ const I18N = {
         "pairing_token_generated_help": "این توکن را در صفحه تنظیمات افزونه روی سایت وارد کنید. دوباره نمایش داده نمی‌شود.",
         "backup_in_progress": "در حال پشتیبان‌گیری...",
         "backup_done": "پشتیبان‌گیری کامل شد",
-        "backup_failed": "پشتیبان‌گیری ناموفق بود"
+        "backup_failed": "پشتیبان‌گیری ناموفق بود",
+        "backup_source_jetbackup": "جت‌بکاپ",
+        "backup_source_legacy": "اس‌تری"
     }
 };
 
