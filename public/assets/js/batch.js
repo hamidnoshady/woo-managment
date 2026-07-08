@@ -152,10 +152,10 @@ function previewPrice() {
   runPreview(pendingRequest, (change) => {
     const parts = [];
     if (change.regular_price) {
-      parts.push(`${t('regular_price')}: <bdi dir="ltr">${escapeHtml(App.formatToman(change.regular_price.old))} → ${escapeHtml(App.formatToman(change.regular_price.new))}</bdi>`);
+      parts.push(`<bdi dir="ltr">${escapeHtml(App.formatToman(change.regular_price.old))} → <strong>${escapeHtml(App.formatToman(change.regular_price.new))}</strong></bdi>`);
     }
     if (change.sale_price) {
-      parts.push(`${t('sale_price')}: <bdi dir="ltr">${escapeHtml(App.formatToman(change.sale_price.old))} → ${escapeHtml(App.formatToman(change.sale_price.new))}</bdi>`);
+      parts.push(`<bdi dir="ltr">${escapeHtml(App.formatToman(change.sale_price.old))} → <strong>${escapeHtml(App.formatToman(change.sale_price.new))}</strong></bdi>`);
     }
     return parts.join(' · ');
   });
