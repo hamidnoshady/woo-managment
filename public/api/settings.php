@@ -23,6 +23,7 @@ function settings_group_key(string $group): string
         'Superadmins'         => 'group_superadmins',
         'AI (OpenRouter)'     => 'group_ai',
         'Backups (S3)'        => 'group_backup',
+        'DirectAdmin / JetBackup' => 'group_jetbackup',
     ];
 
     return $map[$group] ?? $group;
