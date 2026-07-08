@@ -81,7 +81,7 @@ class SiteBackupManager
         return self::getRestore($jobId);
     }
 
-    public static function pollBackup(array $site, int $jobId): array
+    public static function pollBackup(array $site, int $jobId): ?array
     {
         if ($site['da_username'] !== '') {
             return JetBackupSiteManager::pollBackup($site, $jobId);
@@ -231,6 +231,13 @@ class SiteBackupManager
                 $site = get_site((int) $row['site_id']);
                 if ($site !== null) {
                     self::pollRestore($site, (int) $row['id']);
+                    $progressed = true;
+                }
+            }
+            foreach (self::runningJobs('site_jetbackup_backups') as $row) {
+                $site = get_site((int) $row['site_id']);
+                if ($site !== null) {
+                    JetBackupSiteManager::pollBackup($site, (int) $row['id']);
                     $progressed = true;
                 }
             }

@@ -34,6 +34,7 @@ $body = json_body();
 
 if ($method === 'POST' && $action === 'start') {
     if ($site['da_username'] !== '') {
+        require_superadmin_api();
         $job = JetBackupSiteManager::startBackup($site);
         log_activity($user, (int) $site['id'], 'site', 'site_backup_start', 'log_site_backup_started', ['full']);
         json_response(['item' => map_jetbackup_row($job)], 201);
@@ -53,6 +54,7 @@ if ($method === 'POST' && $action === 'restore') {
     if ($site['da_username'] === '') {
         json_response(['error' => 'JetBackup restore is only available for DirectAdmin-linked sites.'], 409);
     }
+    require_superadmin_api();
     $sourceId = (int) ($body['source_id'] ?? 0);
     try {
         $restoreId = JetBackupSiteManager::startRestore($site, $sourceId);
