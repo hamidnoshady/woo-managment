@@ -33,7 +33,7 @@ class JetBackupSiteManager
         return self::getBackup($localId);
     }
 
-    public static function pollBackup(array $site, int $localId): array
+    public static function pollBackup(array $site, int $localId): ?array
     {
         $row = self::getBackup($localId);
         if ($row === null || $row['status'] !== 'running' || $row['jetbackup_backup_id'] === '') {
