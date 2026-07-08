@@ -181,6 +181,21 @@ class Database
         );
 
         $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS site_jetbackup_backups (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                site_id INT NOT NULL,
+                jetbackup_backup_id VARCHAR(100) NOT NULL DEFAULT \'\',
+                status VARCHAR(20) NOT NULL DEFAULT \'running\',
+                size_bytes BIGINT NOT NULL DEFAULT 0,
+                error TEXT NULL,
+                created_at INT NOT NULL,
+                completed_at INT NULL,
+                KEY idx_site_jetbackup_backups_site (site_id, id),
+                CONSTRAINT fk_site_jetbackup_backups_site FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
+        );
+
+        $pdo->exec(
             'CREATE TABLE IF NOT EXISTS batch_jobs (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 site_id INT NOT NULL,
@@ -221,6 +236,8 @@ class Database
         self::addColumnIfMissing($pdo, 'sites', 'backup_schedule', "VARCHAR(20) NOT NULL DEFAULT 'off'");
         self::addColumnIfMissing($pdo, 'sites', 'backup_retention_days', 'INT NOT NULL DEFAULT 30');
         self::addColumnIfMissing($pdo, 'activity_logs', 'batch_job_id', 'INT NULL');
+        self::addColumnIfMissing($pdo, 'sites', 'da_username', "VARCHAR(100) NOT NULL DEFAULT ''");
+        self::addColumnIfMissing($pdo, 'backups', 'external_ref', "VARCHAR(255) NOT NULL DEFAULT ''");
 
         self::dropColumnIfPresent($pdo, 'sites', 'consumer_key');
         self::dropColumnIfPresent($pdo, 'sites', 'consumer_secret');
