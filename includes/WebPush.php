@@ -114,7 +114,13 @@ function webpush_vapid_jwt(string $audience, string $privatePem): string
     $signingInput = $header . '.' . $payload;
 
     $privRes = openssl_pkey_get_private($privatePem);
-    openssl_sign($signingInput, $derSignature, $privRes, OPENSSL_ALGO_SHA256);
+    if ($privRes === false) {
+        throw new RuntimeException('Failed to load VAPID private key.');
+    }
+    $signed = openssl_sign($signingInput, $derSignature, $privRes, OPENSSL_ALGO_SHA256);
+    if ($signed === false) {
+        throw new RuntimeException('VAPID JWT signing failed.');
+    }
 
     return $signingInput . '.' . webpush_b64url_encode(webpush_der_to_raw_signature($derSignature));
 }
@@ -145,65 +151,69 @@ function webpush_derive_content_encryption_key(string $ecdhSecret, string $authS
  */
 function send_web_push(array $subscription, array $payload): array
 {
-    [$vapidPublic, $vapidPrivatePem] = webpush_vapid_keypair();
+    try {
+        [$vapidPublic, $vapidPrivatePem] = webpush_vapid_keypair();
 
-    $endpoint = $subscription['endpoint'];
-    $uaPublic = webpush_b64url_decode($subscription['p256dh']);
-    $authSecret = webpush_b64url_decode($subscription['auth']);
+        $endpoint = $subscription['endpoint'];
+        $uaPublic = webpush_b64url_decode($subscription['p256dh']);
+        $authSecret = webpush_b64url_decode($subscription['auth']);
 
-    $asRes = openssl_pkey_new(['curve_name' => 'prime256v1', 'private_key_type' => OPENSSL_KEYTYPE_EC]);
-    if ($asRes === false) {
-        return ['ok' => false, 'error' => 'Failed to generate ephemeral key.', 'gone' => false];
+        $asRes = openssl_pkey_new(['curve_name' => 'prime256v1', 'private_key_type' => OPENSSL_KEYTYPE_EC]);
+        if ($asRes === false) {
+            return ['ok' => false, 'error' => 'Failed to generate ephemeral key.', 'gone' => false];
+        }
+        $asDetails = openssl_pkey_get_details($asRes);
+        $asPublic = "\x04" . $asDetails['ec']['x'] . $asDetails['ec']['y'];
+
+        $uaPubRes = webpush_ec_public_key_resource($uaPublic);
+        $sharedSecret = openssl_pkey_derive($uaPubRes, $asRes, 32);
+        if ($sharedSecret === false) {
+            return ['ok' => false, 'error' => 'ECDH key derivation failed.', 'gone' => false];
+        }
+
+        $salt = random_bytes(16);
+        [$cek, $nonce] = webpush_derive_content_encryption_key($sharedSecret, $authSecret, $salt, $uaPublic, $asPublic);
+
+        $plaintext = json_encode($payload, JSON_UNESCAPED_UNICODE) . "\x02";
+        $tag = '';
+        $ciphertext = openssl_encrypt($plaintext, 'aes-128-gcm', $cek, OPENSSL_RAW_DATA, $nonce, $tag, '', 16);
+        if ($ciphertext === false) {
+            return ['ok' => false, 'error' => 'Payload encryption failed.', 'gone' => false];
+        }
+
+        $recordSize = 4096;
+        $body = $salt . pack('N', $recordSize) . chr(strlen($asPublic)) . $asPublic . $ciphertext . $tag;
+
+        $audience = parse_url($endpoint, PHP_URL_SCHEME) . '://' . parse_url($endpoint, PHP_URL_HOST);
+        $jwt = webpush_vapid_jwt($audience, $vapidPrivatePem);
+
+        $ch = curl_init($endpoint);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/octet-stream',
+            'Content-Encoding: aes128gcm',
+            'TTL: 60',
+            'Authorization: vapid t=' . $jwt . ', k=' . $vapidPublic,
+        ]);
+        curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        if ($httpCode === 404 || $httpCode === 410) {
+            return ['ok' => false, 'error' => 'Subscription expired.', 'gone' => true];
+        }
+        if ($httpCode < 200 || $httpCode >= 300) {
+            return ['ok' => false, 'error' => $curlError !== '' ? $curlError : "Push service returned HTTP {$httpCode}.", 'gone' => false];
+        }
+
+        return ['ok' => true, 'error' => null, 'gone' => false];
+    } catch (Throwable $e) {
+        return ['ok' => false, 'error' => $e->getMessage(), 'gone' => false];
     }
-    $asDetails = openssl_pkey_get_details($asRes);
-    $asPublic = "\x04" . $asDetails['ec']['x'] . $asDetails['ec']['y'];
-
-    $uaPubRes = webpush_ec_public_key_resource($uaPublic);
-    $sharedSecret = openssl_pkey_derive($uaPubRes, $asRes, 32);
-    if ($sharedSecret === false) {
-        return ['ok' => false, 'error' => 'ECDH key derivation failed.', 'gone' => false];
-    }
-
-    $salt = random_bytes(16);
-    [$cek, $nonce] = webpush_derive_content_encryption_key($sharedSecret, $authSecret, $salt, $uaPublic, $asPublic);
-
-    $plaintext = json_encode($payload, JSON_UNESCAPED_UNICODE) . "\x02";
-    $tag = '';
-    $ciphertext = openssl_encrypt($plaintext, 'aes-128-gcm', $cek, OPENSSL_RAW_DATA, $nonce, $tag, '', 16);
-    if ($ciphertext === false) {
-        return ['ok' => false, 'error' => 'Payload encryption failed.', 'gone' => false];
-    }
-
-    $recordSize = 4096;
-    $body = $salt . pack('N', $recordSize) . chr(strlen($asPublic)) . $asPublic . $ciphertext . $tag;
-
-    $audience = parse_url($endpoint, PHP_URL_SCHEME) . '://' . parse_url($endpoint, PHP_URL_HOST);
-    $jwt = webpush_vapid_jwt($audience, $vapidPrivatePem);
-
-    $ch = curl_init($endpoint);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 15);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Content-Type: application/octet-stream',
-        'Content-Encoding: aes128gcm',
-        'TTL: 60',
-        'Authorization: vapid t=' . $jwt . ', k=' . $vapidPublic,
-    ]);
-    curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curlError = curl_error($ch);
-    curl_close($ch);
-
-    if ($httpCode === 404 || $httpCode === 410) {
-        return ['ok' => false, 'error' => 'Subscription expired.', 'gone' => true];
-    }
-    if ($httpCode < 200 || $httpCode >= 300) {
-        return ['ok' => false, 'error' => $curlError !== '' ? $curlError : "Push service returned HTTP {$httpCode}.", 'gone' => false];
-    }
-
-    return ['ok' => true, 'error' => null, 'gone' => false];
 }
 
 function add_push_subscription(int $userId, string $endpoint, string $p256dh, string $auth): void
