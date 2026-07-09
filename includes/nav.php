@@ -5,7 +5,7 @@ require_once __DIR__ . '/i18n.php';
 /**
  * Shared bottom navigation bar.
  *
- * @param string $active One of: products, logs, settings
+ * @param string $active One of: products, tasks, logs, settings
  * @param array  $user    Current user (['role' => ...])
  */
 function render_bottom_nav(string $active, array $user): void
@@ -17,6 +17,9 @@ function render_bottom_nav(string $active, array $user): void
     <nav class="bottom-nav fixed bottom-0 left-0 right-0 z-20 bg-white border-t border-gray-100 flex">
       <a href="/products.php" class="flex-1 py-3 text-center text-xs font-medium <?php echo $cls('products'); ?>">
         <div class="text-lg leading-none mb-0.5">▤</div><?php echo htmlspecialchars(t('nav_products')); ?>
+      </a>
+      <a href="/tasks.php" class="flex-1 py-3 text-center text-xs font-medium <?php echo $cls('tasks'); ?>">
+        <div class="text-lg leading-none mb-0.5">&#10003;</div><?php echo htmlspecialchars(t('nav_tasks')); ?>
       </a>
       <a href="/logs.php" class="flex-1 py-3 text-center text-xs font-medium <?php echo $cls('logs'); ?>">
         <div class="text-lg leading-none mb-0.5">🕒</div><?php echo htmlspecialchars(t('nav_logs')); ?>
@@ -50,7 +53,7 @@ function render_site_switcher(array $site): void
  * bar. Add the `has-sidebar` class to <body> on pages that include this so
  * content gets the matching inline padding (see app.css).
  *
- * @param string     $active One of: products, logs, settings
+ * @param string     $active One of: products, tasks, logs, settings
  * @param array|null $site   Current site, if this page is site-scoped (omit for global pages like logs/settings).
  */
 function render_desktop_sidebar(string $active, array $user, ?array $site = null): void
@@ -76,6 +79,9 @@ function render_desktop_sidebar(string $active, array $user, ?array $site = null
       <nav class="flex-1 px-2 py-3 space-y-1">
         <a href="/products.php" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium <?php echo $cls('products'); ?>">
           <span class="text-base leading-none">▤</span><?php echo htmlspecialchars(t('nav_products')); ?>
+        </a>
+        <a href="/tasks.php" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium <?php echo $cls('tasks'); ?>">
+          <span class="text-base leading-none">&#10003;</span><?php echo htmlspecialchars(t('nav_tasks')); ?>
         </a>
         <a href="/logs.php" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium <?php echo $cls('logs'); ?>">
           <span class="text-base leading-none">🕒</span><?php echo htmlspecialchars(t('nav_logs')); ?>
