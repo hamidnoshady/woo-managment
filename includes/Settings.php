@@ -29,6 +29,10 @@ const SETTINGS_DEFAULTS = [
     's3_access_key'        => '',
     's3_secret_key'        => '',
     'backup_retention_days' => 30,
+    'kavenegar_sms_api_key' => '',
+    'kavenegar_sms_sender'  => '',
+    'vapid_public_key'      => '',
+    'vapid_private_key_pem' => '',
 ];
 
 /**
@@ -155,6 +159,18 @@ const SETTINGS_FIELDS = [
         'type' => 'number',
         'group' => 'Backups (S3)',
         'help' => 'Backups older than this are deleted from S3 automatically after each run.',
+    ],
+    'kavenegar_sms_api_key' => [
+        'label' => 'Kavenegar SMS API key',
+        'type' => 'password',
+        'group' => 'Kavenegar (SMS notifications)',
+        'help' => 'A separate Kavenegar account/token used to send task notification SMS (distinct from the login-code API key above).',
+    ],
+    'kavenegar_sms_sender' => [
+        'label' => 'Kavenegar sender line number',
+        'type' => 'text',
+        'group' => 'Kavenegar (SMS notifications)',
+        'help' => 'Sender line number configured in your Kavenegar panel, required by the plain Send API.',
     ],
 ];
 

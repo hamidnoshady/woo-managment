@@ -23,6 +23,7 @@ function settings_group_key(string $group): string
         'Superadmins'         => 'group_superadmins',
         'AI (OpenRouter)'     => 'group_ai',
         'Backups (S3)'        => 'group_backup',
+        'Kavenegar (SMS notifications)' => 'group_kavenegar_sms',
     ];
 
     return $map[$group] ?? $group;
