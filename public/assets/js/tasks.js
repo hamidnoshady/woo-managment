@@ -99,7 +99,97 @@ function closeTaskSheet() {
   document.getElementById('task-sheet').classList.add('hidden');
 }
 
+let currentDetailTaskId = null;
+
+async function loadComments(taskId) {
+  const container = document.getElementById('task-detail-comments');
+  container.innerHTML = '';
+  const data = await App.api(`/api/task-comments.php?task_id=${taskId}`);
+  data.items.forEach((c) => {
+    const div = document.createElement('div');
+    div.className = 'text-xs bg-gray-50 rounded-xl px-3 py-2';
+    div.innerHTML = `<span class="font-medium text-gray-700">${escapeHtml(c.user_name)}</span>: <span class="text-gray-600">${escapeHtml(c.body)}</span>`;
+    container.appendChild(div);
+  });
+}
+
+async function openTaskDetail(taskId) {
+  const task = currentTasks.find((t2) => t2.id === taskId);
+  if (!task) return;
+
+  currentDetailTaskId = taskId;
+
+  document.getElementById('task-detail-title').textContent = task.title;
+  document.getElementById('task-detail-description').textContent = task.description;
+  document.getElementById('task-detail-due').textContent = task.due_date ? `${t('task_due_date')}: ${task.due_date}` : '';
+  document.getElementById('task-detail-assignees').textContent = `${t('task_assignees_label')}: ${task.assignees.map((a) => a.name || a.phone).join(', ')}`;
+  document.getElementById('task-detail-status').value = task.status;
+  document.getElementById('task-detail-notify').classList.toggle('hidden', !window.IS_TASK_MANAGER);
+
+  await loadComments(taskId);
+
+  document.getElementById('task-detail-sheet').classList.remove('hidden');
+}
+
+function closeTaskDetail() {
+  document.getElementById('task-detail-sheet').classList.add('hidden');
+  currentDetailTaskId = null;
+}
+
+async function sendNotify(channel) {
+  try {
+    const data = await App.api('/api/task-notify.php', {
+      method: 'POST',
+      body: JSON.stringify({ id: currentDetailTaskId, channel }),
+    });
+    const allOk = data.results.every((r) => r.ok);
+    App.toast(allOk ? t('task_notify_sent') : t('task_notify_failed'), allOk ? 'success' : 'error');
+  } catch (e) {
+    App.toast(e.message, 'error');
+  }
+}
+
+function bindDetailEvents() {
+  document.getElementById('task-detail-close').addEventListener('click', closeTaskDetail);
+  document.getElementById('task-detail-overlay').addEventListener('click', closeTaskDetail);
+
+  document.getElementById('task-detail-status').addEventListener('change', async (event) => {
+    try {
+      await App.api('/api/task-update.php', {
+        method: 'POST',
+        body: JSON.stringify({ id: currentDetailTaskId, status: event.target.value }),
+      });
+      loadTasks();
+    } catch (e) {
+      App.toast(e.message, 'error');
+    }
+  });
+
+  document.getElementById('task-notify-sms-btn').addEventListener('click', () => sendNotify('sms'));
+  document.getElementById('task-notify-push-btn').addEventListener('click', () => sendNotify('push'));
+
+  document.getElementById('task-comment-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const input = document.getElementById('task-comment-input');
+    const body = input.value.trim();
+    if (!body) return;
+
+    try {
+      await App.api('/api/task-comments.php', {
+        method: 'POST',
+        body: JSON.stringify({ task_id: currentDetailTaskId, body }),
+      });
+      input.value = '';
+      await loadComments(currentDetailTaskId);
+    } catch (e) {
+      App.toast(e.message, 'error');
+    }
+  });
+}
+
 function bindEvents() {
+  bindDetailEvents();
+
   const addFab = document.getElementById('add-fab');
   if (addFab) {
     addFab.addEventListener('click', () => openTaskSheet());

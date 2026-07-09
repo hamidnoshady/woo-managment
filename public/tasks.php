@@ -99,6 +99,44 @@ $isManager = in_array($user['role'], ['superadmin', 'admin'], true);
     </div>
   </div>
 
+  <!-- Task detail sheet -->
+  <div id="task-detail-sheet" class="hidden fixed inset-0 z-40">
+    <div id="task-detail-overlay" class="absolute inset-0 bg-black/40"></div>
+    <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl p-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-4">
+        <h2 id="task-detail-title" class="text-base font-semibold text-gray-900"></h2>
+        <button id="task-detail-close" class="text-gray-400 text-xl leading-none">&times;</button>
+      </div>
+
+      <p id="task-detail-description" class="text-sm text-gray-600 mb-3"></p>
+      <p id="task-detail-due" class="text-xs text-gray-500 mb-1"></p>
+      <p id="task-detail-assignees" class="text-xs text-gray-500 mb-3"></p>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo htmlspecialchars(t('task_status_todo')); ?> / <?php echo htmlspecialchars(t('task_status_done')); ?></label>
+        <select id="task-detail-status" class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm">
+          <option value="todo"><?php echo htmlspecialchars(t('task_status_todo')); ?></option>
+          <option value="in_progress"><?php echo htmlspecialchars(t('task_status_in_progress')); ?></option>
+          <option value="done"><?php echo htmlspecialchars(t('task_status_done')); ?></option>
+        </select>
+      </div>
+
+      <div id="task-detail-notify" class="hidden flex gap-2 mb-4">
+        <button id="task-notify-sms-btn" class="flex-1 rounded-xl border border-gray-300 py-2.5 text-sm font-medium text-gray-700"><?php echo htmlspecialchars(t('task_send_sms')); ?></button>
+        <button id="task-notify-push-btn" class="flex-1 rounded-xl border border-gray-300 py-2.5 text-sm font-medium text-gray-700"><?php echo htmlspecialchars(t('task_send_push')); ?></button>
+      </div>
+
+      <h3 class="text-sm font-semibold text-gray-900 mb-2"><?php echo htmlspecialchars(t('task_comments')); ?></h3>
+      <div id="task-detail-comments" class="space-y-2 mb-3"></div>
+
+      <form id="task-comment-form" class="flex gap-2">
+        <input id="task-comment-input" type="text" placeholder="<?php echo htmlspecialchars(t('task_comment_placeholder')); ?>"
+               class="flex-1 rounded-xl border border-gray-300 px-3 py-2.5 text-sm">
+        <button type="submit" class="rounded-xl bg-gray-900 text-white px-4 py-2.5 text-sm font-medium"><?php echo htmlspecialchars(t('task_send_comment')); ?></button>
+      </form>
+    </div>
+  </div>
+
   <script>
     window.CURRENT_USER = <?php echo json_encode(['id' => $user['id'], 'phone' => $user['phone'], 'name' => $user['name'], 'role' => $user['role']]); ?>;
     window.CURRENT_SITE = <?php echo json_encode(['id' => $site['id'], 'name' => $site['name']]); ?>;
