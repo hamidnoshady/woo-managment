@@ -181,6 +181,61 @@ class Database
         );
 
         $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS tasks (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                site_id INT NOT NULL,
+                title VARCHAR(255) NOT NULL,
+                description TEXT NULL,
+                due_date DATE NULL,
+                priority VARCHAR(10) NOT NULL DEFAULT \'medium\' CHECK (priority IN (\'low\', \'medium\', \'high\')),
+                status VARCHAR(20) NOT NULL DEFAULT \'todo\' CHECK (status IN (\'todo\', \'in_progress\', \'done\')),
+                created_by INT NOT NULL,
+                created_at INT NOT NULL,
+                updated_at INT NOT NULL,
+                KEY idx_tasks_site (site_id, id),
+                CONSTRAINT fk_tasks_site FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE,
+                CONSTRAINT fk_tasks_created_by FOREIGN KEY (created_by) REFERENCES users(id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
+        );
+
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS task_assignees (
+                task_id INT NOT NULL,
+                user_id INT NOT NULL,
+                PRIMARY KEY (task_id, user_id),
+                CONSTRAINT fk_ta_task FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+                CONSTRAINT fk_ta_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
+        );
+
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS task_comments (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                task_id INT NOT NULL,
+                user_id INT NOT NULL,
+                body TEXT NOT NULL,
+                created_at INT NOT NULL,
+                KEY idx_task_comments_task (task_id, id),
+                CONSTRAINT fk_tc_task FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+                CONSTRAINT fk_tc_user FOREIGN KEY (user_id) REFERENCES users(id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
+        );
+
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS push_subscriptions (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                endpoint VARCHAR(500) NOT NULL,
+                p256dh VARCHAR(255) NOT NULL,
+                auth VARCHAR(255) NOT NULL,
+                created_at INT NOT NULL,
+                UNIQUE KEY uniq_push_endpoint (endpoint),
+                KEY idx_push_subscriptions_user (user_id),
+                CONSTRAINT fk_ps_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
+        );
+
+        $pdo->exec(
             'CREATE TABLE IF NOT EXISTS batch_jobs (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 site_id INT NOT NULL,
