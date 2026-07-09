@@ -6,6 +6,12 @@
 let currentTasks = [];
 let assignableUsers = [];
 
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str ?? '';
+  return div.innerHTML;
+}
+
 async function loadAssignableUsers() {
   if (!window.IS_TASK_MANAGER) return;
   try {
@@ -23,7 +29,7 @@ function renderAssigneeCheckboxes(selectedIds = []) {
     const label = document.createElement('label');
     label.className = 'flex items-center gap-2 text-sm text-gray-700';
     const checked = selectedIds.includes(u.id) ? 'checked' : '';
-    label.innerHTML = `<input type="checkbox" class="task-assignee-checkbox h-4 w-4 rounded border-gray-300" value="${u.id}" ${checked}> ${u.name || u.phone}`;
+    label.innerHTML = `<input type="checkbox" class="task-assignee-checkbox h-4 w-4 rounded border-gray-300" value="${u.id}" ${checked}> ${escapeHtml(u.name || u.phone)}`;
     container.appendChild(label);
   });
 }
@@ -39,14 +45,14 @@ function renderTaskCard(task) {
   div.className = 'task-card bg-white rounded-2xl border border-gray-100 p-4 cursor-pointer';
   div.dataset.id = task.id;
 
-  const assigneeNames = task.assignees.map((a) => a.name || a.phone).join(', ');
+  const assigneeNames = task.assignees.map((a) => escapeHtml(a.name || a.phone)).join(', ');
 
   div.innerHTML = `
     <div class="flex items-start justify-between gap-2">
-      <h3 class="text-sm font-semibold text-gray-900">${task.title}</h3>
+      <h3 class="text-sm font-semibold text-gray-900">${escapeHtml(task.title)}</h3>
       <span class="text-xs px-2 py-0.5 rounded-full ${priorityBadgeClass(task.priority)}">${t('task_priority_' + task.priority)}</span>
     </div>
-    <p class="text-xs text-gray-500 mt-1">${t('task_status_' + task.status)}${task.due_date ? ' · ' + task.due_date : ''}</p>
+    <p class="text-xs text-gray-500 mt-1">${t('task_status_' + task.status)}${task.due_date ? ' · ' + escapeHtml(task.due_date) : ''}</p>
     <p class="text-xs text-gray-400 mt-1">${assigneeNames}</p>
   `;
 
