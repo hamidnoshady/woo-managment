@@ -126,6 +126,7 @@ async function openTaskDetail(taskId) {
   document.getElementById('task-detail-assignees').textContent = `${t('task_assignees_label')}: ${task.assignees.map((a) => a.name || a.phone).join(', ')}`;
   document.getElementById('task-detail-status').value = task.status;
   document.getElementById('task-detail-notify').classList.toggle('hidden', !window.IS_TASK_MANAGER);
+  document.getElementById('task-detail-edit-btn').classList.toggle('hidden', !window.IS_TASK_MANAGER);
 
   await loadComments(taskId);
 
@@ -168,6 +169,13 @@ function bindDetailEvents() {
 
   document.getElementById('task-notify-sms-btn').addEventListener('click', () => sendNotify('sms'));
   document.getElementById('task-notify-push-btn').addEventListener('click', () => sendNotify('push'));
+
+  document.getElementById('task-detail-edit-btn').addEventListener('click', () => {
+    const task = currentTasks.find((t2) => t2.id === currentDetailTaskId);
+    if (!task) return;
+    closeTaskDetail();
+    openTaskSheet(task);
+  });
 
   document.getElementById('task-comment-form').addEventListener('submit', async (event) => {
     event.preventDefault();

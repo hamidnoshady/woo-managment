@@ -126,6 +126,8 @@ $isManager = in_array($user['role'], ['superadmin', 'admin'], true);
         <button id="task-notify-push-btn" class="flex-1 rounded-xl border border-gray-300 py-2.5 text-sm font-medium text-gray-700"><?php echo htmlspecialchars(t('task_send_push')); ?></button>
       </div>
 
+      <button id="task-detail-edit-btn" class="hidden w-full rounded-xl border border-gray-300 py-2.5 text-sm font-medium text-gray-700 mb-4"><?php echo htmlspecialchars(t('edit_task')); ?></button>
+
       <h3 class="text-sm font-semibold text-gray-900 mb-2"><?php echo htmlspecialchars(t('task_comments')); ?></h3>
       <div id="task-detail-comments" class="space-y-2 mb-3"></div>
 
