@@ -44,3 +44,38 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
+self.addEventListener('push', (event) => {
+  let payload = { title: 'Notification', body: '' };
+  try {
+    payload = event.data.json();
+  } catch (e) {
+    // Non-JSON push payload: fall back to the default above.
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title || 'Notification', {
+      body: payload.body || '',
+      icon: '/assets/icons/icon.svg',
+      data: { url: payload.url || '/' },
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || '/';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.endsWith(url) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(url);
+      }
+    })
+  );
+});
