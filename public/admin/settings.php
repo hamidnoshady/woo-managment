@@ -15,7 +15,7 @@ $user = require_superadmin_page();
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title><?php echo htmlspecialchars(t('settings_title')); ?></title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/assets/css/app.css">
+  <link rel="stylesheet" href="<?= asset_url('/assets/css/app.css') ?>">
   <?php render_pwa_head(); ?>
 </head>
 <body class="bg-gray-50 min-h-screen has-bottom-nav has-sidebar">
@@ -46,9 +46,9 @@ $user = require_superadmin_page();
   <script>
     window.CURRENT_USER = <?php echo json_encode(['id' => $user['id'], 'phone' => $user['phone'], 'name' => $user['name'], 'role' => $user['role']]); ?>;
   </script>
-  <script src="/assets/js/i18n.js"></script>
-  <script src="/assets/js/app.js"></script>
-  <script src="/assets/js/admin-settings.js"></script>
+  <script src="<?= asset_url('/assets/js/i18n.js') ?>"></script>
+  <script src="<?= asset_url('/assets/js/app.js') ?>"></script>
+  <script src="<?= asset_url('/assets/js/admin-settings.js') ?>"></script>
   <?php render_pwa_register_script(); ?>
 </body>
 </html>

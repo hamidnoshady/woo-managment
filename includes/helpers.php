@@ -14,6 +14,20 @@ const PRODUCTS_CACHE_TTL_SECONDS = 10;
 const TAXONOMIES_CACHE_TTL_SECONDS = 10;
 
 /**
+ * Builds a /assets/... URL with a `?v=<mtime>` cache-busting query string,
+ * so a deploy that changes a JS/CSS file's content changes its URL too -
+ * browsers and the service worker (public/sw.js caches by request URL)
+ * fetch the new version immediately instead of serving a stale copy until
+ * the 24h Cache-Control max-age expires or the user hard-refreshes.
+ */
+function asset_url(string $path): string
+{
+    $file = __DIR__ . '/../public' . $path;
+    $mtime = @filemtime($file);
+    return $path . ($mtime ? '?v=' . $mtime : '');
+}
+
+/**
  * Invalidates every cached products-list variant for a site. Call this
  * after any request that creates, updates, or deletes a product (or its
  * stock) on that site, so the next list fetch reflects the change

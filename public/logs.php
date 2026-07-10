@@ -4,8 +4,17 @@ require_once __DIR__ . '/../includes/helpers.php';
 require_once __DIR__ . '/../includes/pwa.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/nav.php';
+require_once __DIR__ . '/../includes/Sites.php';
+require_once __DIR__ . '/../includes/Users.php';
 
 $user = require_login_page();
+
+$sites = $user['role'] === 'superadmin' ? list_all_sites() : list_sites_for_user($user);
+$accessibleSiteIds = array_map(fn($s) => (int) $s['id'], $sites);
+$logUsers = array_values(array_filter(
+    list_users(),
+    fn($u) => $user['role'] === 'superadmin' || array_intersect($u['site_ids'], $accessibleSiteIds)
+));
 ?>
 <!DOCTYPE html>
 <html <?php echo html_attrs(); ?>>
@@ -14,7 +23,7 @@ $user = require_login_page();
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title><?php echo htmlspecialchars(t('logs_title')); ?></title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/assets/css/app.css">
+  <link rel="stylesheet" href="<?= asset_url('/assets/css/app.css') ?>">
   <?php render_pwa_head(); ?>
 </head>
 <body class="bg-gray-50 min-h-screen has-bottom-nav has-sidebar">
@@ -30,6 +39,26 @@ $user = require_login_page();
       <button data-scope="mine" class="scope-btn flex-1 rounded-xl border border-gray-300 px-3 py-2 text-sm font-medium"><?php echo htmlspecialchars(t('my_logs')); ?></button>
       <button data-scope="site" class="scope-btn flex-1 rounded-xl border border-gray-300 px-3 py-2 text-sm font-medium"><?php echo htmlspecialchars(t('site_logs')); ?></button>
       <button data-scope="system" class="scope-btn flex-1 rounded-xl border border-gray-300 px-3 py-2 text-sm font-medium"><?php echo htmlspecialchars(t('system_logs')); ?></button>
+    </div>
+    <?php endif; ?>
+    <?php if (count($sites) > 1 || count($logUsers) > 1): ?>
+    <div class="px-4 pb-3 flex gap-2">
+      <?php if (count($sites) > 1): ?>
+      <select id="log-site-filter" class="flex-1 rounded-xl border border-gray-300 px-3 py-2 text-sm">
+        <option value=""><?php echo htmlspecialchars(t('logs_filter_all_sites')); ?></option>
+        <?php foreach ($sites as $s): ?>
+        <option value="<?php echo (int) $s['id']; ?>"><?php echo htmlspecialchars($s['name']); ?></option>
+        <?php endforeach; ?>
+      </select>
+      <?php endif; ?>
+      <?php if (count($logUsers) > 1): ?>
+      <select id="log-user-filter" class="flex-1 rounded-xl border border-gray-300 px-3 py-2 text-sm">
+        <option value=""><?php echo htmlspecialchars(t('logs_filter_all_users')); ?></option>
+        <?php foreach ($logUsers as $u): ?>
+        <option value="<?php echo (int) $u['id']; ?>"><?php echo htmlspecialchars($u['name'] ?: $u['phone']); ?></option>
+        <?php endforeach; ?>
+      </select>
+      <?php endif; ?>
     </div>
     <?php endif; ?>
   </header>
@@ -49,9 +78,9 @@ $user = require_login_page();
   <script>
     window.CURRENT_USER = <?php echo json_encode(['id' => $user['id'], 'phone' => $user['phone'], 'name' => $user['name'], 'role' => $user['role']]); ?>;
   </script>
-  <script src="/assets/js/i18n.js"></script>
-  <script src="/assets/js/app.js"></script>
-  <script src="/assets/js/logs.js"></script>
+  <script src="<?= asset_url('/assets/js/i18n.js') ?>"></script>
+  <script src="<?= asset_url('/assets/js/app.js') ?>"></script>
+  <script src="<?= asset_url('/assets/js/logs.js') ?>"></script>
   <?php render_pwa_register_script(); ?>
 
   <div id="batch-report-modal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-4">

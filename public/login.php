@@ -26,7 +26,7 @@ if (current_user() !== null) {
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title><?php echo htmlspecialchars(t('sign_in_title')); ?></title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/assets/css/app.css">
+  <link rel="stylesheet" href="<?= asset_url('/assets/css/app.css') ?>">
   <?php render_pwa_head(); ?>
 </head>
 <body class="bg-gray-50 min-h-screen flex items-center justify-center px-4">
@@ -54,8 +54,8 @@ if (current_user() !== null) {
     <p class="text-center text-xs text-gray-400 mt-6"><?php echo htmlspecialchars(t('access_limited')); ?></p>
   </div>
 
-  <script src="/assets/js/i18n.js"></script>
-  <script src="/assets/js/app.js"></script>
+  <script src="<?= asset_url('/assets/js/i18n.js') ?>"></script>
+  <script src="<?= asset_url('/assets/js/app.js') ?>"></script>
   <script>
     const form = document.getElementById('login-form');
     const submitBtn = document.getElementById('submit-btn');
