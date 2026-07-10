@@ -22,6 +22,11 @@ class Wma_Settings
         return rtrim((string) get_option('wma_base_url', ''), '/');
     }
 
+    public static function get_channel(): string
+    {
+        return get_option('wma_update_channel', 'stable') === 'beta' ? 'beta' : 'stable';
+    }
+
     public static function register(): void
     {
         add_action('admin_menu', [self::class, 'add_menu']);
@@ -43,6 +48,7 @@ class Wma_Settings
     {
         register_setting('wma', 'wma_token');
         register_setting('wma', 'wma_base_url');
+        register_setting('wma', 'wma_update_channel');
     }
 
     public static function render_page(): void
@@ -62,6 +68,13 @@ class Wma_Settings
         echo '<input type="url" id="wma_base_url" name="wma_base_url" class="regular-text" value="' . esc_attr(self::get_base_url()) . '" required></td></tr>';
         echo '<tr><th><label for="wma_token">Pairing token</label></th><td>';
         echo '<input type="text" id="wma_token" name="wma_token" class="regular-text" value="' . esc_attr(self::get_token()) . '" required></td></tr>';
+        echo '<tr><th><label for="wma_update_channel">Update channel</label></th><td>';
+        echo '<select id="wma_update_channel" name="wma_update_channel">';
+        foreach (['stable' => 'Stable', 'beta' => 'Beta'] as $value => $label) {
+            $selected = self::get_channel() === $value ? ' selected' : '';
+            echo '<option value="' . esc_attr($value) . '"' . $selected . '>' . esc_html($label) . '</option>';
+        }
+        echo '</select></td></tr>';
         echo '</table>';
         submit_button('Save pairing');
         echo '</form></div>';

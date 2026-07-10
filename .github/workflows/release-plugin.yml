@@ -1,0 +1,50 @@
+name: Release WP plugin
+
+on:
+  pull_request:
+    branches: [main]
+    paths: ["wp-plugin/**"]
+  push:
+    branches: [main]
+    paths: ["wp-plugin/**"]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.UPDATE_FEED_TOKEN }}
+      REF: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.REF }}
+
+      - name: Read plugin version
+        id: ver
+        run: |
+          v=$(grep -m1 "Version:" wp-plugin/woo-mgmt-agent/woo-mgmt-agent.php | sed 's/.*Version:[[:space:]]*//')
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+
+      - name: Bake update token into plugin
+        run: sed -i "s|{{WMA_UPDATE_TOKEN}}|$GH_TOKEN|" wp-plugin/woo-mgmt-agent/woo-mgmt-agent.php
+
+      - name: Build zip
+        run: cd wp-plugin && zip -r woo-mgmt-agent.zip woo-mgmt-agent -x '*.DS_Store'
+
+      - name: Publish beta release (PR)
+        if: github.event_name == 'pull_request'
+        run: |
+          gh release delete beta --yes --cleanup-tag || true
+          gh release create beta wp-plugin/woo-mgmt-agent.zip \
+            --title "${{ steps.ver.outputs.version }}-beta.${{ github.event.pull_request.number }}" \
+            --notes "Built from ${{ env.REF }} (PR #${{ github.event.pull_request.number }})" \
+            --prerelease --target "$REF"
+
+      - name: Publish stable release (main)
+        if: github.event_name == 'push'
+        run: |
+          gh release delete stable --yes --cleanup-tag || true
+          gh release create stable wp-plugin/woo-mgmt-agent.zip \
+            --title "${{ steps.ver.outputs.version }}" \
+            --notes "Built from ${{ env.REF }}" \
+            --target "$REF"
