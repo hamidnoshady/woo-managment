@@ -33,6 +33,10 @@ const SETTINGS_DEFAULTS = [
     'da_admin_username'    => '',
     'da_login_key'         => '',
     'da_self_username'     => '',
+    'kavenegar_sms_api_key' => '',
+    'kavenegar_sms_sender'  => '',
+    'vapid_public_key'      => '',
+    'vapid_private_key_pem' => '',
 ];
 
 /**
@@ -183,6 +187,18 @@ const SETTINGS_FIELDS = [
         'type' => 'text',
         'group' => 'DirectAdmin / JetBackup',
         'help' => 'The DirectAdmin account woo-managment itself runs under, used only for its own "Run backup now" button on Admin -> Backups.',
+    ],
+    'kavenegar_sms_api_key' => [
+        'label' => 'Kavenegar SMS API key',
+        'type' => 'password',
+        'group' => 'Kavenegar (SMS notifications)',
+        'help' => 'A separate Kavenegar account/token used to send task notification SMS (distinct from the login-code API key above).',
+    ],
+    'kavenegar_sms_sender' => [
+        'label' => 'Kavenegar sender line number',
+        'type' => 'text',
+        'group' => 'Kavenegar (SMS notifications)',
+        'help' => 'Sender line number configured in your Kavenegar panel, required by the plain Send API.',
     ],
 ];
 

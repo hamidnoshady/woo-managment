@@ -24,6 +24,7 @@ function settings_group_key(string $group): string
         'AI (OpenRouter)'     => 'group_ai',
         'Backups (S3)'        => 'group_backup',
         'DirectAdmin / JetBackup' => 'group_jetbackup',
+        'Kavenegar (SMS notifications)' => 'group_kavenegar_sms',
     ];
 
     return $map[$group] ?? $group;
