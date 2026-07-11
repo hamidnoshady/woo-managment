@@ -233,9 +233,17 @@ class Wma_Products
         return ['attributes' => $attributes];
     }
 
+    private const PRODUCT_TYPE_CLASSES = [
+        'simple' => WC_Product_Simple::class,
+        'variable' => WC_Product_Variable::class,
+    ];
+
     public static function create_product(array $data): array
     {
-        $product = new WC_Product_Simple();
+        $type = (string) ($data['type'] ?? 'simple');
+        $class = self::PRODUCT_TYPE_CLASSES[$type] ?? WC_Product_Simple::class;
+
+        $product = new $class();
         $product->save(); // assign a real post ID before any taxonomy term assignment
         self::apply_fields($product, $data);
         $product->save();
@@ -248,6 +256,20 @@ class Wma_Products
         if (!$product) {
             return null;
         }
+
+        // Changing an existing product's type isn't a setter on the object
+        // (WC_Product is one concrete class per type) - it's the
+        // `product_type` taxonomy term, which wc_get_product() reads to
+        // decide which class to instantiate. Swap the term, then reload.
+        $type = (string) ($data['type'] ?? '');
+        if ($type !== '' && $type !== $product->get_type() && array_key_exists($type, self::PRODUCT_TYPE_CLASSES)) {
+            wp_set_object_terms($id, $type, 'product_type');
+            $product = wc_get_product($id);
+            if (!$product) {
+                return null;
+            }
+        }
+
         self::apply_fields($product, $data);
         $product->save();
         return self::product_to_array($product);
