@@ -216,6 +216,7 @@ function map_product_detail(array $product): array
         'images' => array_map(fn($img) => ['id' => $img['id'] ?? null, 'src' => $img['src']], $product['images'] ?? []),
         'status' => $product['status'] ?? 'publish',
         'permalink' => $product['permalink'] ?? null,
+        'attributes' => $product['attributes'] ?? [],
     ];
 }
 
@@ -293,9 +294,32 @@ function build_product_payload(array $body): array
         }
     }
 
-    if (!isset($body['id']) || (int) $body['id'] <= 0) {
-        // New products default to a simple product type.
+    $allowedTypes = ['simple', 'variable'];
+    if (isset($body['type']) && in_array($body['type'], $allowedTypes, true)) {
+        $data['type'] = $body['type'];
+    } elseif (!isset($body['id']) || (int) $body['id'] <= 0) {
+        // New products default to a simple product type when the client
+        // doesn't specify one.
         $data['type'] = 'simple';
+    }
+
+    if (isset($body['attributes']) && is_array($body['attributes'])) {
+        $attributes = [];
+        foreach ($body['attributes'] as $attr) {
+            if (!is_array($attr)) {
+                continue;
+            }
+            $name = trim((string) ($attr['name'] ?? ''));
+            $options = array_values(array_filter(array_map(
+                fn($o) => trim((string) $o),
+                (array) ($attr['options'] ?? [])
+            )));
+            if ($name === '' || empty($options)) {
+                continue;
+            }
+            $attributes[] = ['name' => $name, 'options' => $options];
+        }
+        $data['attributes'] = $attributes;
     }
 
     return $data;
@@ -376,7 +400,7 @@ function describe_product_changes(array $before, array $newData, array $after): 
         $parts[] = "{$label}: {$oldDisplay} \xE2\x86\x92 {$newDisplay}";
     }
 
-    $bulkFields = ['categories', 'images', 'short_description', 'description'];
+    $bulkFields = ['categories', 'images', 'short_description', 'description', 'attributes'];
     if (array_intersect($bulkFields, array_keys($newData))) {
         $parts[] = t('other_details_updated');
     }
