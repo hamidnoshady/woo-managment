@@ -17,7 +17,7 @@ $isManager = in_array($user['role'], ['superadmin', 'admin'], true);
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title><?php echo htmlspecialchars(t('tasks_title')); ?></title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/assets/css/app.css">
+  <link rel="stylesheet" href="<?= asset_url('/assets/css/app.css') ?>">
   <?php render_pwa_head(); ?>
 </head>
 <body class="bg-gray-50 min-h-screen has-bottom-nav has-sidebar">
@@ -144,9 +144,9 @@ $isManager = in_array($user['role'], ['superadmin', 'admin'], true);
     window.CURRENT_SITE = <?php echo json_encode(['id' => $site['id'], 'name' => $site['name']]); ?>;
     window.IS_TASK_MANAGER = <?php echo json_encode($isManager); ?>;
   </script>
-  <script src="/assets/js/i18n.js"></script>
-  <script src="/assets/js/app.js"></script>
-  <script src="/assets/js/tasks.js"></script>
+  <script src="<?= asset_url('/assets/js/i18n.js') ?>"></script>
+  <script src="<?= asset_url('/assets/js/app.js') ?>"></script>
+  <script src="<?= asset_url('/assets/js/tasks.js') ?>"></script>
   <?php render_pwa_register_script(); ?>
 </body>
 </html>

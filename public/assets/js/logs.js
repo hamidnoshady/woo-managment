@@ -9,6 +9,8 @@ const state = {
   totalPages: 1,
   loading: false,
   scope: 'mine',
+  siteId: '',
+  userId: '',
 };
 
 const listEl = document.getElementById('log-list');
@@ -58,6 +60,16 @@ function bindEvents() {
     });
   });
 
+  document.getElementById('log-site-filter')?.addEventListener('change', (e) => {
+    state.siteId = e.target.value;
+    loadLogs(true);
+  });
+
+  document.getElementById('log-user-filter')?.addEventListener('change', (e) => {
+    state.userId = e.target.value;
+    loadLogs(true);
+  });
+
   document.getElementById('logout-btn').addEventListener('click', () => App.logout());
 
   document.getElementById('batch-report-close').addEventListener('click', () => {
@@ -81,6 +93,8 @@ async function loadLogs(reset) {
     if (window.CURRENT_USER.role === 'superadmin') {
       params.set('scope', state.scope);
     }
+    if (state.siteId) params.set('site_id', state.siteId);
+    if (state.userId) params.set('user_id', state.userId);
 
     const data = await App.api(`/api/logs.php?${params.toString()}`);
     if (reset) {

@@ -17,7 +17,7 @@ $productId = (int) ($_GET['id'] ?? 0);
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title><?php echo htmlspecialchars($productId > 0 ? t('edit_product') : t('new_product')); ?> · Product Manager</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/assets/css/app.css">
+  <link rel="stylesheet" href="<?= asset_url('/assets/css/app.css') ?>">
   <?php render_pwa_head(); ?>
 </head>
 <body class="bg-gray-50 min-h-screen has-bottom-nav has-sidebar">
@@ -159,9 +159,9 @@ $productId = (int) ($_GET['id'] ?? 0);
     window.CURRENT_SITE = <?php echo json_encode(['id' => $site['id'], 'name' => $site['name']]); ?>;
     window.PRODUCT_ID = <?php echo (int) $productId; ?>;
   </script>
-  <script src="/assets/js/i18n.js"></script>
-  <script src="/assets/js/app.js"></script>
-  <script src="/assets/js/product-edit.js"></script>
+  <script src="<?= asset_url('/assets/js/i18n.js') ?>"></script>
+  <script src="<?= asset_url('/assets/js/app.js') ?>"></script>
+  <script src="<?= asset_url('/assets/js/product-edit.js') ?>"></script>
   <?php render_pwa_register_script(); ?>
 </body>
 </html>

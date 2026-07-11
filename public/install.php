@@ -57,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title><?php echo htmlspecialchars(t('install_title')); ?></title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/assets/css/app.css">
+  <link rel="stylesheet" href="<?= asset_url('/assets/css/app.css') ?>">
   <?php render_pwa_head(); ?>
 </head>
 <body class="bg-gray-50 min-h-screen flex items-center justify-center px-4">

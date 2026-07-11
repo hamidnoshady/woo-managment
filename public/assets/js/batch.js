@@ -152,13 +152,19 @@ function previewPrice() {
   runPreview(pendingRequest, (change) => {
     const parts = [];
     if (change.regular_price) {
-      parts.push(`<bdi dir="ltr">${escapeHtml(App.formatToman(change.regular_price.old))} → <strong>${escapeHtml(App.formatToman(change.regular_price.new))}</strong></bdi>`);
+      parts.push(formatPriceComparison(change.regular_price));
     }
     if (change.sale_price) {
-      parts.push(`<bdi dir="ltr">${escapeHtml(App.formatToman(change.sale_price.old))} → <strong>${escapeHtml(App.formatToman(change.sale_price.new))}</strong></bdi>`);
+      parts.push(formatPriceComparison(change.sale_price));
     }
     return parts.join(' · ');
   });
+}
+
+function formatPriceComparison(change) {
+  const oldVal = escapeHtml(App.formatPrice(change.old));
+  const newVal = escapeHtml(App.formatPrice(change.new));
+  return `<bdi dir="ltr">${oldVal} → <strong>${newVal}</strong></bdi>`;
 }
 
 function previewStock() {

@@ -93,8 +93,12 @@ function mark_activity_log_undone(int $id): void
  *   their own logs only. Default (null) returns everything.
  * - admin/shop_manager: sees site-management logs for every site they have
  *   access to (not just their own actions), so they can see who did what.
+ *
+ * $siteId, if given, narrows to a single site (a no-op if the user doesn't
+ * have access to it - the base site filter above already excludes it for
+ * non-superadmins). $filterUserId, if given, narrows to a single user.
  */
-function get_activity_logs(array $user, ?string $scope, int $page, int $perPage): array
+function get_activity_logs(array $user, ?string $scope, int $page, int $perPage, ?int $siteId = null, ?int $filterUserId = null): array
 {
     $pdo = Database::get();
     $page = max(1, $page);
@@ -126,9 +130,19 @@ function get_activity_logs(array $user, ?string $scope, int $page, int $perPage)
             $siteIds = [0];
         }
         $where[] = 'site_id IN (' . implode(',', array_fill(0, count($siteIds), '?')) . ')';
-        foreach ($siteIds as $siteId) {
-            $params[] = $siteId;
+        foreach ($siteIds as $sid) {
+            $params[] = $sid;
         }
+    }
+
+    if ($siteId !== null) {
+        $where[] = 'site_id = ?';
+        $params[] = $siteId;
+    }
+
+    if ($filterUserId !== null) {
+        $where[] = 'user_id = ?';
+        $params[] = $filterUserId;
     }
 
     $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';

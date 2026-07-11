@@ -286,9 +286,12 @@ input[type=number] {
     padding-right: 16rem;
   }
 
+  /* !important: Tailwind CDN's injected `.flex`/`.fixed` utilities (present
+     on the same elements) can land after app.css in the cascade, which
+     would otherwise override this at equal specificity. */
   .bottom-nav,
   .mobile-site-switcher {
-    display: none;
+    display: none !important;
   }
 
   #add-fab {

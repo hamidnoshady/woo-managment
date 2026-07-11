@@ -14,8 +14,10 @@ if ($method === 'GET' && $action === '') {
     $scope = $_GET['scope'] ?? null;
     $page = max(1, (int) ($_GET['page'] ?? 1));
     $perPage = (int) ($_GET['per_page'] ?? 20);
+    $siteId = isset($_GET['site_id']) && $_GET['site_id'] !== '' ? (int) $_GET['site_id'] : null;
+    $filterUserId = isset($_GET['user_id']) && $_GET['user_id'] !== '' ? (int) $_GET['user_id'] : null;
 
-    $result = get_activity_logs($user, is_string($scope) ? $scope : null, $page, $perPage);
+    $result = get_activity_logs($user, is_string($scope) ? $scope : null, $page, $perPage, $siteId, $filterUserId);
     json_response($result);
 }
 

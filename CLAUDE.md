@@ -95,6 +95,39 @@ to JS — any key read via a JS `t(...)` call must be added to both files
 external script/style/font source will be silently blocked by the browser —
 update the CSP header there if a new CDN is needed.
 
+## Auto-update (web app + WP plugin)
+
+Two independent self-update systems, both built on GitHub Releases on this
+private repo, both driven by the same `UPDATE_FEED_TOKEN` repo secret (a
+GitHub PAT needing **Contents: Read and write** — read-only 403s on release
+creation):
+
+- **WP plugin** (`wp-plugin/woo-mgmt-agent`, installed on merchant sites):
+  [.github/workflows/release-plugin.yml](.github/workflows/release-plugin.yml)
+  bakes the token into the plugin zip at build time and publishes it as the
+  `beta` (PRs) or `stable` (merges to main) release. The plugin's own
+  [class-wma-updater.php](wp-plugin/woo-mgmt-agent/includes/class-wma-updater.php)
+  polls that release via WordPress's native update-checker, using its
+  channel setting (`Settings → Woo Management Agent`).
+- **Web app itself**: [.github/workflows/release-webapp.yml](.github/workflows/release-webapp.yml)
+  zips `public/` + `includes/` and publishes `webapp-beta` / `webapp-stable`
+  releases the same way. Unlike the plugin, there's no build step to bake a
+  token into, so a superadmin pastes a GitHub token once under
+  **Admin → Settings → Web app updates**, alongside the beta/stable channel
+  select. [includes/AppUpdater.php](includes/AppUpdater.php) checks that
+  release against [includes/VERSION](includes/VERSION) (bump this file by
+  hand on releases that matter — there's no automatic semver bump), and on
+  "Update now" downloads + extracts the zip **over the live `public/` and
+  `includes/` directories in place** (same technique WordPress core uses),
+  skipping `includes/config.php` so DB credentials survive. No automatic
+  pre-update backup exists yet — it's a manual, superadmin-triggered action.
+  Deploying by uploading files (or `git pull`) still works exactly as
+  before; this just adds a second, optional path.
+
+Both channels compare `X.Y.Z-beta.N` release titles by stripping everything
+from the first `-` before `version_compare()`, so a beta build is never
+mistaken for older than the last stable release.
+
 ## Gotchas
 
 - `app.js`'s global `App` object has **no `.t()` method** — translation
@@ -109,7 +142,14 @@ update the CSP header there if a new CDN is needed.
   shows up in the UI automatically, but its `group` label is only translated
   if also added to `settings_group_key()`'s map in
   [public/api/settings.php](public/api/settings.php) — otherwise the raw
-  English group name silently leaks through regardless of language.
+  English group name silently leaks through regardless of language. Field
+  `type` is `'text'`, `'password'`, `'number'`, or `'select'` (add an
+  `'options'` array of `value => label`) — [admin-settings.js](public/assets/js/admin-settings.js)
+  renders whichever one you pick.
+- `apply_app_update()` in [includes/AppUpdater.php](includes/AppUpdater.php)
+  requires the PHP `zip` extension (`ZipArchive`), which — like `gd` above —
+  isn't guaranteed to be present on every host; it throws a catchable
+  `RuntimeException` rather than fataling if missing.
 - The admin sub-nav tab row (Users/Sites/Settings/Backups/...) is **not**
   centralized in [includes/nav.php](includes/nav.php) — it's duplicated
   inline near the top of every `public/admin/*.php` page. Adding a new

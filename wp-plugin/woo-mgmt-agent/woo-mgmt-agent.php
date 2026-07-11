@@ -10,10 +10,15 @@
 defined('ABSPATH') || exit;
 
 define('WMA_DIR', __DIR__);
+// Replaced with the real UPDATE_FEED_TOKEN secret at build time by
+// .github/workflows/release-plugin.yml; stays a placeholder in source
+// checkouts, which disables self-update (see Wma_Updater::token()).
+define('WMA_UPDATE_TOKEN', '{{WMA_UPDATE_TOKEN}}');
 
 require_once WMA_DIR . '/includes/class-wma-db.php';
 require_once WMA_DIR . '/includes/class-wma-settings.php';
 require_once WMA_DIR . '/includes/class-wma-auth.php';
+require_once WMA_DIR . '/includes/class-wma-updater.php';
 require_once WMA_DIR . '/includes/class-wma-relay.php';
 require_once WMA_DIR . '/includes/class-wma-db-dumper.php';
 require_once WMA_DIR . '/includes/class-wma-file-archiver.php';
@@ -25,6 +30,7 @@ require_once WMA_DIR . '/includes/class-wma-media.php';
 require_once WMA_DIR . '/includes/class-wma-rest.php';
 
 Wma_Settings::register();
+Wma_Updater::register();
 Wma_Rest::register();
 
 // wc_get_products() uses WC_Product_Query whose data-store layer only
