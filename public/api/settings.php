@@ -25,7 +25,6 @@ function settings_group_key(string $group): string
         'Backups (S3)'        => 'group_backup',
         'DirectAdmin / JetBackup' => 'group_jetbackup',
         'Kavenegar (SMS notifications)' => 'group_kavenegar_sms',
-        'Web app updates'     => 'group_webapp_updates',
     ];
 
     return $map[$group] ?? $group;

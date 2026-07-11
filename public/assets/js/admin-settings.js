@@ -9,58 +9,7 @@ init();
 async function init() {
   await ensureSession();
   document.getElementById('logout-btn').addEventListener('click', () => App.logout());
-  bindUpdateEvents();
   await loadSettings();
-}
-
-let latestRelease = null;
-
-function bindUpdateEvents() {
-  document.getElementById('app-update-check-btn').addEventListener('click', checkForUpdate);
-  document.getElementById('app-update-apply-btn').addEventListener('click', applyUpdate);
-}
-
-async function checkForUpdate() {
-  const checkBtn = document.getElementById('app-update-check-btn');
-  const applyBtn = document.getElementById('app-update-apply-btn');
-  const status = document.getElementById('app-version-status');
-
-  checkBtn.disabled = true;
-  status.textContent = t('app_update_checking');
-  applyBtn.classList.add('hidden');
-
-  try {
-    const data = await App.api('/api/app-update.php');
-    latestRelease = data.latest;
-    if (latestRelease) {
-      status.textContent = t('app_update_available', latestRelease.version);
-      applyBtn.classList.remove('hidden');
-    } else {
-      status.textContent = t('app_update_up_to_date', data.current_version);
-    }
-  } catch (e) {
-    status.textContent = t('app_update_check_failed');
-  } finally {
-    checkBtn.disabled = false;
-  }
-}
-
-async function applyUpdate() {
-  if (!latestRelease) return;
-  const applyBtn = document.getElementById('app-update-apply-btn');
-  const status = document.getElementById('app-version-status');
-
-  applyBtn.disabled = true;
-  status.textContent = t('app_update_updating');
-
-  try {
-    const data = await App.api('/api/app-update.php', { method: 'POST', body: JSON.stringify({}) });
-    status.textContent = t('app_update_applied', data.version);
-    setTimeout(() => window.location.reload(), 1500);
-  } catch (e) {
-    App.toast(e.message, 'error');
-    applyBtn.disabled = false;
-  }
 }
 
 async function ensureSession() {

@@ -37,8 +37,6 @@ const SETTINGS_DEFAULTS = [
     'kavenegar_sms_sender'  => '',
     'vapid_public_key'      => '',
     'vapid_private_key_pem' => '',
-    'webapp_update_channel' => 'stable',
-    'webapp_update_token'   => '',
 ];
 
 /**
@@ -202,19 +200,6 @@ const SETTINGS_FIELDS = [
         'type' => 'text',
         'group' => 'Kavenegar (SMS notifications)',
         'help' => 'Sender line number configured in your Kavenegar panel, required by the plain Send API.',
-    ],
-    'webapp_update_channel' => [
-        'label' => 'Update channel',
-        'type' => 'select',
-        'options' => ['stable' => 'Stable', 'beta' => 'Beta'],
-        'group' => 'Web app updates',
-        'help' => 'Which GitHub release track to check for app updates against.',
-    ],
-    'webapp_update_token' => [
-        'label' => 'GitHub access token',
-        'type' => 'password',
-        'group' => 'Web app updates',
-        'help' => 'A GitHub personal access token with Contents read/write on this repo (the same one used by the release workflow), needed to check/download releases from a private repo.',
     ],
 ];
 
