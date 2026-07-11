@@ -1,0 +1,51 @@
+name: Release web app
+
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore: ["wp-plugin/**"]
+  push:
+    branches: [main]
+    paths-ignore: ["wp-plugin/**"]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.UPDATE_FEED_TOKEN }}
+      REF: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.REF }}
+
+      - name: Read app version
+        id: ver
+        run: |
+          v=$(cat includes/VERSION)
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+
+      - name: Build zip
+        # includes/config.php is gitignored (never checked out here), so
+        # AppUpdater.php's own skip-on-extract is the only guard that
+        # matters for existing deployments - this just keeps the package
+        # to what actually needs to ship.
+        run: zip -r webapp.zip public includes -x '*.DS_Store'
+
+      - name: Publish beta release (PR)
+        if: github.event_name == 'pull_request'
+        run: |
+          gh release delete webapp-beta --yes --cleanup-tag || true
+          gh release create webapp-beta webapp.zip \
+            --title "${{ steps.ver.outputs.version }}-beta.${{ github.event.pull_request.number }}" \
+            --notes "Built from ${{ env.REF }} (PR #${{ github.event.pull_request.number }})" \
+            --prerelease --target "$REF"
+
+      - name: Publish stable release (main)
+        if: github.event_name == 'push'
+        run: |
+          gh release delete webapp-stable --yes --cleanup-tag || true
+          gh release create webapp-stable webapp.zip \
+            --title "${{ steps.ver.outputs.version }}" \
+            --notes "Built from ${{ env.REF }}" \
+            --target "$REF"

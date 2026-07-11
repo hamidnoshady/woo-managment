@@ -28,6 +28,16 @@ function asset_url(string $path): string
 }
 
 /**
+ * Current web app version, manually bumped in includes/VERSION on
+ * meaningful releases (there's no build step to derive this from). Checked
+ * against GitHub Releases by AppUpdater.php.
+ */
+function app_version(): string
+{
+    return trim((string) @file_get_contents(__DIR__ . '/VERSION')) ?: '0.0.0';
+}
+
+/**
  * Invalidates every cached products-list variant for a site. Call this
  * after any request that creates, updates, or deletes a product (or its
  * stock) on that site, so the next list fetch reflects the change

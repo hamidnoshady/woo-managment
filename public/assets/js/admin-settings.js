@@ -9,7 +9,58 @@ init();
 async function init() {
   await ensureSession();
   document.getElementById('logout-btn').addEventListener('click', () => App.logout());
+  bindUpdateEvents();
   await loadSettings();
+}
+
+let latestRelease = null;
+
+function bindUpdateEvents() {
+  document.getElementById('app-update-check-btn').addEventListener('click', checkForUpdate);
+  document.getElementById('app-update-apply-btn').addEventListener('click', applyUpdate);
+}
+
+async function checkForUpdate() {
+  const checkBtn = document.getElementById('app-update-check-btn');
+  const applyBtn = document.getElementById('app-update-apply-btn');
+  const status = document.getElementById('app-version-status');
+
+  checkBtn.disabled = true;
+  status.textContent = t('app_update_checking');
+  applyBtn.classList.add('hidden');
+
+  try {
+    const data = await App.api('/api/app-update.php');
+    latestRelease = data.latest;
+    if (latestRelease) {
+      status.textContent = t('app_update_available', latestRelease.version);
+      applyBtn.classList.remove('hidden');
+    } else {
+      status.textContent = t('app_update_up_to_date', data.current_version);
+    }
+  } catch (e) {
+    status.textContent = t('app_update_check_failed');
+  } finally {
+    checkBtn.disabled = false;
+  }
+}
+
+async function applyUpdate() {
+  if (!latestRelease) return;
+  const applyBtn = document.getElementById('app-update-apply-btn');
+  const status = document.getElementById('app-version-status');
+
+  applyBtn.disabled = true;
+  status.textContent = t('app_update_updating');
+
+  try {
+    const data = await App.api('/api/app-update.php', { method: 'POST', body: JSON.stringify({}) });
+    status.textContent = t('app_update_applied', data.version);
+    setTimeout(() => window.location.reload(), 1500);
+  } catch (e) {
+    App.toast(e.message, 'error');
+    applyBtn.disabled = false;
+  }
 }
 
 async function ensureSession() {
@@ -63,23 +114,36 @@ function renderForm(fields) {
       label.setAttribute('for', `field-${field.key}`);
       wrap.appendChild(label);
 
-      const input = document.createElement('input');
+      let input;
+      if (field.type === 'select') {
+        input = document.createElement('select');
+        input.className = 'w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none';
+        Object.entries(field.options || {}).forEach(([value, optLabel]) => {
+          const option = document.createElement('option');
+          option.value = value;
+          option.textContent = optLabel;
+          option.selected = value === field.value;
+          input.appendChild(option);
+        });
+      } else {
+        input = document.createElement('input');
+        input.className = 'w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none';
+
+        if (field.type === 'password') {
+          input.type = 'text';
+          input.autocomplete = 'off';
+          input.placeholder = field.value ? t('leave_blank_to_keep') : t('not_set');
+          input.dataset.type = 'password';
+        } else if (field.type === 'number') {
+          input.type = 'number';
+          input.value = field.value;
+        } else {
+          input.type = 'text';
+          input.value = field.value;
+        }
+      }
       input.id = `field-${field.key}`;
       input.name = field.key;
-      input.className = 'w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none';
-
-      if (field.type === 'password') {
-        input.type = 'text';
-        input.autocomplete = 'off';
-        input.placeholder = field.value ? t('leave_blank_to_keep') : t('not_set');
-        input.dataset.type = 'password';
-      } else if (field.type === 'number') {
-        input.type = 'number';
-        input.value = field.value;
-      } else {
-        input.type = 'text';
-        input.value = field.value;
-      }
 
       wrap.appendChild(input);
 
@@ -110,7 +174,7 @@ function renderForm(fields) {
 
 async function saveSettings(saveBtn) {
   const payload = {};
-  form.querySelectorAll('input').forEach((input) => {
+  form.querySelectorAll('input, select').forEach((input) => {
     if (input.dataset.type === 'password' && input.value.trim() === '') {
       return;
     }

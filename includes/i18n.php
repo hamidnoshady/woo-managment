@@ -55,9 +55,27 @@ const TRANSLATIONS = [
         'kavenegar_sms_sender_label' => 'Kavenegar sender line number',
         'kavenegar_sms_sender_help' => 'Sender line number configured in your Kavenegar panel, required by the plain Send API.',
 
+        // Web app update settings group
+        'group_webapp_updates' => 'Web app updates',
+        'webapp_update_channel_label' => 'Update channel',
+        'webapp_update_channel_help' => 'Which GitHub release track to check for app updates against.',
+        'webapp_update_token_label' => 'GitHub access token',
+        'webapp_update_token_help' => 'A GitHub personal access token with Contents read/write on this repo (the same one used by the release workflow), needed to check/download releases from a private repo.',
+        'app_version_heading' => 'App version',
+        'app_version_current' => 'Current version: %s',
+        'app_update_check_btn' => 'Check for updates',
+        'app_update_checking' => 'Checking...',
+        'app_update_up_to_date' => 'You are on the latest %s version.',
+        'app_update_available' => 'Version %s is available.',
+        'app_update_btn' => 'Update now',
+        'app_update_updating' => 'Updating...',
+        'app_update_applied' => 'Updated to version %s. Reloading...',
+        'app_update_check_failed' => 'Could not check for updates. Check the update channel/token in settings.',
+
         // Activity log messages
         'log_task_created' => 'Task "%s" created',
         'log_task_notify' => 'Notified %s assignee(s) for task "%s"',
+        'log_app_updated' => 'App updated to version %s',
         'site_label' => 'Site',
         'site_switch' => 'Switch',
         'loading' => 'Loading...',
@@ -479,9 +497,27 @@ const TRANSLATIONS = [
         'kavenegar_sms_sender_label' => 'شماره خط فرستنده کاوه‌نگار',
         'kavenegar_sms_sender_help' => 'شماره خط فرستنده تنظیم‌شده در پنل کاوه‌نگار، مورد نیاز سرویس ارسال ساده.',
 
+        // Web app update settings group
+        'group_webapp_updates' => 'به‌روزرسانی برنامه وب',
+        'webapp_update_channel_label' => 'کانال به‌روزرسانی',
+        'webapp_update_channel_help' => 'کدام نسخه انتشار گیت‌هاب برای بررسی به‌روزرسانی استفاده شود.',
+        'webapp_update_token_label' => 'توکن دسترسی گیت‌هاب',
+        'webapp_update_token_help' => 'یک توکن دسترسی شخصی گیت‌هاب با دسترسی خواندن/نوشتن به Contents این مخزن (همان توکن استفاده‌شده در workflow انتشار)، برای بررسی/دریافت نسخه‌ها از مخزن خصوصی.',
+        'app_version_heading' => 'نسخه برنامه',
+        'app_version_current' => 'نسخه فعلی: %s',
+        'app_update_check_btn' => 'بررسی به‌روزرسانی',
+        'app_update_checking' => 'در حال بررسی...',
+        'app_update_up_to_date' => 'شما از آخرین نسخه %s استفاده می‌کنید.',
+        'app_update_available' => 'نسخه %s موجود است.',
+        'app_update_btn' => 'به‌روزرسانی',
+        'app_update_updating' => 'در حال به‌روزرسانی...',
+        'app_update_applied' => 'به نسخه %s به‌روزرسانی شد. در حال بارگذاری مجدد...',
+        'app_update_check_failed' => 'بررسی به‌روزرسانی ممکن نشد. کانال/توکن به‌روزرسانی را در تنظیمات بررسی کنید.',
+
         // Activity log messages
         'log_task_created' => 'وظیفه «%s» ایجاد شد',
         'log_task_notify' => '%s مسئول برای وظیفه «%s» مطلع شدند',
+        'log_app_updated' => 'برنامه به نسخه %s به‌روزرسانی شد',
 
         'site_label' => 'فروشگاه',
         'site_switch' => 'تغییر',
