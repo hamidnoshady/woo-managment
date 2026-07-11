@@ -347,7 +347,11 @@ class Wma_Products
             self::apply_taxonomies($product, $data['taxonomies']);
         }
         if (array_key_exists('attributes', $data) && is_array($data['attributes'])) {
-            $product->set_attributes(self::build_attributes($data['attributes']));
+            $existingTaxonomyAttributes = array_values(array_filter(
+                $product->get_attributes(),
+                fn($attr) => $attr instanceof WC_Product_Attribute && $attr->is_taxonomy()
+            ));
+            $product->set_attributes(array_merge($existingTaxonomyAttributes, self::build_attributes($data['attributes'])));
         }
     }
 
