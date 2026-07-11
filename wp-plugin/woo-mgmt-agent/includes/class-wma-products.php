@@ -346,6 +346,45 @@ class Wma_Products
         if (array_key_exists('taxonomies', $data) && is_array($data['taxonomies'])) {
             self::apply_taxonomies($product, $data['taxonomies']);
         }
+        if (array_key_exists('attributes', $data) && is_array($data['attributes'])) {
+            $product->set_attributes(self::build_attributes($data['attributes']));
+        }
+    }
+
+    /**
+     * Builds custom (non-taxonomy) WC_Product_Attribute objects from the
+     * admin app's [{name, options: string[]}] shape. `set_variation(true)`
+     * is required for WooCommerce's get_variation_attributes() - and
+     * therefore the existing variation list/create flow - to see these at
+     * all.
+     *
+     * @param array<int, array{name?: mixed, options?: mixed}> $attributeDefs
+     * @return WC_Product_Attribute[]
+     */
+    private static function build_attributes(array $attributeDefs): array
+    {
+        $attributes = [];
+        $position = 0;
+        foreach ($attributeDefs as $def) {
+            $name = trim((string) ($def['name'] ?? ''));
+            $options = array_values(array_filter(array_map(
+                fn($o) => trim((string) $o),
+                (array) ($def['options'] ?? [])
+            )));
+            if ($name === '' || empty($options)) {
+                continue;
+            }
+
+            $attribute = new WC_Product_Attribute();
+            $attribute->set_id(0);
+            $attribute->set_name($name);
+            $attribute->set_options($options);
+            $attribute->set_position($position++);
+            $attribute->set_visible(true);
+            $attribute->set_variation(true);
+            $attributes[] = $attribute;
+        }
+        return $attributes;
     }
 
     /**
@@ -459,6 +498,26 @@ class Wma_Products
             'status' => $product->get_status(),
             'permalink' => $product->get_permalink(),
             'taxonomies' => $taxonomies,
+            'attributes' => self::attributes_to_array($product),
         ];
+    }
+
+    /**
+     * Only custom (non-taxonomy) attributes - this app has no UI to
+     * round-trip global attribute term ids, so pa_* taxonomy attributes are
+     * omitted rather than returned in a shape the app can't re-submit.
+     *
+     * @return array<int, array{name: string, options: string[]}>
+     */
+    private static function attributes_to_array(WC_Product $product): array
+    {
+        $result = [];
+        foreach ($product->get_attributes() as $attribute) {
+            if (!$attribute instanceof WC_Product_Attribute || $attribute->is_taxonomy()) {
+                continue;
+            }
+            $result[] = ['name' => $attribute->get_name(), 'options' => $attribute->get_options()];
+        }
+        return $result;
     }
 }
