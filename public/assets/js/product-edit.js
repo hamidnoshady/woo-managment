@@ -25,7 +25,14 @@ const els = {
   saveBtn: document.getElementById('save-btn'),
   deleteBtn: document.getElementById('delete-btn'),
   viewLink: document.getElementById('view-product-link'),
+  productTypeBtns: Array.from(document.querySelectorAll('.product-type-btn')),
+  attributesSection: document.getElementById('attributes-section'),
+  attributesList: document.getElementById('attributes-list'),
+  addAttributeBtn: document.getElementById('add-attribute'),
+  variationsSection: document.getElementById('variations-section'),
 };
+
+let productType = 'simple';
 
 const imageGallery = App.createImageGallery({
   grid: els.imagesGrid,
@@ -111,6 +118,13 @@ async function loadProduct(id) {
     els.status.value = item.status || 'publish';
     updateSaveLabel();
 
+    setProductType(item.type === 'variable' ? 'variable' : 'simple');
+    (item.attributes || []).forEach((attr) => addAttributeRow(attr.name, (attr.options || []).join(', ')));
+    if (item.type === 'variable' && window.PRODUCT_ID > 0) {
+      els.variationsSection.classList.remove('hidden');
+      App.renderVariationsSection(els.variationsSection, item);
+    }
+
     if (item.permalink && els.viewLink) {
       els.viewLink.href = item.permalink;
       els.viewLink.classList.remove('hidden');
@@ -145,6 +159,14 @@ function updateSaveLabel() {
 function bindEvents() {
   els.status.addEventListener('change', updateSaveLabel);
 
+  els.productTypeBtns.forEach((btn) => {
+    btn.addEventListener('click', () => setProductType(btn.dataset.type));
+  });
+  els.addAttributeBtn.addEventListener('click', () => addAttributeRow());
+  if (window.PRODUCT_ID <= 0) {
+    setProductType('simple');
+  }
+
   els.aiGenerateShort.addEventListener('click', () => generateDescription('short', els.aiGenerateShort, els.shortDescription));
   els.aiGenerateLong.addEventListener('click', () => generateDescription('long', els.aiGenerateLong, els.description));
 
@@ -156,9 +178,18 @@ function bindEvents() {
     els.saveBtn.disabled = true;
     els.saveBtn.textContent = t('saving');
 
+    if (productType === 'variable' && collectAttributes().length === 0) {
+      App.toast(t('variable_product_needs_attribute'), 'error');
+      submitting = false;
+      els.saveBtn.disabled = false;
+      els.saveBtn.textContent = els.saveBtn.dataset.label || t('save');
+      return;
+    }
+
     const payload = {
       name: els.name.value.trim(),
       sku: els.sku.value.trim(),
+      type: productType,
       regular_price: els.regularPrice.value,
       sale_price: els.salePrice.value,
       stock_quantity: els.stockQuantity.value === '' ? 0 : parseInt(els.stockQuantity.value, 10),
@@ -170,6 +201,9 @@ function bindEvents() {
       images: imageGallery.getImages(),
       taxonomies: collectCustomTaxonomies(),
     };
+    if (productType === 'variable') {
+      payload.attributes = collectAttributes();
+    }
 
     if (window.PRODUCT_ID > 0) {
       payload.id = window.PRODUCT_ID;
@@ -249,6 +283,47 @@ function collectCustomTaxonomies() {
     result[section.dataset.restBase] = Array.from(section.querySelectorAll('.custom-term-checkbox:checked')).map((cb) => cb.value);
   });
   return result;
+}
+
+function setProductType(type) {
+  productType = type;
+  els.productTypeBtns.forEach((btn) => {
+    const active = btn.dataset.type === type;
+    btn.classList.toggle('bg-gray-900', active);
+    btn.classList.toggle('text-white', active);
+    btn.classList.toggle('border-gray-900', active);
+  });
+  els.attributesSection.classList.toggle('hidden', type !== 'variable');
+  if (type === 'variable' && els.attributesList.children.length === 0) {
+    addAttributeRow();
+  }
+}
+
+function addAttributeRow(name = '', options = '') {
+  const row = document.createElement('div');
+  row.className = 'attribute-row flex gap-2 items-start';
+  row.innerHTML = `
+    <div class="flex-1 space-y-1">
+      <input type="text" class="attribute-name w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm" placeholder="${escapeHtml(t('attribute_name'))}" value="${escapeHtml(name)}">
+      <input type="text" class="attribute-options w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm" placeholder="${escapeHtml(t('attribute_options_hint'))}" value="${escapeHtml(options)}">
+    </div>
+    <button type="button" class="remove-attribute-row text-red-500 text-lg leading-none mt-1.5">&times;</button>
+  `;
+  row.querySelector('.remove-attribute-row').addEventListener('click', () => row.remove());
+  els.attributesList.appendChild(row);
+}
+
+function collectAttributes() {
+  return Array.from(els.attributesList.querySelectorAll('.attribute-row')).map((row) => ({
+    name: row.querySelector('.attribute-name').value.trim(),
+    options: row.querySelector('.attribute-options').value.split(',').map((o) => o.trim()).filter((o) => o !== ''),
+  })).filter((attr) => attr.name !== '' && attr.options.length > 0);
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str ?? '';
+  return div.innerHTML;
 }
 
 function stripHtml(html) {

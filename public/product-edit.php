@@ -44,6 +44,24 @@ $productId = (int) ($_GET['id'] ?? 0);
           <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo htmlspecialchars(t('sku')); ?></label>
           <input id="sku" type="text" class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none">
         </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2"><?php echo htmlspecialchars(t('product_type')); ?></label>
+          <div class="flex gap-2">
+            <button type="button" data-type="simple" class="product-type-btn flex-1 rounded-xl border border-gray-300 px-3 py-2.5 text-sm font-medium"><?php echo htmlspecialchars(t('type_simple')); ?></button>
+            <button type="button" data-type="variable" class="product-type-btn flex-1 rounded-xl border border-gray-300 px-3 py-2.5 text-sm font-medium"><?php echo htmlspecialchars(t('type_variable')); ?></button>
+          </div>
+        </div>
+        <div id="attributes-section" class="hidden space-y-2">
+          <label class="block text-sm font-medium text-gray-700"><?php echo htmlspecialchars(t('attributes')); ?></label>
+          <div id="attributes-list" class="space-y-2"></div>
+          <button type="button" id="add-attribute" class="text-xs font-medium text-blue-600"><?php echo htmlspecialchars(t('add_attribute')); ?></button>
+        </div>
+      </div>
+
+      <div id="variations-section" class="hidden bg-white rounded-2xl border border-gray-100 p-4 space-y-2">
+        <h2 class="text-sm font-semibold text-gray-900"><?php echo htmlspecialchars(t('variations')); ?></h2>
+        <button type="button" class="variations-toggle text-xs text-gray-500 underline"><?php echo htmlspecialchars(t('show_variations')); ?></button>
+        <div class="variations-list mt-2 space-y-2 hidden"></div>
       </div>
 
       <div class="bg-white rounded-2xl border border-gray-100 p-4 space-y-4">
