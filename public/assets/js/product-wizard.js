@@ -38,7 +38,13 @@ const els = {
   nextBtn: document.getElementById('wizard-next'),
   publishBtn: document.getElementById('wizard-publish'),
   reviewSummary: document.getElementById('review-summary'),
+  productTypeBtns: Array.from(document.querySelectorAll('.product-type-btn')),
+  attributesSection: document.getElementById('attributes-section'),
+  attributesList: document.getElementById('attributes-list'),
+  addAttributeBtn: document.getElementById('add-attribute'),
 };
+
+let productType = 'simple';
 
 const steps = Array.from(document.querySelectorAll('.wizard-step'));
 let currentStep = 0;
@@ -146,6 +152,41 @@ function collectCustomTaxonomies() {
   return result;
 }
 
+function setProductType(type) {
+  productType = type;
+  els.productTypeBtns.forEach((btn) => {
+    const active = btn.dataset.type === type;
+    btn.classList.toggle('bg-gray-900', active);
+    btn.classList.toggle('text-white', active);
+    btn.classList.toggle('border-gray-900', active);
+  });
+  els.attributesSection.classList.toggle('hidden', type !== 'variable');
+  if (type === 'variable' && els.attributesList.children.length === 0) {
+    addAttributeRow();
+  }
+}
+
+function addAttributeRow(name = '', options = '') {
+  const row = document.createElement('div');
+  row.className = 'attribute-row flex gap-2 items-start';
+  row.innerHTML = `
+    <div class="flex-1 space-y-1">
+      <input type="text" class="attribute-name w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm" placeholder="${escapeHtml(t('attribute_name'))}" value="${escapeHtml(name)}">
+      <input type="text" class="attribute-options w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm" placeholder="${escapeHtml(t('attribute_options_hint'))}" value="${escapeHtml(options)}">
+    </div>
+    <button type="button" class="remove-attribute-row text-red-500 text-lg leading-none mt-1.5">&times;</button>
+  `;
+  row.querySelector('.remove-attribute-row').addEventListener('click', () => row.remove());
+  els.attributesList.appendChild(row);
+}
+
+function collectAttributes() {
+  return Array.from(els.attributesList.querySelectorAll('.attribute-row')).map((row) => ({
+    name: row.querySelector('.attribute-name').value.trim(),
+    options: row.querySelector('.attribute-options').value.split(',').map((o) => o.trim()).filter((o) => o !== ''),
+  })).filter((attr) => attr.name !== '' && attr.options.length > 0);
+}
+
 function showStep(index) {
   currentStep = index;
 
@@ -223,6 +264,12 @@ function bindEvents() {
   els.status.addEventListener('change', updatePublishLabel);
   updatePublishLabel();
 
+  els.productTypeBtns.forEach((btn) => {
+    btn.addEventListener('click', () => setProductType(btn.dataset.type));
+  });
+  els.addAttributeBtn.addEventListener('click', () => addAttributeRow());
+  setProductType('simple');
+
   els.aiGenerateShort.addEventListener('click', () => generateDescription('short', els.aiGenerateShort, els.shortDescription));
   els.aiGenerateLong.addEventListener('click', () => generateDescription('long', els.aiGenerateLong, els.description));
 
@@ -248,9 +295,19 @@ function bindEvents() {
     els.publishBtn.disabled = true;
     els.publishBtn.textContent = t('wizard_publishing');
 
+    if (productType === 'variable' && collectAttributes().length === 0) {
+      App.toast(t('variable_product_needs_attribute'), 'error');
+      submitting = false;
+      els.publishBtn.disabled = false;
+      els.publishBtn.textContent = els.publishBtn.dataset.label;
+      showStep(0);
+      return;
+    }
+
     const payload = {
       name: els.name.value.trim(),
       sku: els.sku.value.trim(),
+      type: productType,
       regular_price: els.regularPrice.value,
       sale_price: els.salePrice.value,
       stock_quantity: els.stockQuantity.value === '' ? 0 : parseInt(els.stockQuantity.value, 10),
@@ -262,6 +319,9 @@ function bindEvents() {
       images: imageGallery.getImages(),
       taxonomies: collectCustomTaxonomies(),
     };
+    if (productType === 'variable') {
+      payload.attributes = collectAttributes();
+    }
 
     try {
       const data = await App.api('/api/product.php', {
