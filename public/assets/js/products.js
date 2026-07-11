@@ -391,7 +391,7 @@ function renderProductCard(product) {
 /**
  * Renders a product as a <tr> for table view. Reuses the same price-row,
  * stock-button, and checkbox markup/classes as the card view so
- * wireProductElement() and renderPriceRow() work unchanged on either.
+ * App.wireProductElement() and App.renderPriceRow() work unchanged on either.
  */
 function renderProductRow(product) {
   const row = document.createElement('tr');
