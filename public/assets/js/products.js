@@ -23,8 +23,6 @@ const state = {
   },
 };
 
-const variationsCache = new Map();
-
 const listEl = document.getElementById('product-list');
 const tableEl = document.getElementById('product-table');
 const tableBody = document.getElementById('product-table-body');
@@ -344,7 +342,7 @@ function renderProductCard(product) {
   card.className = 'bg-white rounded-2xl border border-gray-100 p-3 flex gap-3 relative';
   card.dataset.id = product.id;
 
-  const stockBadge = stockStatusBadge(product.stock_status);
+  const stockBadge = App.stockStatusBadge(product.stock_status);
 
   const image = product.image
     ? `<img src="${escapeHtml(product.image)}" alt="" class="h-16 w-16 rounded-xl object-cover flex-shrink-0 bg-gray-100">`
@@ -370,10 +368,22 @@ function renderProductCard(product) {
     </div>
   `;
 
-  renderPriceRow(card, product);
-  wireProductElement(card, product);
+  App.renderPriceRow(card, product, () => state.selectionMode);
+  App.wireProductElement(card, product, {
+    isSelectionMode: () => state.selectionMode,
+    onSelectChange: (id, checked) => {
+      if (checked) state.selected.add(id); else state.selected.delete(id);
+      updateSelectionBar();
+    },
+  });
   if (product.type === 'variable') {
-    wireVariationsToggle(card, product);
+    App.renderVariationsSection(card, product, {
+      isSelectionMode: () => state.selectionMode,
+      onSelectChange: (id, checked) => {
+        if (checked) state.selected.add(id); else state.selected.delete(id);
+        updateSelectionBar();
+      },
+    });
   }
   return card;
 }
@@ -410,8 +420,14 @@ function renderProductRow(product) {
     </td>
   `;
 
-  renderPriceRow(row, product);
-  wireProductElement(row, product);
+  const isSelectionMode = () => state.selectionMode;
+  const onSelectChange = (id, checked) => {
+    if (checked) state.selected.add(id); else state.selected.delete(id);
+    updateSelectionBar();
+  };
+
+  App.renderPriceRow(row, product, isSelectionMode);
+  App.wireProductElement(row, product, { isSelectionMode, onSelectChange });
 
   if (product.type !== 'variable') {
     return row;
@@ -426,488 +442,12 @@ function renderProductRow(product) {
       <div class="variations-list mt-2 space-y-2 hidden"></div>
     </td>
   `;
-  wireVariationsToggle(toggleRow, product);
+  App.renderVariationsSection(toggleRow, product, { isSelectionMode, onSelectChange });
 
   const fragment = document.createDocumentFragment();
   fragment.appendChild(row);
   fragment.appendChild(toggleRow);
   return fragment;
-}
-
-/**
- * Wires up the interactive bits shared by both the grid card and table row:
- * quick stock +/-, the selection checkbox, and click-to-select on the
- * card/title links.
- */
-function wireProductElement(el, product) {
-  el.querySelectorAll('.stock-btn').forEach((btn) => {
-    btn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const delta = parseInt(btn.dataset.delta, 10);
-      const otherBtn = [...el.querySelectorAll('.stock-btn')].find((b) => b !== btn);
-      const qtyEl = el.querySelector('.stock-qty');
-      const qtyOriginal = qtyEl.textContent;
-      btn.disabled = true;
-      if (otherBtn) otherBtn.disabled = true;
-      qtyEl.classList.add('opacity-50');
-      try {
-        const result = await App.api('/api/stock.php', {
-          method: 'POST',
-          body: JSON.stringify({
-            id: product.id,
-            delta,
-            current_quantity: product.stock_quantity,
-            current_status: product.stock_status,
-            name: product.name,
-          }),
-        });
-        qtyEl.textContent = result.stock_quantity;
-        product.stock_quantity = result.stock_quantity;
-        product.stock_status = result.stock_status;
-        const badgeWrap = el.querySelector('.stock-badge-wrap');
-        if (badgeWrap) {
-          badgeWrap.outerHTML = stockStatusBadge(result.stock_status);
-        }
-        if (result.log_id) {
-          App.notify(result.message, { logId: result.log_id, productId: product.id });
-        }
-      } catch (err) {
-        qtyEl.textContent = qtyOriginal;
-        App.toast(err.message, 'error');
-      } finally {
-        btn.disabled = false;
-        if (otherBtn) otherBtn.disabled = false;
-        qtyEl.classList.remove('opacity-50');
-      }
-    });
-  });
-
-  // Selection mode handling
-  const checkbox = el.querySelector('.select-checkbox');
-  checkbox.addEventListener('change', () => {
-    if (checkbox.checked) {
-      state.selected.add(product.id);
-    } else {
-      state.selected.delete(product.id);
-    }
-    updateSelectionBar();
-  });
-
-  el.querySelectorAll('.card-link').forEach((link) => {
-    link.addEventListener('click', (e) => {
-      if (state.selectionMode) {
-        e.preventDefault();
-        checkbox.checked = !checkbox.checked;
-        checkbox.dispatchEvent(new Event('change'));
-      }
-    });
-  });
-
-  if (state.selectionMode) {
-    el.querySelector('.checkbox-wrap').classList.remove('hidden');
-  }
-}
-
-function wireVariationsToggle(container, product) {
-  const toggleBtn = container.querySelector('.variations-toggle');
-  const listEl = container.querySelector('.variations-list');
-
-  toggleBtn.addEventListener('click', async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const expanded = !listEl.classList.contains('hidden');
-    if (expanded) {
-      listEl.classList.add('hidden');
-      toggleBtn.textContent = t('show_variations');
-      return;
-    }
-
-    listEl.classList.remove('hidden');
-    toggleBtn.textContent = t('hide_variations');
-
-    if (variationsCache.has(product.id)) {
-      renderVariationsList(listEl, product, variationsCache.get(product.id));
-      return;
-    }
-
-    listEl.innerHTML = `<div class="text-xs text-gray-400">${escapeHtml(t('loading'))}</div>`;
-    try {
-      const data = await App.api(`/api/product-variations.php?product_id=${product.id}`);
-      variationsCache.set(product.id, data);
-      renderVariationsList(listEl, product, data);
-    } catch (err) {
-      listEl.innerHTML = `
-        <div class="text-xs text-red-600">${escapeHtml(t('variations_load_error'))}
-          <button type="button" class="variations-retry underline ml-1">${escapeHtml(t('retry'))}</button>
-        </div>`;
-      listEl.querySelector('.variations-retry').addEventListener('click', (ev) => {
-        ev.preventDefault();
-        ev.stopPropagation();
-        toggleBtn.textContent = t('show_variations');
-        listEl.classList.add('hidden');
-        toggleBtn.click();
-      });
-    }
-  });
-}
-
-function renderVariationsList(listEl, product, data) {
-  listEl.innerHTML = '';
-  (data.items || []).forEach((variation) => {
-    listEl.appendChild(renderVariationRow(variation));
-  });
-  listEl.appendChild(renderAddVariationRow(listEl, product, data.options || []));
-}
-
-/**
- * Renders one variation as a compact row reusing the same price-click-edit
- * and stock +/- markup/handlers as a top-level product card - both
- * wireProductElement() and renderPriceRow() only ever look at `.id`,
- * `.regular_price`, `.stock_quantity`, etc. on the object they're given,
- * so a variation object (same field names) works unmodified.
- */
-function renderVariationRow(variation) {
-  const row = document.createElement('div');
-  row.className = 'variation-row bg-gray-50 rounded-xl border border-gray-100 p-2 flex gap-2 relative';
-  row.dataset.id = variation.id;
-
-  const image = variation.image
-    ? `<img src="${escapeHtml(variation.image)}" alt="" class="h-10 w-10 rounded-lg object-cover flex-shrink-0 bg-gray-100">`
-    : `<div class="h-10 w-10 rounded-lg bg-gray-100 flex-shrink-0"></div>`;
-
-  row.innerHTML = `
-    <div class="checkbox-wrap hidden flex items-center pr-1">
-      <input type="checkbox" class="select-checkbox h-4 w-4 rounded border-gray-300">
-    </div>
-    ${image}
-    <div class="flex-1 min-w-0">
-      <div class="text-xs font-medium text-gray-800">${escapeHtml(variation.attribute_summary || '')}</div>
-      <div class="text-[10px] text-gray-400">${escapeHtml(variation.sku || '')}</div>
-      <div class="mt-1 flex items-center gap-2 price-row"></div>
-    </div>
-    <div class="stock-control flex flex-col items-center justify-center gap-1 flex-shrink-0">
-      <button class="stock-btn rounded-lg border border-gray-300 w-6 h-6 text-xs leading-none" data-delta="1">+</button>
-      <span class="stock-qty text-[10px] font-medium text-gray-700">${variation.stock_quantity ?? '-'}</span>
-      <button class="stock-btn rounded-lg border border-gray-300 w-6 h-6 text-xs leading-none" data-delta="-1">-</button>
-    </div>
-  `;
-
-  renderPriceRow(row, variation);
-  wireProductElement(row, variation);
-  return row;
-}
-
-function renderAddVariationRow(listEl, product, options) {
-  const wrap = document.createElement('div');
-  wrap.className = 'add-variation-wrap';
-
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.className = 'add-variation-btn text-xs text-gray-500 underline';
-  btn.textContent = t('add_variation');
-  wrap.appendChild(btn);
-
-  btn.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    wrap.innerHTML = '';
-    wrap.appendChild(buildAddVariationForm(listEl, product, options, wrap));
-  });
-
-  return wrap;
-}
-
-function buildAddVariationForm(listEl, product, options, wrap) {
-  const form = document.createElement('div');
-  form.className = 'bg-white rounded-xl border border-gray-200 p-2 space-y-1.5';
-
-  const selects = options.map((opt) => {
-    const selectId = `variation-attr-${product.id}-${opt.name}`.replace(/\s+/g, '-');
-    const optionsHtml = opt.options.map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
-    return `
-      <div>
-        <label class="block text-[10px] text-gray-400 mb-0.5">${escapeHtml(opt.name)}</label>
-        <select id="${selectId}" data-attr-name="${escapeHtml(opt.name)}" class="variation-attr-select w-full rounded-lg border border-gray-300 px-2 py-1 text-xs">
-          ${optionsHtml}
-        </select>
-      </div>`;
-  }).join('');
-
-  form.innerHTML = `
-    ${selects}
-    <div>
-      <label class="block text-[10px] text-gray-400 mb-0.5">${escapeHtml(t('regular_price'))}</label>
-      <input type="number" inputmode="decimal" min="0" step="any" class="new-variation-price w-full rounded-lg border border-gray-300 px-2 py-1 text-xs">
-    </div>
-    <div>
-      <label class="block text-[10px] text-gray-400 mb-0.5">${escapeHtml(t('sale_price_optional'))}</label>
-      <input type="number" inputmode="decimal" min="0" step="any" class="new-variation-sale-price w-full rounded-lg border border-gray-300 px-2 py-1 text-xs">
-    </div>
-    <div>
-      <label class="block text-[10px] text-gray-400 mb-0.5">${escapeHtml(t('sku'))}</label>
-      <input type="text" class="new-variation-sku w-full rounded-lg border border-gray-300 px-2 py-1 text-xs">
-    </div>
-    <div class="new-variation-error hidden text-[10px] text-red-600"></div>
-    <div class="flex gap-1.5">
-      <button type="button" class="new-variation-save flex-1 rounded-lg bg-gray-900 text-white text-xs font-medium py-1">${escapeHtml(t('save'))}</button>
-      <button type="button" class="new-variation-cancel flex-1 rounded-lg border border-gray-300 text-gray-700 text-xs font-medium py-1">${escapeHtml(t('cancel'))}</button>
-    </div>
-  `;
-
-  const errorEl = form.querySelector('.new-variation-error');
-  const showError = (msg) => { errorEl.textContent = msg; errorEl.classList.remove('hidden'); };
-
-  form.querySelector('.new-variation-cancel').addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    wrap.innerHTML = '';
-    wrap.appendChild(renderAddVariationRow(listEl, product, options));
-  });
-
-  form.querySelector('.new-variation-save').addEventListener('click', async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    errorEl.classList.add('hidden');
-
-    const attributes = {};
-    form.querySelectorAll('.variation-attr-select').forEach((sel) => {
-      attributes[sel.dataset.attrName] = sel.value;
-    });
-    if (options.length === 0 || Object.values(attributes).some((v) => !v)) {
-      showError(t('variation_attribute_required'));
-      return;
-    }
-
-    const regularPrice = form.querySelector('.new-variation-price').value.trim();
-    const salePrice = form.querySelector('.new-variation-sale-price').value.trim();
-    const sku = form.querySelector('.new-variation-sku').value.trim();
-
-    const saveBtn = form.querySelector('.new-variation-save');
-    saveBtn.disabled = true;
-    saveBtn.textContent = t('saving_variation');
-
-    try {
-      const payload = { product_id: product.id, attributes };
-      if (regularPrice !== '') payload.regular_price = regularPrice;
-      if (salePrice !== '') payload.sale_price = salePrice;
-      if (sku !== '') payload.sku = sku;
-
-      const data = await App.api('/api/product-variations.php', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      });
-
-      const cached = variationsCache.get(product.id) || { items: [], options };
-      cached.items = [...cached.items, data.item];
-      variationsCache.set(product.id, cached);
-
-      wrap.insertAdjacentElement('beforebegin', renderVariationRow(data.item));
-      wrap.innerHTML = '';
-      wrap.appendChild(renderAddVariationRow(listEl, product, options));
-
-      if (data.item.log_id) {
-        App.notify(data.item.message, { logId: data.item.log_id });
-      }
-    } catch (err) {
-      showError(err.message);
-      saveBtn.disabled = false;
-      saveBtn.textContent = t('save');
-    }
-  });
-
-  return form;
-}
-
-/**
- * Renders the price for a product card. Clicking the price turns it into an
- * editable field; on save, it's sent to the API and the card is updated
- * in place with a success notification (and undo, if available).
- */
-function renderPriceRow(card, product) {
-  const row = card.querySelector('.price-row');
-  row.className = 'mt-1 flex items-center gap-2 price-row';
-  const stockBadge = stockStatusBadge(product.stock_status);
-
-  const priceHtml = product.on_sale && product.sale_price
-    ? `<span class="text-sm font-semibold text-gray-900">${App.formatToman(product.sale_price)}</span>
-       <span class="text-xs text-gray-400 line-through ml-1">${App.formatToman(product.regular_price)}</span>`
-    : `<span class="text-sm font-semibold text-gray-900">${App.formatToman(product.price)}</span>`;
-
-  row.innerHTML = `
-    <button type="button" class="price-display text-left">${priceHtml}</button>
-    ${stockBadge}
-  `;
-
-  row.querySelector('.price-display').addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (state.selectionMode) return;
-    showPriceEditor(card, row, product);
-  });
-}
-
-function showPriceEditor(card, row, product) {
-  row.className = 'price-row price-row-editing flex flex-col gap-1.5 w-full';
-  row.innerHTML = `
-    <div>
-      <label class="block text-[10px] text-gray-400 mb-0.5">${escapeHtml(t('regular_price'))}</label>
-      <input type="number" inputmode="decimal" min="0" step="any"
-             class="price-input regular-price-input w-full rounded-lg border border-gray-300 px-2 py-1 text-xs focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none"
-             value="${escapeHtml(product.regular_price ?? '')}">
-      <div class="regular-price-preview text-[10px] text-gray-400 mt-0.5"></div>
-    </div>
-    <div>
-      <label class="block text-[10px] text-gray-400 mb-0.5">${escapeHtml(t('sale_price_optional'))}</label>
-      <input type="number" inputmode="decimal" min="0" step="any"
-             class="price-input sale-price-input w-full rounded-lg border border-gray-300 px-2 py-1 text-xs focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none"
-             value="${escapeHtml(product.on_sale ? (product.sale_price ?? '') : '')}">
-      <div class="sale-price-preview text-[10px] text-gray-400 mt-0.5"></div>
-    </div>
-    <div class="price-edit-error hidden text-[10px] text-red-600"></div>
-    <div class="flex gap-1.5">
-      <button type="button" class="price-save flex-1 rounded-lg bg-gray-900 text-white text-xs font-medium py-1">${escapeHtml(t('save'))}</button>
-      <button type="button" class="price-cancel flex-1 rounded-lg border border-gray-300 text-gray-700 text-xs font-medium py-1">${escapeHtml(t('cancel'))}</button>
-    </div>
-  `;
-
-  const regularInput = row.querySelector('.regular-price-input');
-  const saleInput = row.querySelector('.sale-price-input');
-  const regularPreview = row.querySelector('.regular-price-preview');
-  const salePreview = row.querySelector('.sale-price-preview');
-  const errorEl = row.querySelector('.price-edit-error');
-
-  const updatePreview = (input, previewEl) => {
-    const value = parseFloat(input.value);
-    previewEl.textContent = !isNaN(value) && input.value.trim() !== '' ? App.formatToman(value) : '';
-  };
-  updatePreview(regularInput, regularPreview);
-  updatePreview(saleInput, salePreview);
-  regularInput.addEventListener('input', () => updatePreview(regularInput, regularPreview));
-  saleInput.addEventListener('input', () => updatePreview(saleInput, salePreview));
-
-  const showError = (message) => {
-    errorEl.textContent = message;
-    errorEl.classList.remove('hidden');
-  };
-  const clearError = () => errorEl.classList.add('hidden');
-
-  let resolved = false;
-  const cancel = () => {
-    if (resolved) return;
-    resolved = true;
-    renderPriceRow(card, product);
-  };
-
-  const save = async () => {
-    if (resolved) return;
-    clearError();
-
-    const regularValue = regularInput.value.trim();
-    const saleValue = saleInput.value.trim();
-    const regularNum = parseFloat(regularValue);
-    const saleNum = saleValue === '' ? null : parseFloat(saleValue);
-
-    if (regularValue === '' || isNaN(regularNum) || regularNum <= 0) {
-      showError(t('price_required'));
-      regularInput.focus();
-      return;
-    }
-    if (saleNum !== null && (isNaN(saleNum) || saleNum < 0 || saleNum >= regularNum)) {
-      showError(t('sale_price_must_be_lower'));
-      saleInput.focus();
-      return;
-    }
-
-    const regularChanged = regularValue !== String(product.regular_price ?? '');
-    const saleChanged = saleValue !== String(product.on_sale ? (product.sale_price ?? '') : '');
-
-    if (!regularChanged && !saleChanged) {
-      cancel();
-      return;
-    }
-
-    const payload = {
-      id: product.id,
-      regular_price: regularValue,
-      sale_price: saleValue === '' ? '' : saleValue,
-      before: { regular_price: product.regular_price ?? '', sale_price: product.on_sale ? (product.sale_price ?? '') : '' },
-    };
-
-    resolved = true;
-    regularInput.disabled = true;
-    saleInput.disabled = true;
-    const saveBtn = row.querySelector('.price-save');
-    const saveBtnOriginalText = saveBtn.textContent;
-    saveBtn.disabled = true;
-    saveBtn.textContent = t('saving');
-    row.querySelector('.price-cancel').disabled = true;
-
-    try {
-      const data = await App.api('/api/product.php', {
-        method: 'PUT',
-        body: JSON.stringify(payload),
-      });
-
-      product.regular_price = data.item.regular_price;
-      product.sale_price = data.item.sale_price;
-      product.price = data.item.price;
-      product.on_sale = !!(data.item.sale_price && parseFloat(data.item.sale_price) < parseFloat(data.item.regular_price));
-
-      renderPriceRow(card, product);
-
-      if (data.item.log_id) {
-        App.notify(data.item.message, { logId: data.item.log_id, productId: product.id });
-      }
-    } catch (err) {
-      resolved = false;
-      App.toast(err.message, 'error');
-      regularInput.disabled = false;
-      saleInput.disabled = false;
-      saveBtn.disabled = false;
-      saveBtn.textContent = saveBtnOriginalText;
-      row.querySelector('.price-cancel').disabled = false;
-      showError(err.message);
-    }
-  };
-
-  row.querySelector('.price-save').addEventListener('click', (e) => { e.stopPropagation(); save(); });
-  row.querySelector('.price-cancel').addEventListener('click', (e) => { e.stopPropagation(); cancel(); });
-
-  const onKeydown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      save();
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      cancel();
-    }
-  };
-
-  // Clicking away cancels (reverts) rather than silently saving - an
-  // explicit Save click is required to actually commit a price change.
-  const onFocusOut = (e) => {
-    if (row.contains(e.relatedTarget)) return;
-    cancel();
-  };
-
-  row.addEventListener('click', (e) => e.stopPropagation());
-  row.addEventListener('keydown', onKeydown);
-  row.addEventListener('focusout', onFocusOut);
-
-  regularInput.focus();
-  regularInput.select();
-}
-
-function stockStatusBadge(status) {
-  const map = {
-    instock: [t('in_stock'), 'bg-green-100 text-green-700'],
-    outofstock: [t('out_of_stock'), 'bg-red-100 text-red-700'],
-    onbackorder: [t('backorder'), 'bg-yellow-100 text-yellow-700'],
-  };
-  const [label, cls] = map[status] || [t('unknown'), 'bg-gray-100 text-gray-600'];
-  return `<span class="stock-badge-wrap"><span class="text-[10px] font-medium px-1.5 py-0.5 rounded ${cls}">${label}</span></span>`;
 }
 
 function escapeHtml(str) {
