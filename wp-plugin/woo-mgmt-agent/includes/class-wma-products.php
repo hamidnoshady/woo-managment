@@ -454,7 +454,7 @@ class Wma_Products
     // Built-in WooCommerce/plugin system taxonomies that aren't real
     // merchandising attributes - never worth showing as a filter checkbox
     // list in the admin app.
-    private const SYSTEM_TAXONOMIES = ['product_cat', 'product_tag', 'product_type', 'pa_color'];
+    private const SYSTEM_TAXONOMIES = ['product_cat', 'product_tag', 'product_type'];
 
     /** @return array<\WP_Taxonomy> */
     public static function custom_product_taxonomies(): array
@@ -462,6 +462,16 @@ class Wma_Products
         $taxonomies = get_object_taxonomies('product', 'objects');
         return array_values(array_filter($taxonomies, function ($t) {
             if (in_array($t->name, self::SYSTEM_TAXONOMIES, true)) {
+                return false;
+            }
+            // Every WooCommerce global attribute taxonomy (Product
+            // attributes -> "Color", "Brand", etc.) is registered as
+            // pa_<slug> - none of these are "custom taxonomies" this app
+            // can manage (no term-picker UI for them), so they must never
+            // leak into the categories-step custom-taxonomy checkboxes.
+            // Was previously hardcoded to just 'pa_color' above, missing
+            // every other attribute taxonomy a site defines.
+            if (str_starts_with($t->name, 'pa_')) {
                 return false;
             }
             // Covers WooCommerce's own product_visibility and any
