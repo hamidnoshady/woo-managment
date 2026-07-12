@@ -164,6 +164,13 @@ $site = require_site_page($user);
         <h2 class="text-sm font-semibold text-gray-900"><?php echo htmlspecialchars(t('wizard_step_review')); ?></h2>
         <p class="text-xs text-gray-400"><?php echo htmlspecialchars(t('wizard_review_help')); ?></p>
         <div id="review-summary" class="space-y-2 text-sm text-gray-700"></div>
+
+        <div id="wizard-variations-section" class="hidden border-t border-gray-100 pt-3 space-y-2">
+          <h2 class="text-sm font-semibold text-gray-900"><?php echo htmlspecialchars(t('variations')); ?></h2>
+          <p id="wizard-variations-status" class="text-xs text-gray-400"></p>
+          <button type="button" class="variations-toggle text-xs text-gray-500 underline"><?php echo htmlspecialchars(t('show_variations')); ?></button>
+          <div class="variations-list mt-2 space-y-2 hidden"></div>
+        </div>
       </section>
 
       <!-- Navigation -->

@@ -43,6 +43,8 @@ const els = {
   attributesList: document.getElementById('attributes-list'),
   addAttributeBtn: document.getElementById('add-attribute'),
   attributeSuggestionsList: document.getElementById('attribute-name-suggestions'),
+  wizardVariationsSection: document.getElementById('wizard-variations-section'),
+  wizardVariationsStatus: document.getElementById('wizard-variations-status'),
 };
 
 let productType = 'simple';
@@ -233,9 +235,69 @@ function showStep(index) {
 
   if (index === steps.length - 1) {
     renderReview();
+    ensureVariationsReady();
   }
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+let draftProductId = null;
+let variationsRendered = false;
+let creatingDraft = false;
+
+/**
+ * Shown on the Review step for a Variable product. A variation needs a
+ * real WooCommerce product id to attach to, and a brand-new wizard
+ * product doesn't have one yet - so the first time this step is reached
+ * with at least one attribute filled in, silently save the product as a
+ * draft to get an id, then reuse the same variations UI the edit page
+ * uses. Publishing later updates that same draft instead of creating a
+ * second product (see the submit handler).
+ */
+async function ensureVariationsReady() {
+  if (productType !== 'variable') {
+    els.wizardVariationsSection.classList.add('hidden');
+    return;
+  }
+
+  els.wizardVariationsSection.classList.remove('hidden');
+
+  if (variationsRendered) {
+    return;
+  }
+
+  if (collectAttributes().length === 0) {
+    els.wizardVariationsStatus.textContent = t('variable_product_needs_attribute');
+    return;
+  }
+
+  if (draftProductId !== null) {
+    variationsRendered = true;
+    els.wizardVariationsStatus.textContent = '';
+    App.renderVariationsSection(els.wizardVariationsSection, { id: draftProductId, type: 'variable' });
+    return;
+  }
+
+  if (creatingDraft) {
+    return;
+  }
+
+  creatingDraft = true;
+  els.wizardVariationsStatus.textContent = t('saving');
+  try {
+    const data = await App.api('/api/product.php', {
+      method: 'POST',
+      body: JSON.stringify(buildProductPayload('draft')),
+    });
+    draftProductId = data.item.id;
+    variationsRendered = true;
+    els.wizardVariationsStatus.textContent = '';
+    App.renderVariationsSection(els.wizardVariationsSection, { id: draftProductId, type: 'variable' });
+  } catch (err) {
+    els.wizardVariationsStatus.textContent = err.message;
+  } finally {
+    creatingDraft = false;
+  }
 }
 
 function validateStep(index) {
@@ -290,6 +352,34 @@ function updatePublishLabel() {
   els.publishBtn.textContent = statusText;
 }
 
+/**
+ * Builds the product payload from current form state. `status` overrides
+ * the form's own status field - used to force 'draft' when silently
+ * saving early (see ensureVariationsReady()) without touching what the
+ * user picked for the actual publish.
+ */
+function buildProductPayload(status) {
+  const payload = {
+    name: els.name.value.trim(),
+    sku: els.sku.value.trim(),
+    type: productType,
+    regular_price: els.regularPrice.value,
+    sale_price: els.salePrice.value,
+    stock_quantity: els.stockQuantity.value === '' ? 0 : parseInt(els.stockQuantity.value, 10),
+    stock_status: els.stockStatus.value,
+    short_description: els.shortDescription.value,
+    description: els.description.value,
+    status: status !== undefined ? status : els.status.value,
+    categories: Array.from(els.categoriesList.querySelectorAll('.category-checkbox:checked')).map((cb) => cb.value),
+    images: imageGallery.getImages(),
+    taxonomies: collectCustomTaxonomies(),
+  };
+  if (productType === 'variable') {
+    payload.attributes = collectAttributes();
+  }
+  return payload;
+}
+
 function bindEvents() {
   els.status.addEventListener('change', updatePublishLabel);
   updatePublishLabel();
@@ -334,28 +424,18 @@ function bindEvents() {
       return;
     }
 
-    const payload = {
-      name: els.name.value.trim(),
-      sku: els.sku.value.trim(),
-      type: productType,
-      regular_price: els.regularPrice.value,
-      sale_price: els.salePrice.value,
-      stock_quantity: els.stockQuantity.value === '' ? 0 : parseInt(els.stockQuantity.value, 10),
-      stock_status: els.stockStatus.value,
-      short_description: els.shortDescription.value,
-      description: els.description.value,
-      status: els.status.value,
-      categories: Array.from(els.categoriesList.querySelectorAll('.category-checkbox:checked')).map((cb) => cb.value),
-      images: imageGallery.getImages(),
-      taxonomies: collectCustomTaxonomies(),
-    };
-    if (productType === 'variable') {
-      payload.attributes = collectAttributes();
+    const payload = buildProductPayload();
+    // A Variable product may already have been silently saved as a draft
+    // when the Review step's Variations section first loaded (see
+    // ensureVariationsReady()) - if so, this publish is an update to that
+    // same product, not a second one.
+    if (draftProductId !== null) {
+      payload.id = draftProductId;
     }
 
     try {
       const data = await App.api('/api/product.php', {
-        method: 'POST',
+        method: draftProductId !== null ? 'PUT' : 'POST',
         body: JSON.stringify(payload),
       });
       App.toast(t('product_saved'), 'success');
