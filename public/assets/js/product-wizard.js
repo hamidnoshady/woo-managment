@@ -42,9 +42,11 @@ const els = {
   attributesSection: document.getElementById('attributes-section'),
   attributesList: document.getElementById('attributes-list'),
   addAttributeBtn: document.getElementById('add-attribute'),
+  attributeSuggestionsList: document.getElementById('attribute-name-suggestions'),
 };
 
 let productType = 'simple';
+let attributeSuggestions = [];
 
 const steps = Array.from(document.querySelectorAll('.wizard-step'));
 let currentStep = 0;
@@ -63,6 +65,7 @@ async function init() {
     await ensureSession();
     await loadCategories();
     await loadCustomTaxonomies();
+    await loadAttributeSuggestions();
 
     bindEvents();
     showStep(0);
@@ -110,6 +113,24 @@ async function loadCustomTaxonomies() {
 
 function renderCustomTaxonomies(taxonomies, reason) {
   App.renderTaxonomySections(els.customTaxonomies, taxonomies, reason);
+}
+
+/**
+ * Loads {name, options} attribute suggestions from other products so the
+ * attribute-name field can autocomplete via a native <datalist> - picking
+ * a suggested name fills its options in for you instead of retyping the
+ * same "Red, Blue, Green" on every product.
+ */
+async function loadAttributeSuggestions() {
+  try {
+    const data = await App.api('/api/product-attributes.php');
+    attributeSuggestions = data.items || [];
+    els.attributeSuggestionsList.innerHTML = attributeSuggestions
+      .map((s) => `<option value="${escapeHtml(s.name)}"></option>`)
+      .join('');
+  } catch (e) {
+    // Optional convenience feature; ignore failures.
+  }
 }
 
 /**
@@ -171,12 +192,21 @@ function addAttributeRow(name = '', options = '') {
   row.className = 'attribute-row flex gap-2 items-start';
   row.innerHTML = `
     <div class="flex-1 space-y-1">
-      <input type="text" class="attribute-name w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm" placeholder="${escapeHtml(t('attribute_name'))}" value="${escapeHtml(name)}">
+      <input type="text" list="attribute-name-suggestions" class="attribute-name w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm" placeholder="${escapeHtml(t('attribute_name'))}" value="${escapeHtml(name)}">
       <input type="text" class="attribute-options w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm" placeholder="${escapeHtml(t('attribute_options_hint'))}" value="${escapeHtml(options)}">
     </div>
     <button type="button" class="remove-attribute-row text-red-500 text-lg leading-none mt-1.5">&times;</button>
   `;
   row.querySelector('.remove-attribute-row').addEventListener('click', () => row.remove());
+
+  const nameInput = row.querySelector('.attribute-name');
+  const optionsInput = row.querySelector('.attribute-options');
+  nameInput.addEventListener('change', () => {
+    if (optionsInput.value.trim() !== '') return;
+    const match = attributeSuggestions.find((s) => s.name.toLowerCase() === nameInput.value.trim().toLowerCase());
+    if (match) optionsInput.value = match.options.join(', ');
+  });
+
   els.attributesList.appendChild(row);
 }
 

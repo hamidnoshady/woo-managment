@@ -67,6 +67,7 @@ $site = require_site_page($user);
           <label class="block text-sm font-medium text-gray-700"><?php echo htmlspecialchars(t('attributes')); ?></label>
           <div id="attributes-list" class="space-y-2"></div>
           <button type="button" id="add-attribute" class="text-xs font-medium text-blue-600"><?php echo htmlspecialchars(t('add_attribute')); ?></button>
+          <datalist id="attribute-name-suggestions"></datalist>
         </div>
       </section>
 
