@@ -42,6 +42,11 @@ class Wma_Rest
                 ['methods' => 'GET', 'callback' => [self::class, 'list_variations'], 'permission_callback' => [Wma_Auth::class, 'check']],
                 ['methods' => 'POST', 'callback' => [self::class, 'create_variation'], 'permission_callback' => [Wma_Auth::class, 'check']],
             ]);
+            register_rest_route('wma/v1', '/products/attribute-suggestions', [
+                'methods' => 'GET',
+                'callback' => [self::class, 'list_attribute_suggestions'],
+                'permission_callback' => [Wma_Auth::class, 'check'],
+            ]);
 
             register_rest_route('wma/v1', '/categories', [
                 'methods' => 'GET',
@@ -210,6 +215,18 @@ class Wma_Rest
             return isset($result['error'])
                 ? new WP_REST_Response(['error' => $result['error']], 422)
                 : new WP_REST_Response(['item' => $result], 201);
+        } catch (Throwable $e) {
+            return new WP_REST_Response(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public static function list_attribute_suggestions(WP_REST_Request $request): WP_REST_Response
+    {
+        if ($err = self::require_woocommerce()) {
+            return $err;
+        }
+        try {
+            return new WP_REST_Response(['items' => Wma_Products::list_attribute_suggestions()], 200);
         } catch (Throwable $e) {
             return new WP_REST_Response(['error' => $e->getMessage()], 500);
         }

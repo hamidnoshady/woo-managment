@@ -77,6 +77,12 @@ class SiteAgentClient
         return $this->decodeOrThrow($response)['update'];
     }
 
+    public function listAttributeSuggestions(): array
+    {
+        $response = $this->request('GET', '/wp-json/wma/v1/products/attribute-suggestions');
+        return $this->decodeOrThrow($response)['items'];
+    }
+
     public function listCategories(): array
     {
         $response = $this->request('GET', '/wp-json/wma/v1/categories');

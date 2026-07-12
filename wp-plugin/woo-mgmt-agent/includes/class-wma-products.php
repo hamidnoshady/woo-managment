@@ -534,4 +534,40 @@ class Wma_Products
         }
         return $result;
     }
+
+    /**
+     * Distinct {name, options} attribute suggestions across the site's
+     * variable products, used to power autocomplete when defining a new
+     * product's attributes (e.g. suggest "Color" -> "Red, Blue, Green"
+     * instead of retyping the same options on every product).
+     *
+     * ponytail: scans up to 200 variable products per request, no cache -
+     * fine for a typical catalog; add a transient cache if this shows up
+     * as a slow request on a very large one.
+     *
+     * @return array<int, array{name: string, options: string[]}>
+     */
+    public static function list_attribute_suggestions(): array
+    {
+        $ids = wc_get_products(['type' => 'variable', 'limit' => 200, 'return' => 'ids']);
+
+        $byName = [];
+        foreach ($ids as $id) {
+            $product = wc_get_product($id);
+            if (!$product) {
+                continue;
+            }
+            foreach (self::attributes_to_array($product) as $attr) {
+                $key = mb_strtolower($attr['name']);
+                if (!isset($byName[$key])) {
+                    $byName[$key] = ['name' => $attr['name'], 'options' => []];
+                }
+                $byName[$key]['options'] = array_values(array_unique(
+                    array_merge($byName[$key]['options'], $attr['options'])
+                ));
+            }
+        }
+
+        return array_values($byName);
+    }
 }
