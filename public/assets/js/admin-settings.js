@@ -9,7 +9,58 @@ init();
 async function init() {
   await ensureSession();
   document.getElementById('logout-btn').addEventListener('click', () => App.logout());
+  bindUpdateEvents();
   await loadSettings();
+}
+
+let latestRelease = null;
+
+function bindUpdateEvents() {
+  document.getElementById('app-update-check-btn').addEventListener('click', checkForUpdate);
+  document.getElementById('app-update-apply-btn').addEventListener('click', applyUpdate);
+}
+
+async function checkForUpdate() {
+  const checkBtn = document.getElementById('app-update-check-btn');
+  const applyBtn = document.getElementById('app-update-apply-btn');
+  const status = document.getElementById('app-version-status');
+
+  checkBtn.disabled = true;
+  status.textContent = t('app_update_checking');
+  applyBtn.classList.add('hidden');
+
+  try {
+    const data = await App.api('/api/app-update.php');
+    latestRelease = data.latest;
+    if (latestRelease) {
+      status.textContent = t('app_update_available', latestRelease.version);
+      applyBtn.classList.remove('hidden');
+    } else {
+      status.textContent = t('app_update_up_to_date', data.current_version);
+    }
+  } catch (e) {
+    status.textContent = t('app_update_check_failed');
+  } finally {
+    checkBtn.disabled = false;
+  }
+}
+
+async function applyUpdate() {
+  if (!latestRelease) return;
+  const applyBtn = document.getElementById('app-update-apply-btn');
+  const status = document.getElementById('app-version-status');
+
+  applyBtn.disabled = true;
+  status.textContent = t('app_update_updating');
+
+  try {
+    const data = await App.api('/api/app-update.php', { method: 'POST', body: JSON.stringify({}) });
+    status.textContent = t('app_update_applied', data.version);
+    setTimeout(() => window.location.reload(), 1500);
+  } catch (e) {
+    App.toast(e.message, 'error');
+    applyBtn.disabled = false;
+  }
 }
 
 async function ensureSession() {
@@ -106,6 +157,10 @@ function renderForm(fields) {
       section.appendChild(wrap);
     });
 
+    if (groups[groupName].some((f) => f.key === 'da_api_url')) {
+      section.appendChild(buildJetBackupTestConnection());
+    }
+
     form.appendChild(section);
   });
 
@@ -119,6 +174,58 @@ function renderForm(fields) {
     e.preventDefault();
     await saveSettings(saveBtn);
   });
+}
+
+function buildJetBackupTestConnection() {
+  const wrap = document.createElement('div');
+  wrap.className = 'pt-1 border-t border-gray-100 mt-1';
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'w-full rounded-xl border border-gray-300 text-gray-700 font-medium py-2.5 text-sm mt-3';
+  btn.textContent = t('jetbackup_test_connection_btn');
+
+  const result = document.createElement('div');
+  result.className = 'text-xs mt-2 space-y-1';
+
+  btn.addEventListener('click', async () => {
+    // Saved settings, not whatever is currently typed but unsaved in the
+    // form, are what a real backup/sync would use — testing against the
+    // saved values avoids a false "connected" reading after an edit that
+    // hasn't been saved yet.
+    btn.disabled = true;
+    btn.textContent = t('jetbackup_testing');
+    result.innerHTML = '';
+
+    try {
+      const data = await App.api('/api/da-sync.php?action=test');
+      result.innerHTML = [
+        renderConnectionResult(t('jetbackup_test_directadmin'), data.directadmin),
+        renderConnectionResult(t('jetbackup_test_jetbackup'), data.jetbackup),
+      ].join('');
+    } catch (e) {
+      result.innerHTML = `<p class="text-red-600">${escapeHtmlSettings(e.message)}</p>`;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = t('jetbackup_test_connection_btn');
+    }
+  });
+
+  wrap.appendChild(btn);
+  wrap.appendChild(result);
+  return wrap;
+}
+
+function renderConnectionResult(label, res) {
+  const cls = res.ok ? 'text-green-600' : 'text-red-600';
+  const detail = res.ok ? t('jetbackup_test_ok') : escapeHtmlSettings(res.error);
+  return `<p class="${cls}">${escapeHtmlSettings(label)}: ${detail}</p>`;
+}
+
+function escapeHtmlSettings(str) {
+  const div = document.createElement('div');
+  div.textContent = str ?? '';
+  return div.innerHTML;
 }
 
 async function saveSettings(saveBtn) {

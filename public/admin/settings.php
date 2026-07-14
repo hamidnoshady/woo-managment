@@ -40,6 +40,11 @@ $user = require_superadmin_page();
     <section class="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
       <h2 class="text-sm font-semibold text-gray-900"><?php echo htmlspecialchars(t('app_version_heading')); ?></h2>
       <p id="app-version-current" class="text-sm text-gray-600"><?php echo htmlspecialchars(t('app_version_current', app_version())); ?></p>
+      <p id="app-version-status" class="text-sm text-gray-600"></p>
+      <div class="flex gap-2">
+        <button id="app-update-check-btn" type="button" class="flex-1 rounded-xl border border-gray-300 py-2.5 text-sm font-medium text-gray-700"><?php echo htmlspecialchars(t('app_update_check_btn')); ?></button>
+        <button id="app-update-apply-btn" type="button" class="hidden flex-1 rounded-xl bg-gray-900 text-white py-2.5 text-sm font-medium"><?php echo htmlspecialchars(t('app_update_btn')); ?></button>
+      </div>
     </section>
 
     <div id="loading" class="text-center py-16 text-gray-400 text-sm"><?php echo htmlspecialchars(t('loading')); ?></div>

@@ -36,6 +36,15 @@ class SiteBackupManager
             return JetBackupSiteManager::startBackup($site);
         }
 
+        // Fail fast if S3 isn't configured, rather than letting the job run
+        // through dump_db (reaching a misleading "20%") only to fail on its
+        // very first upload tick once S3Client::isConfigured() comes back
+        // false — that produced a confusing "stuck at 20%, then failed" UX
+        // with no clear cause on the batch/site-backup pages.
+        if (self::s3Client() === null) {
+            throw new RuntimeException('Backup storage (S3) is not configured. Configure it in Admin -> Settings before running a site backup.');
+        }
+
         $pdo = Database::get();
         $now = time();
         $stmt = $pdo->prepare(
