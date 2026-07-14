@@ -293,6 +293,7 @@ class Database
         self::addColumnIfMissing($pdo, 'activity_logs', 'batch_job_id', 'INT NULL');
         self::addColumnIfMissing($pdo, 'sites', 'da_username', "VARCHAR(100) NOT NULL DEFAULT ''");
         self::addColumnIfMissing($pdo, 'backups', 'external_ref', "VARCHAR(255) NOT NULL DEFAULT ''");
+        self::addColumnIfMissing($pdo, 'site_jetbackup_backups', 'percent', 'INT NOT NULL DEFAULT 0');
 
         self::dropColumnIfPresent($pdo, 'sites', 'consumer_key');
         self::dropColumnIfPresent($pdo, 'sites', 'consumer_secret');

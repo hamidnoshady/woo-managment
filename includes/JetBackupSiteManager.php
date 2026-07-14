@@ -14,6 +14,11 @@ class JetBackupSiteManager
 {
     public static function startBackup(array $site): array
     {
+        $client = jetbackup_client();
+        if (!$client->isConfigured()) {
+            throw new RuntimeException('JetBackup is not configured (see Admin -> Settings -> DirectAdmin / JetBackup).');
+        }
+
         $pdo = Database::get();
         $now = time();
         $stmt = $pdo->prepare(
@@ -23,7 +28,7 @@ class JetBackupSiteManager
         $localId = (int) $pdo->lastInsertId();
 
         try {
-            $jetbackupId = jetbackup_client()->createAccountBackup($site['da_username']);
+            $jetbackupId = $client->createAccountBackup($site['da_username']);
             $pdo->prepare('UPDATE site_jetbackup_backups SET jetbackup_backup_id = ? WHERE id = ?')
                 ->execute([$jetbackupId, $localId]);
         } catch (Throwable $e) {
@@ -49,9 +54,9 @@ class JetBackupSiteManager
 
         $pdo = Database::get();
         $pdo->prepare(
-            'UPDATE site_jetbackup_backups SET status = ?, size_bytes = ?, error = ?, completed_at = ? WHERE id = ?'
+            'UPDATE site_jetbackup_backups SET status = ?, percent = ?, size_bytes = ?, error = ?, completed_at = ? WHERE id = ?'
         )->execute([
-            $status['status'], $status['size_bytes'],
+            $status['status'], $status['status'] === 'completed' ? 100 : $status['percent'], $status['size_bytes'],
             $status['error'] !== '' ? $status['error'] : null,
             $status['status'] === 'completed' ? time() : null,
             $localId,

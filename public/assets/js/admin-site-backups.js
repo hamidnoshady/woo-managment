@@ -25,7 +25,7 @@ function renderList(items) {
 
 function renderRow(item) {
   const statusClass = item.status === 'completed' ? 'text-green-600' : item.status === 'failed' ? 'text-red-600' : 'text-gray-500';
-  // JetBackup rows are always full-account: no scope selector, no `type`/`started_at`/`percent` fields.
+  // JetBackup rows are always full-account: no scope selector, no `type`/`started_at` fields.
   const isJetBackup = backupSource === 'jetbackup';
   const label = isJetBackup ? t('site_backups_heading') : escapeHtml(item.type);
   const timestamp = isJetBackup ? item.created_at : item.started_at;
@@ -35,7 +35,7 @@ function renderRow(item) {
   return `<div class="bg-white rounded-2xl border border-gray-100 p-3 flex items-center justify-between" data-job-id="${item.id}">
     <div>
       <div class="text-sm font-medium text-gray-900">${label} &middot; ${new Date(timestamp * 1000).toLocaleString()}</div>
-      <div class="text-xs ${statusClass}">${escapeHtml(item.status)}${item.status === 'running' && !isJetBackup ? ' (' + item.percent + '%)' : ''}${item.error ? ' — ' + escapeHtml(item.error) : ''}</div>
+      <div class="text-xs ${statusClass}">${escapeHtml(item.status)}${item.status === 'running' ? ' (' + item.percent + '%)' : ''}${item.error ? ' — ' + escapeHtml(item.error) : ''}</div>
     </div>
     ${restoreBtn}
   </div>`;
@@ -62,7 +62,11 @@ async function pollJob(jobId) {
   tick();
 }
 
-async function startBackup(scope) {
+async function startBackup(scope, btn) {
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = t('starting_backup');
+
   try {
     const res = await App.api('/api/site-backups.php?action=start', {
       method: 'POST',
@@ -72,11 +76,14 @@ async function startBackup(scope) {
     pollJob(res.item.id);
   } catch (e) {
     App.toast(e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
   }
 }
 
-document.getElementById('run-site-db-backup-btn').addEventListener('click', () => startBackup('database'));
-document.getElementById('run-site-full-backup-btn').addEventListener('click', () => startBackup('full'));
+document.getElementById('run-site-db-backup-btn').addEventListener('click', (e) => startBackup('database', e.currentTarget));
+document.getElementById('run-site-full-backup-btn').addEventListener('click', (e) => startBackup('full', e.currentTarget));
 
 listEl.addEventListener('click', async (e) => {
   const btn = e.target.closest('.restore-btn');

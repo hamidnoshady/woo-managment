@@ -29,8 +29,8 @@ function asset_url(string $path): string
 
 /**
  * Current web app version, manually bumped in includes/VERSION on
- * meaningful releases (there's no build step to derive this from) - display
- * only, this app has no self-update mechanism (deploy is out-of-band).
+ * meaningful releases (there's no build step to derive this from). Checked
+ * against GitHub Releases by AppUpdater.php.
  */
 function app_version(): string
 {

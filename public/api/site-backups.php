@@ -35,7 +35,11 @@ $body = json_body();
 if ($method === 'POST' && $action === 'start') {
     if ($site['da_username'] !== '') {
         require_superadmin_api();
-        $job = JetBackupSiteManager::startBackup($site);
+        try {
+            $job = JetBackupSiteManager::startBackup($site);
+        } catch (RuntimeException $e) {
+            json_response(['error' => $e->getMessage()], 409);
+        }
         log_activity($user, (int) $site['id'], 'site', 'site_backup_start', 'log_site_backup_started', ['full']);
         json_response(['item' => map_jetbackup_row($job)], 201);
     }
@@ -45,7 +49,11 @@ if ($method === 'POST' && $action === 'start') {
     }
     $scope = ($body['scope'] ?? 'database') === 'full' ? 'full' : 'database';
 
-    $job = SiteBackupManager::startBackup($site, $scope);
+    try {
+        $job = SiteBackupManager::startBackup($site, $scope);
+    } catch (RuntimeException $e) {
+        json_response(['error' => $e->getMessage()], 409);
+    }
     log_activity($user, (int) $site['id'], 'site', 'site_backup_start', 'log_site_backup_started', [$scope]);
     json_response(['item' => map_site_backup($job)], 201);
 }
@@ -93,6 +101,7 @@ function map_jetbackup_row(?array $row): ?array
     return [
         'id' => (int) $row['id'],
         'status' => $row['status'],
+        'percent' => (int) $row['percent'],
         'size_bytes' => (int) $row['size_bytes'],
         'error' => $row['error'],
         'created_at' => (int) $row['created_at'],

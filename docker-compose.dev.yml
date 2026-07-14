@@ -1,0 +1,42 @@
+# Local dev stack (PHP 8.2 + Apache + MySQL) for manually exercising the app
+# outside a shared host. Not used in production (deploy is still "upload
+# files" / git pull, per README.md).
+#
+# Quick start:
+#   1. cp includes/config.example.php includes/config.php
+#      and set: host=db, port=3306, database=woo_managment,
+#                username=woo, password=woo
+#   2. docker compose -f docker-compose.dev.yml up -d
+#   3. open http://localhost:8088 (redirects to /install.php on first run)
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: woo_managment
+      MYSQL_USER: woo
+      MYSQL_PASSWORD: woo
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  web:
+    image: php:8.2-apache
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./:/var/www/html
+    working_dir: /var/www/html
+    ports:
+      - "8088:80"
+    command: >
+      bash -c "docker-php-ext-install pdo_mysql mysqli >/tmp/ext.log 2>&1 &&
+      a2enmod rewrite &&
+      sed -i 's#DocumentRoot /var/www/html#DocumentRoot /var/www/html/public#' /etc/apache2/sites-available/000-default.conf &&
+      printf '<Directory /var/www/html/public>\\n  AllowOverride All\\n  Require all granted\\n</Directory>\\n' >> /etc/apache2/apache2.conf &&
+      apache2-foreground"

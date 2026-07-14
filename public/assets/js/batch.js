@@ -62,19 +62,22 @@ function bindEvents() {
         try {
           const r = await App.api(`/api/site-backups.php?action=poll&id=${res.item.id}`);
           if (r.item.status === 'running') {
+            status.textContent = t('backup_in_progress') + (r.item.percent ? ` (${r.item.percent}%)` : '');
             setTimeout(poll, 3000);
             return;
           }
-          status.textContent = r.item.status === 'completed' ? t('backup_done') : t('backup_failed');
+          status.textContent = r.item.status === 'completed'
+            ? t('backup_done')
+            : t('backup_failed') + (r.item.error ? ': ' + r.item.error : '');
         } catch (err) {
-          status.textContent = t('backup_failed');
+          status.textContent = t('backup_failed') + ': ' + err.message;
         } finally {
           e.target.disabled = false;
         }
       };
       poll();
     } catch (err) {
-      status.textContent = t('backup_failed');
+      status.textContent = t('backup_failed') + ': ' + err.message;
       e.target.disabled = false;
     }
   });
@@ -149,7 +152,7 @@ function previewPrice() {
     apply_to: applyTo,
   }, selection);
 
-  runPreview(pendingRequest, (change) => {
+  runPreview(document.getElementById('price-preview-btn'), pendingRequest, (change) => {
     const parts = [];
     if (change.regular_price) {
       parts.push(formatPriceComparison(change.regular_price));
@@ -177,14 +180,19 @@ function previewStock() {
     value,
   }, selection);
 
-  runPreview(pendingRequest, (change) => {
+  runPreview(document.getElementById('stock-preview-btn'), pendingRequest, (change) => {
     return `${t('stock_quantity')}: ${change.stock_quantity.old} → ${change.stock_quantity.new}`;
   });
 }
 
-async function runPreview(request, describeChange) {
+async function runPreview(triggerBtn, request, describeChange) {
   const previewSection = document.getElementById('preview-section');
   const previewList = document.getElementById('preview-list');
+
+  const originalText = triggerBtn.textContent;
+  triggerBtn.disabled = true;
+  triggerBtn.textContent = t('generating_preview');
+  previewSection.classList.add('hidden');
 
   try {
     const data = await App.api('/api/batch.php', {
@@ -219,6 +227,9 @@ async function runPreview(request, describeChange) {
     previewSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch (err) {
     App.toast(err.message, 'error');
+  } finally {
+    triggerBtn.disabled = false;
+    triggerBtn.textContent = originalText;
   }
 }
 
