@@ -2,7 +2,7 @@
  * Batch price / stock adjustment page.
  */
 
-let selection = null; // {ids: [...]} or {selectAll: true, filters: {...}, total: N}
+let selection = null; // {ids: [...]} or {select_all: true, filters: {...}, total: N}
 let pendingRequest = null;
 
 init();
@@ -16,7 +16,7 @@ async function init() {
     selection = null;
   }
 
-  const count = selection && selection.ids ? selection.ids.length : (selection && selection.selectAll ? selection.total : 0);
+  const count = selection && selection.ids ? selection.ids.length : (selection && selection.select_all ? selection.total : 0);
 
   if (!selection || count === 0) {
     document.getElementById('no-selection').classList.remove('hidden');

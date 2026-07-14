@@ -562,7 +562,7 @@ function bindEvents() {
 
   document.getElementById('selection-batch').addEventListener('click', () => {
     if (state.selectAllMatchingFilters) {
-      sessionStorage.setItem('batch_selection', JSON.stringify({ selectAll: true, filters: state.filters, total: state.lastTotal }));
+      sessionStorage.setItem('batch_selection', JSON.stringify({ select_all: true, filters: state.filters, total: state.lastTotal }));
     } else {
       if (state.selected.size === 0) return;
       sessionStorage.setItem('batch_selection', JSON.stringify({ ids: Array.from(state.selected) }));
