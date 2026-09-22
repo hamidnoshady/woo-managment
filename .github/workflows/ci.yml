@@ -69,5 +69,11 @@ jobs:
       - name: Check code style on changed files
         if: steps.changed.outputs.files != ''
         run: |
+          # --config is required explicitly when passing more than one path,
+          # since php-cs-fixer disables config auto-discovery in that case.
+          # --path-mode=intersection restricts the config's finder to just
+          # the changed files, so legacy files are never flagged.
           php-cs-fixer fix --dry-run --diff --using-cache=no \
+            --config=.php-cs-fixer.dist.php \
+            --path-mode=intersection \
             ${{ steps.changed.outputs.files }}
