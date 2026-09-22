@@ -51,9 +51,23 @@ foreach ($attributes as $label => $value) {
     $details .= "{$label}: {$value}\n";
 }
 
+// Shared writing-style guidance used by both the short and long prompts.
+$styleGuide = "Writing Style:\n"
+    . "- Write in natural Persian.\n"
+    . "- Use a professional beauty and cosmetics tone.\n"
+    . "- Focus on benefits rather than technical claims.\n"
+    . "- Avoid exaggerated marketing language.\n"
+    . "- Make the text suitable for an online store product page.\n"
+    . "- Use clear headings.\n"
+    . '- Emphasize hydration, nourishment, repair, shine, softness, strength, anti-frizz effects, and hair health when relevant.';
+
 if ($action === 'describe_short') {
-    $systemPrompt = "You are an e-commerce copywriter. Given product details, write a short product summary in {$lang}: "
-        . '1-2 sentences, plain text, no markdown, no quotes around it. Respond with ONLY the summary text and nothing else.';
+    $systemPrompt = "You are a professional Persian e-commerce copywriter. Given the product details, write a Short Description for Website:\n"
+        . "- Exactly 2 sentences\n"
+        . "- 40-60 words total\n"
+        . "- Summarize the product, ingredients, and main benefits\n\n"
+        . $styleGuide . "\n\n"
+        . 'Respond with ONLY the short description as plain text (no markdown, no quotes, no headings).';
 
     $result = $ai->chat($systemPrompt, $details);
     if (!$result['ok']) {
@@ -64,8 +78,27 @@ if ($action === 'describe_short') {
 }
 
 if ($action === 'describe_long') {
-    $systemPrompt = "You are an e-commerce copywriter. Given product details, write a long product description in {$lang}: "
-        . '3-5 paragraphs as basic HTML using <p> tags, no markdown, no surrounding commentary. Respond with ONLY the HTML.';
+    $systemPrompt = "You are a professional Persian e-commerce copywriter. Write a professional Persian e-commerce product description for the product using this structure:\n\n"
+        . "1. Product Title\n"
+        . "   - Product name\n"
+        . "   - Main benefit(s)\n\n"
+        . "2. Introduction Paragraph (80-120 words)\n"
+        . "   - Explain who the product is for\n"
+        . "   - Highlight the main problem it solves\n"
+        . "   - Mention the most important active ingredients\n"
+        . "   - Describe the overall result on the hair\n\n"
+        . "3. Features & Benefits\n"
+        . "   - 5-8 bullet points\n"
+        . "   - Focus on performance and visible results\n\n"
+        . "4. Key Ingredients\n"
+        . "   - List each important ingredient\n"
+        . "   - Explain its role and benefit in 1 sentence\n\n"
+        . "5. Results of Use\n"
+        . "   - 4-6 bullet points\n"
+        . "   - Describe expected improvements after regular use\n\n"
+        . $styleGuide . "\n\n"
+        . 'Output the description as basic HTML: use <h2>/<h3> for headings, <p> for paragraphs, and <ul>/<li> for bullet lists. '
+        . 'No markdown, no surrounding commentary. Respond with ONLY the HTML.';
 
     $result = $ai->chat($systemPrompt, $details);
     if (!$result['ok']) {

@@ -250,6 +250,50 @@ rest of the app is unaffected.
    *AutoSSL*, then enable *Force HTTPS Redirect* for the domain. Login
    cookies are marked `secure` automatically when the request is HTTPS.
 
+## Deploying on Coolify
+
+The app runs on [Coolify](https://coolify.io/) as a plain PHP application with
+no build step. Coolify redeploys **automatically on every push to `main`**
+once you enable the built-in GitHub integration below.
+
+1. **Create the application.**
+   - Coolify → *Projects* → *+ New* → *Application* → *Public Repository*
+     (or *GitHub App* for private access), and point it at
+     `https://github.com/hamidnoshady/woo-managment` on branch `main`.
+   - **Build Pack:** choose *Dockerfile* if you keep a PHP/Apache image, or
+     Nixpacks/static-PHP if your Coolify instance provides a PHP runtime.
+   - **Base/Document root:** set the web root to `public/` (all requests are
+     served from there; the rest of the tree stays private).
+   - Ensure the PHP runtime has the `curl` and `pdo_mysql` extensions enabled.
+
+2. **Enable auto-deploy on merge to `main`.**
+   - On the application → *Configuration* → **enable "Automatic Deployment"**
+     (Coolify installs a GitHub webhook for you).
+   - Now every merge/push to `main` triggers a redeploy. No workflow secrets
+     are needed — Coolify watches the repo itself.
+   - Optional: set the branch to `main` only so PR branches don't deploy.
+
+3. **Persist `includes/config.php` across deploys.**
+   - `includes/config.php` is gitignored (it holds DB credentials), so it is
+     **not** in the repo and would be lost on every redeploy. Add it as a
+     **Persistent Storage** *file mount* in Coolify at the path
+     `.../includes/config.php`, or inject the DB settings as environment
+     variables and generate the file at container start. Copy
+     `includes/config.example.php` for the expected keys.
+
+4. **First run.** Visit the app URL — you'll be redirected to `/install.php`
+   to create the first superadmin, then finish setup under *Admin → Settings*,
+   *Admin → Sites*, and *Admin → Users* (same as the other install methods).
+
+5. **HTTPS.** Coolify provisions Let's Encrypt certificates automatically once
+   you attach a domain; login cookies are marked `secure` on HTTPS requests.
+
+> **CI:** `.github/workflows/ci.yml` runs a PHP syntax lint and a code-style
+> check (php-cs-fixer, PSR-12) on every pull request to `main` and on pushes
+> to `main`. The repository is public, so GitHub-hosted runners are free with
+> unlimited minutes. Run `php-cs-fixer fix` locally to auto-fix style before
+> pushing.
+
 ## Adding more superadmins
 
 There are two ways to grant the `superadmin` role to additional accounts:
