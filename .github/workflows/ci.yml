@@ -1,0 +1,73 @@
+name: CI
+
+# Lint + code-style checks. Runs on every PR to main and on pushes to main.
+# The repo is public, so GitHub-hosted runners are free with unlimited minutes.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Deterministic: php -l over every PHP file in the project. This catches
+  # real syntax errors on both PRs and merges to main.
+  php-lint:
+    name: PHP syntax lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+
+      - name: Lint all PHP files
+        run: |
+          set -euo pipefail
+          # -print0 / -0 so paths with spaces are safe; fail on first error.
+          find public includes wp-plugin -name '*.php' -print0 \
+            | xargs -0 -n1 -P4 php -l
+
+  # Code style. Scoped to the files a PR changes so existing/legacy code
+  # never turns the check red - only new or modified PHP is enforced.
+  code-style:
+    name: Code style (php-cs-fixer)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+          tools: php-cs-fixer
+
+      - name: Collect changed PHP files
+        id: changed
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+          files=$(git diff --name-only --diff-filter=ACMR \
+            "origin/${{ github.base_ref }}...HEAD" -- '*.php' | tr '\n' ' ')
+          echo "files=$files" >> "$GITHUB_OUTPUT"
+          if [ -z "$files" ]; then
+            echo "No PHP files changed in this PR."
+          else
+            echo "Changed PHP files: $files"
+          fi
+
+      - name: Check code style on changed files
+        if: steps.changed.outputs.files != ''
+        run: |
+          php-cs-fixer fix --dry-run --diff --using-cache=no \
+            ${{ steps.changed.outputs.files }}
