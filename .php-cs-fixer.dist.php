@@ -17,7 +17,7 @@ $finder = PhpCsFixer\Finder::create()
     ->name('*.php');
 
 return (new PhpCsFixer\Config())
-    ->setRisky(false)
+    ->setRiskyAllowed(false)
     ->setRules([
         '@PSR12' => true,
         'array_syntax' => ['syntax' => 'short'],
