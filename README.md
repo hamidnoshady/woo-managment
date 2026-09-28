@@ -336,6 +336,68 @@ For local development the plain-source stack in
 [`docker-compose.dev.yml`](docker-compose.dev.yml) is still the quickest way to
 iterate.
 
+### Running the image on Coolify
+
+Instead of building from the git repository (see *Deploying on Coolify*
+above), you can run the pre-built image as its own resource:
+
+1. *New* → *Docker Image* (or a one-service Docker Compose referencing the
+   image), image `ghcr.io/hamidnoshady/woo-managment:latest`.
+2. **The container listens on port 80** — set the resource's port to `80`.
+   A wrong port usually shows up as `502 Bad Gateway`.
+3. Add the `DB_*` environment variables from the `docker run` example above
+   (or mount `includes/config.php` as a file storage at
+   `/var/www/html/includes/config.php`).
+4. Set the domain and save. Open `https://your-domain/api/sites.php` once to
+   verify: you should see `{"error":"Not authenticated"}` — that means the
+   API is reachable. A `404` there is a routing problem (see
+   *Troubleshooting* below).
+
+## Troubleshooting
+
+### The panel loads but every page is empty (no products, no settings), console shows `api/….php 404`
+
+All panel data comes from `/api/*.php` on the same origin as the pages. If
+pages render but API calls 404, those requests never reach the app — it is a
+routing/serving problem, not an app or database problem. Open
+`https://your-domain/api/sites.php` directly and match what you see:
+
+- **Plain text `404 page not found`** — that response comes from the reverse
+  proxy (Traefik on Coolify), *not* from the app (the app's own 404s are JSON
+  or Apache HTML). No route matched the request:
+  - The resource's domain isn't set/saved, or the last deployment failed
+    (Traefik drops the route when the container isn't running).
+  - **Another resource on the same Coolify server claims a domain with a
+    path on your panel's domain** (e.g. `https://panel-domain/api`). Traefik
+    path rules outrank plain host rules, so that resource silently receives
+    every `/api/*` request and 404s it. Check the *Domains* field of your
+    other resources for path suffixes.
+  - When running the GHCR image: the port must be `80` (see above).
+- **HTML `Not Found` (Apache)** — the `public/api/` files are missing inside
+  the directory being served: re-pull the image / redeploy / re-upload.
+- **`{"error":"Not authenticated"}` (HTTP 401)** — the endpoint works. If the
+  panel still shows nothing, hard-refresh it in the logged-in browser
+  (Ctrl/Cmd+Shift+R) and check the browser console again.
+
+To check the app independently of any proxy, run this inside the container
+(Coolify → resource → *Terminal*):
+
+```bash
+curl -i http://127.0.0.1/api/sites.php
+```
+
+`401 {"error":"Not authenticated"}` means the app and image are fine — look
+at whatever sits in front of them.
+
+### Browser console warnings
+
+- `cdn.tailwindcss.com should not be used in production` — expected and
+  harmless. The app deliberately uses the Tailwind Play CDN because it has no
+  build step; nothing is broken by it.
+- `<meta name="apple-mobile-web-app-capable"> is deprecated` — harmless
+  Safari deprecation notice. The modern `mobile-web-app-capable` tag is
+  emitted alongside the Apple one for older iOS versions.
+
 ## Adding more superadmins
 
 There are two ways to grant the `superadmin` role to additional accounts:
