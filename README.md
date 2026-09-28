@@ -288,11 +288,53 @@ once you enable the built-in GitHub integration below.
 5. **HTTPS.** Coolify provisions Let's Encrypt certificates automatically once
    you attach a domain; login cookies are marked `secure` on HTTPS requests.
 
-> **CI:** `.github/workflows/ci.yml` runs a PHP syntax lint and a code-style
-> check (php-cs-fixer, PSR-12) on every pull request to `main` and on pushes
-> to `main`. The repository is public, so GitHub-hosted runners are free with
-> unlimited minutes. Run `php-cs-fixer fix` locally to auto-fix style before
+> **CI:** `.github/workflows/ci.yml` runs on every pull request to `main` and
+> on pushes to `main`:
+> - **PHP syntax lint** (`php -l` over the whole tree)
+> - **Code style** (php-cs-fixer, PSR-12; PR-scoped to changed files)
+> - **Unit tests** (`php tests/run.php` — the dependency-free harness in
+>   `tests/`)
+> - **JS syntax check** (`node --check` over `public/**/*.js`)
+> - **Smoke test** — boots the app against a real MySQL service container and
+>   asserts the key entry points (`/`, `/install.php`, `/login.php`) respond
+>   without a fatal.
+>
+> The repository is public, so GitHub-hosted runners are free with unlimited
+> minutes. Run `php tests/run.php` and `php-cs-fixer fix` locally before
 > pushing.
+
+## Docker image (GHCR)
+
+A production container image is built from the repo's [`Dockerfile`](Dockerfile)
+(PHP 8.2 + Apache, document root `public/`, with the `pdo_mysql`, `mysqli`,
+`gd`, and `zip` extensions) and published to the GitHub Container Registry by
+[`.github/workflows/docker-publish.yml`](.github/workflows/docker-publish.yml):
+
+- Pull requests build the image (to catch a broken `Dockerfile`) but don't push.
+- Pushes to `main` publish `latest` and `main-<sha>` tags.
+- Git tags matching `v*` publish the matching semver tags.
+
+Pull and run it (the entrypoint generates `includes/config.php` from `DB_*`
+environment variables, so no credentials are baked into the image):
+
+```bash
+docker pull ghcr.io/hamidnoshady/woo-managment:latest
+
+docker run -d --name woo-managment -p 8080:80 \
+  -e DB_HOST=your-db-host \
+  -e DB_PORT=3306 \
+  -e DB_NAME=woo_managment \
+  -e DB_USER=woo \
+  -e DB_PASSWORD=secret \
+  ghcr.io/hamidnoshady/woo-managment:latest
+```
+
+Alternatively mount your own `includes/config.php` at
+`/var/www/html/includes/config.php` and omit the `DB_*` variables. Then open
+`http://localhost:8080` — you'll be redirected to `/install.php` on first run.
+For local development the plain-source stack in
+[`docker-compose.dev.yml`](docker-compose.dev.yml) is still the quickest way to
+iterate.
 
 ## Adding more superadmins
 
