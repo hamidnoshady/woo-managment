@@ -34,6 +34,136 @@ jobs:
           find public includes wp-plugin -name '*.php' -print0 \
             | xargs -0 -n1 -P4 php -l
 
+  # Unit tests for the pure helper functions. No database needed — uses the
+  # dependency-free harness in tests/ (php tests/run.php), consistent with the
+  # repo's "no Composer / no build step" design (see CLAUDE.md).
+  unit-tests:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+
+      - name: Run unit tests
+        run: php tests/run.php
+
+  # JS syntax check for the hand-authored, un-bundled page scripts. Mirrors the
+  # `node --check <file>` step CLAUDE.md asks for before calling JS work done.
+  js-syntax:
+    name: JS syntax check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check all JS files
+        run: |
+          set -euo pipefail
+          find public -name '*.js' -print0 | xargs -0 -n1 node --check
+
+  # Integration smoke test: boot the app against a real MySQL, let it create
+  # its schema on first request, and confirm the key entry points respond
+  # without a fatal (5xx). This is the closest thing to an end-to-end test for
+  # an app whose "framework" is plain PHP pages.
+  smoke-test:
+    name: Smoke test (PHP + MySQL)
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: woo_managment
+          MYSQL_USER: woo
+          MYSQL_PASSWORD: woo
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -uroot -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pdo_mysql, mysqli
+          coverage: none
+
+      - name: Write config.php pointing at the MySQL service
+        run: |
+          cat > includes/config.php <<'PHP'
+          <?php
+          return [
+              'host'     => '127.0.0.1',
+              'port'     => 3306,
+              'database' => 'woo_managment',
+              'username' => 'woo',
+              'password' => 'woo',
+          ];
+          PHP
+
+      - name: Wait for MySQL
+        # The service health-check already gates the job, but retry a real
+        # connection (via the mysqli extension we just set up) so the smoke
+        # test never races a not-quite-ready server. No mysql-client needed.
+        run: |
+          php -r '
+            for ($i = 0; $i < 30; $i++) {
+              $c = @mysqli_connect("127.0.0.1", "woo", "woo", "woo_managment", 3306);
+              if ($c) { echo "MySQL is up\n"; exit(0); }
+              echo "waiting for mysql (" . ($i + 1) . ")...\n";
+              sleep(2);
+            }
+            fwrite(STDERR, "MySQL did not become ready in time\n");
+            exit(1);
+          '
+
+      - name: Start PHP built-in server
+        run: |
+          php -S 0.0.0.0:8080 -t public > server.log 2>&1 &
+          echo "SERVER_PID=$!" >> "$GITHUB_ENV"
+          # Give it a moment to bind.
+          sleep 2
+
+      - name: Hit key entry points
+        run: |
+          set -euo pipefail
+          check() {
+            local path="$1"
+            local code
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8080${path}")
+            echo "GET ${path} -> ${code}"
+            # Any 5xx (including a PHP fatal surfaced as 500) fails the job.
+            if [ "$code" -ge 500 ]; then
+              echo "::error::${path} returned ${code}"
+              return 1
+            fi
+          }
+          # First hit creates the schema; subsequent hits exercise the pages.
+          check /              # redirects to /install.php on a fresh DB
+          check /install.php   # first-run superadmin setup page
+          check /login.php     # OTP login page
+
+      - name: Show server log on failure
+        if: failure()
+        run: cat server.log || true
+
+      - name: Stop PHP server
+        if: always()
+        run: kill "${SERVER_PID}" 2>/dev/null || true
+
   # Code style. Scoped to the files a PR changes so existing/legacy code
   # never turns the check red - only new or modified PHP is enforced.
   code-style:

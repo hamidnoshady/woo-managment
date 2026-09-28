@@ -1,0 +1,24 @@
+# Keep VCS, CI, dev-only, and secret files out of the image build context.
+.git
+.github
+.gitignore
+.worktrees
+*.md
+CLAUDE.md
+docker-compose.dev.yml
+Dockerfile
+.dockerignore
+.php-cs-fixer.dist.php
+.php-cs-fixer.cache
+
+# Never bake real DB credentials into the image — generated at runtime.
+includes/config.php
+
+# Not part of the web app image (WP plugin ships via GitHub Releases; docs
+# are repo-only).
+wp-plugin
+docs
+
+# Build artifacts
+wp-plugin/woo-mgmt-agent.zip
+*.zip
