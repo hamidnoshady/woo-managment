@@ -68,3 +68,94 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # End-to-end smoke test of the image this workflow produces: run it against
+  # a real MySQL and assert the key URLs behave.
+  #
+  # The most important assertion is that /api/*.php answers 401 JSON
+  # ("Not authenticated") when logged out — a 404 there means the API layer
+  # isn't being served at all (broken image, wrong document root, missing
+  # files), which is exactly the "panel loads but shows no data anywhere"
+  # failure mode. Pages and API are served by the same Apache, so if the
+  # pages work but the API 404s inside the container, the image is broken.
+  smoke-test-image:
+    name: Smoke test image (run + curl)
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: woo_managment
+          MYSQL_USER: woo
+          MYSQL_PASSWORD: woo
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -uroot -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the image locally
+        run: docker build -t woo-managment:smoketest .
+
+      # Host networking lets the container reach the MySQL service container
+      # on 127.0.0.1:3306 and exposes Apache on the runner's port 80.
+      - name: Run the container
+        run: |
+          docker run -d --name woo-web --network host \
+            -e DB_HOST=127.0.0.1 \
+            -e DB_PORT=3306 \
+            -e DB_NAME=woo_managment \
+            -e DB_USER=woo \
+            -e DB_PASSWORD=woo \
+            woo-managment:smoketest
+
+      # The first request creates the database schema, so it can take a few
+      # seconds longer than a normal page load.
+      - name: Wait until the app answers
+        run: |
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1/install.php || true)
+            echo "attempt ${i}: /install.php -> ${code}"
+            if [ "$code" = "200" ]; then exit 0; fi
+            sleep 2
+          done
+          echo "::error::app did not come up within 60s"
+          docker logs woo-web
+          exit 1
+
+      - name: Assert pages, assets, and API behavior
+        run: |
+          set -euo pipefail
+          assert() {
+            local path="$1" want="$2" code
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1${path}")
+            echo "GET ${path} -> ${code} (want ${want})"
+            if [ "$code" != "$want" ]; then
+              echo "::error::GET ${path} returned ${code}, expected ${want}"
+              return 1
+            fi
+          }
+          # Fresh database, no superadmin yet: / and /login.php redirect to
+          # the installer.
+          assert / 302
+          assert /install.php 200
+          assert /login.php 302
+          assert /assets/js/app.js 200
+          # The panel's data layer: logged-out API calls must be 401 JSON —
+          # never 404. A 404 here is the "empty panel" symptom.
+          assert /api/sites.php 401
+          assert /api/products.php 401
+          assert '/api/auth.php?action=me' 200
+          body=$(curl -s http://127.0.0.1/api/sites.php)
+          echo "GET /api/sites.php body: ${body}"
+          echo "$body" | grep -q 'Not authenticated'
+
+      - name: Show container logs on failure
+        if: failure()
+        run: docker logs woo-web || true
+

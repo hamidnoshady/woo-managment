@@ -13,6 +13,9 @@ function render_pwa_head(): void
     <meta name="theme-color" content="#111827">
     <link rel="icon" href="/assets/icons/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/assets/icons/icon.svg">
+    <!-- The "mobile-web-app-capable" spelling is the current standard; the
+         apple-* one is deprecated but kept for older iOS Safari versions. -->
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <?php
